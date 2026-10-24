@@ -89,10 +89,10 @@ PitchMint-mobile/
 ---
 
 ## 6. Current Testing & CI Status
-- **Test Suites:** 19 passed, 19 total.
-- **Tests:** 111 passed, 111 total.
+- **Test Suites:** 20 passed, 20 total.
+- **Tests:** 127 passed, 127 total.
 - **TypeScript:** Clean pass (`tsc --noEmit` exits 0).
-- **Android JS Export:** Passes (`npx expo export --platform android` bundles 888 modules into Hermes bytecode).
+- **Android JS Export:** Passes (`npx expo export --platform android` bundles 889 modules into Hermes bytecode).
 - **Expo Doctor:** 21/21 checks passed cleanly on Expo SDK 57.0.31.
 
 ---
@@ -101,3 +101,4 @@ PitchMint-mobile/
 1. **In-App Account Deletion:** Apple Guideline 5.1.1(v) & Google Play policy mandate in-app deletion. Blocked on backend endpoint `DELETE /api/auth/account`.
 2. **Native Digital Store Billing:** Google Play and Apple prohibit third-party checkouts (Razorpay) for in-app consumed digital credits. Native store billing needed before store launch.
 3. **Backend Password/OAuth Collision:** Backend requires account linking logic when a Google OAuth user attempts local password login.
+4. **Backend Request Idempotency:** `POST /api/idea/submit` lacks backend idempotency key support. Mobile mitigates by disabling automated retries and directing users to Saved Ideas on ambiguous network timeouts.

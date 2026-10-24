@@ -69,7 +69,24 @@ export const HomeScreen: React.FC = () => {
   }, [refreshUser]);
 
   useEffect(() => {
+    let isMounted = true;
     loadDashboardData();
+
+    if (typeof (navigation as any)?.addListener === 'function') {
+      const unsubscribe = (navigation as any).addListener('focus', () => {
+        if (isMounted) {
+          loadDashboardData();
+        }
+      });
+      return () => {
+        isMounted = false;
+        unsubscribe();
+      };
+    }
+
+    return () => {
+      isMounted = false;
+    };
   }, [loadDashboardData]);
 
   const handleRefresh = useCallback(() => {

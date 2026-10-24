@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient';
+import { apiClient, ApiError } from './apiClient';
 import { parseIdeaTitleAndDesc, hasSubDocument, ParsedIdeaCard } from '../../utils/ideaParser';
 
 export interface BackendIdea {
@@ -42,6 +42,14 @@ export interface SavedIdeasResponse {
 export interface GetSavedIdeasParams {
   page?: number;
   limit?: number;
+}
+
+export interface SubmitIdeaRequest {
+  ideaText: string;
+}
+
+export interface SubmitIdeaResponse extends BackendIdea {
+  userCredits?: number;
 }
 
 /**
@@ -104,5 +112,39 @@ export const ideasApi = {
    */
   getIdeaById(id: string): Promise<BackendIdea> {
     return apiClient.get<BackendIdea>(`/api/idea/${id}`);
+  },
+
+  /**
+   * Submits a startup idea for live backend AI validation.
+   * Route: POST /api/idea/submit
+   * Cost: 1 credit (deducted atomically by backend)
+   */
+  async submitIdea(payload: SubmitIdeaRequest): Promise<SubmitIdeaResponse> {
+    const trimmed = payload?.ideaText?.trim();
+    if (!trimmed) {
+      throw new ApiError({
+        message: 'Please provide your startup idea',
+        status: 400,
+      });
+    }
+
+    const response = await apiClient.post<SubmitIdeaResponse>('/api/idea/submit', {
+      ideaText: trimmed,
+    });
+
+    // Validate response shape to guard against malformed data
+    if (
+      !response ||
+      typeof response !== 'object' ||
+      typeof response.overallScore !== 'number' ||
+      !response.analysis
+    ) {
+      throw new ApiError({
+        message: 'Received an incomplete or malformed validation response from server.',
+        status: 502,
+      });
+    }
+
+    return response;
   },
 };

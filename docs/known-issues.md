@@ -23,6 +23,11 @@ This document tracks known limitations, external dependencies, and public releas
 - **Current State:** Mobile auth client checks response codes and routes unverified or conflicting users safely.
 - **Action Required:** Backend account-linking flow to associate passwords or prompt Google Sign-In when a collision occurs.
 
+### D. Backend Validation Request Idempotency & Ambiguous Outcomes
+- **Issue:** `POST /api/idea/submit` does not currently accept or evaluate an `Idempotency-Key` on the backend. If a network timeout or socket disconnect occurs after credits were deducted and AI processing began, an automated retry could deduct a second credit.
+- **Current Mobile State (Phase 3B):** The mobile app disables automatic retries on uncertain or interrupted outcomes. It preserves the user's input, presents a clear recoverable notification, and provides a direct shortcut to verify the Saved Ideas catalog before resubmitting.
+- **Action Required for Public Release:** Backend team to implement request idempotency middleware (e.g. Redis or database key cache) on `POST /api/idea/submit` prior to high-volume commercial store launch.
+
 ---
 
 ## 2. Dependency & Security Advisories Analysis
