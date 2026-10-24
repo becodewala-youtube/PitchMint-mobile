@@ -4,33 +4,35 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 500 nodes · 1296 edges · 18 communities (16 shown, 2 thin omitted)
+- 507 nodes · 1308 edges · 21 communities (18 shown, 3 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `fa0928d8`
+- Built from commit: `66491390`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - react-native
-- IdeaDetailsScreen.tsx
-- apiClient.ts
+- BottomTabNavigator.tsx
+- package.json
 - ResetPasswordScreen.tsx
-- RootNavigator.tsx
+- apiClient.ts
 - steps
 - graphify-update.yml
 - expo
-- package.json
+- IdeaDetailsScreen.tsx
+- HomeScreen.tsx
+- ProfileScreen.tsx
 - updates
 - ActivityScreen.tsx
-- scripts
-- dependencies
-- GoogleSignInButton.tsx
-- app/App.tsx
+- ValidateModalScreen.tsx
+- IdeaDetailsScreen.test.tsx
+- env.ts
 - tsconfig.json
 - AppErrorBoundary
+- signInScreen.test.tsx
 
 ## God Nodes (most connected - your core abstractions)
 1. `react-native` - 46 edges
@@ -53,33 +55,33 @@
   src/components/Pill.tsx → src/theme/colors.ts
 - `AuthNavigatorProps` --references--> `AuthStackParamList`  [EXTRACTED]
   src/navigation/AuthNavigator.tsx → src/navigation/types.ts
-- `ActivityScreen()` --calls--> `formatDisplayDateTime()`  [EXTRACTED]
-  src/features/activity/screens/ActivityScreen.tsx → src/utils/date.ts
+- `RootNavigator()` --calls--> `useAuth()`  [EXTRACTED]
+  src/navigation/RootNavigator.tsx → src/context/AuthContext.tsx
 
 ## Import Cycles
 - None detected.
 
-## Communities (18 total, 2 thin omitted)
+## Communities (21 total, 3 thin omitted)
 
 ### Community 0 - "react-native"
 Cohesion: 0.06
-Nodes (59): react, react-native, react-native-safe-area-context, AppProvidersProps, ErrorBoundaryProps, ErrorBoundaryState, styles, AuthCardProps (+51 more)
+Nodes (53): react, react-native, AppProvidersProps, ErrorBoundaryProps, ErrorBoundaryState, styles, AuthCardProps, styles (+45 more)
 
-### Community 1 - "IdeaDetailsScreen.tsx"
+### Community 1 - "BottomTabNavigator.tsx"
+Cohesion: 0.06
+Nodes (30): expo-secure-store@~57.0.4, expo-secure-store, App(), AppProviders(), AuthContext, OnboardingContext, OnboardingContextType, OnboardingProvider() (+22 more)
+
+### Community 2 - "package.json"
 Cohesion: 0.05
-Nodes (51): AppConfig, config, HomeScreen(), NavigationProp, styles, mockNavigate, mockRefreshUser, mockUser (+43 more)
-
-### Community 2 - "apiClient.ts"
-Cohesion: 0.07
-Nodes (39): RFC-4122, AuthContextType, AuthProvider(), mockUser, mockClearError, mockNavigate, mockRouteParams, mockSignIn (+31 more)
+Nodes (48): dependencies, expo@~57.0.31, expo-status-bar@~57.0.1, react@19.2.3, react-native@0.86.3, react-native-safe-area-context@~5.7.0, react-native-screens@~4.26.0, @react-navigation/bottom-tabs@^7.20.0 (+40 more)
 
 ### Community 3 - "ResetPasswordScreen.tsx"
 Cohesion: 0.13
 Nodes (38): @react-navigation/native, @react-navigation/native-stack, AuthCard(), Button(), GoogleSignInButton(), Icon(), Input(), useAuth() (+30 more)
 
-### Community 4 - "RootNavigator.tsx"
-Cohesion: 0.09
-Nodes (23): expo-secure-store, AuthContext, OnboardingContext, OnboardingContextType, OnboardingProvider(), useOnboarding(), AuthLoadingScreen(), OnboardingScreen() (+15 more)
+### Community 4 - "apiClient.ts"
+Cohesion: 0.08
+Nodes (32): RFC-4122, GoogleLogo(), GoogleSignInButtonProps, styles, AuthContextType, AuthProvider(), mockUser, generateRequestId() (+24 more)
 
 ### Community 5 - "steps"
 Cohesion: 0.08
@@ -91,59 +93,67 @@ Nodes (23): concurrency, cancel-in-progress, group, jobs, update-graph, name, pe
 
 ### Community 7 - "expo"
 Cohesion: 0.09
-Nodes (21): backgroundColor, backgroundImage, foregroundImage, monochromeImage, adaptiveIcon, predictiveBackGestureEnabled, expo, android (+13 more)
+Nodes (22): backgroundColor, backgroundImage, foregroundImage, monochromeImage, adaptiveIcon, package, predictiveBackGestureEnabled, expo (+14 more)
 
-### Community 8 - "package.json"
+### Community 8 - "IdeaDetailsScreen.tsx"
+Cohesion: 0.15
+Nodes (17): CANVAS_BLOCKS, IdeaDetailsScreen(), PITCH_DECK_SLIDES, styles, BackendIdea, CanvasContentData, CompetitorItem, CompetitorSwot (+9 more)
+
+### Community 9 - "HomeScreen.tsx"
+Cohesion: 0.16
+Nodes (12): HomeScreen(), NavigationProp, styles, FilterType, IdeasScreen(), NavigationProp, styles, RootStackParamList (+4 more)
+
+### Community 10 - "ProfileScreen.tsx"
 Cohesion: 0.13
-Nodes (21): devDependencies, jest@^29.7.0, jest-expo@^57.0.6, @testing-library/react-native@^14.1.0, @types/jest@^29.5.14, @types/node@^26.6.5, @types/react@~19.2.2, @types/react-test-renderer@^19.3.0 (+13 more)
+Nodes (15): DEMO_PLANS, ProfileScreen(), SettingRow(), SettingRowProps, styles, mockRefreshUser, mockSignOut, mockUser (+7 more)
 
-### Community 9 - "updates"
+### Community 11 - "updates"
 Cohesion: 0.12
 Nodes (15): prefix, patterns, development-dependencies, day, interval, time, timezone, updates (+7 more)
 
-### Community 10 - "ActivityScreen.tsx"
-Cohesion: 0.27
-Nodes (11): Card(), IconBadge(), Pill(), ScreenContainer(), ActivityScreen(), getServiceVisuals(), styles, activityApi (+3 more)
+### Community 12 - "ActivityScreen.tsx"
+Cohesion: 0.25
+Nodes (12): Card(), IconBadge(), Pill(), ScreenContainer(), ActivityScreen(), getServiceVisuals(), styles, activityApi (+4 more)
 
-### Community 11 - "scripts"
+### Community 13 - "ValidateModalScreen.tsx"
 Cohesion: 0.17
-Nodes (12): scripts, android, doctor, export:android, graphify:extract, graphify:html, graphify:update, ios (+4 more)
+Nodes (9): ANALYZING_STEPS, ModalStage, styles, TIPS, ValidateModalScreen(), mockGoBack, mockNavigate, mockRefreshUser (+1 more)
 
-### Community 12 - "dependencies"
-Cohesion: 0.18
-Nodes (11): dependencies, expo-secure-store@~57.0.4, react@19.2.3, react-native@0.86.3, react-native-safe-area-context@~5.7.0, react-native-screens@~4.26.0, @react-navigation/bottom-tabs@^7.20.0, @react-navigation/native@^7.5.0 (+3 more)
+### Community 14 - "IdeaDetailsScreen.test.tsx"
+Cohesion: 0.20
+Nodes (8): mockNavigate, mockRefreshUser, mockUser, mockGoBack, mockNavigate, mockRouteParams, mockNavigate, ideasApi
 
-### Community 13 - "GoogleSignInButton.tsx"
-Cohesion: 0.24
-Nodes (8): GoogleLogo(), GoogleSignInButtonProps, styles, AuthSuccessResponse, checkGoogleSignInStatus(), googleAuthService, GoogleSignInConfig, GoogleSignInStatus
+### Community 15 - "env.ts"
+Cohesion: 0.39
+Nodes (6): AppConfig, config, getAppConfig(), getDefaultApiUrl(), isDemoTopUpEnabled(), sanitizeApiUrl()
 
-### Community 14 - "app/App.tsx"
-Cohesion: 0.24
-Nodes (7): expo@~57.0.31, expo-status-bar@~57.0.1, expo, expo-status-bar, App(), AppProviders(), navigationDarkTheme
-
-### Community 15 - "tsconfig.json"
+### Community 16 - "tsconfig.json"
 Cohesion: 0.33
 Nodes (5): expo/tsconfig.base, compilerOptions, strict, types, extends
 
+### Community 18 - "signInScreen.test.tsx"
+Cohesion: 0.40
+Nodes (4): mockClearError, mockNavigate, mockRouteParams, mockSignIn
+
 ## Knowledge Gaps
 - **2 isolated node(s):** `expo/tsconfig.base`, `RFC-4122`
-  These have ≤1 connection - possible missing edges. (Counts symbols only; 221 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **2 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges. (Counts symbols only; 222 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react-native` connect `react-native` to `IdeaDetailsScreen.tsx`, `apiClient.ts`, `ResetPasswordScreen.tsx`, `RootNavigator.tsx`, `package.json`, `ActivityScreen.tsx`, `dependencies`, `GoogleSignInButton.tsx`?**
-  _High betweenness centrality (0.143) - this node is a cross-community bridge._
+- **Why does `react-native` connect `react-native` to `BottomTabNavigator.tsx`, `package.json`, `ResetPasswordScreen.tsx`, `apiClient.ts`, `IdeaDetailsScreen.tsx`, `HomeScreen.tsx`, `ProfileScreen.tsx`, `ActivityScreen.tsx`, `ValidateModalScreen.tsx`, `IdeaDetailsScreen.test.tsx`, `env.ts`, `signInScreen.test.tsx`?**
+  _High betweenness centrality (0.144) - this node is a cross-community bridge._
 - **What connects `expo/tsconfig.base`, `RFC-4122` to the rest of the system?**
   _2 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `react-native` be split into smaller, more focused modules?**
-  _Cohesion score 0.05701754385964912 - nodes in this community are weakly interconnected._
-- **Why does `react` connect `react-native` to `IdeaDetailsScreen.tsx`, `apiClient.ts`, `ResetPasswordScreen.tsx`, `RootNavigator.tsx`, `package.json`, `ActivityScreen.tsx`, `dependencies`, `GoogleSignInButton.tsx`, `app/App.tsx`?**
-  _High betweenness centrality (0.108) - this node is a cross-community bridge._
-- **Should `IdeaDetailsScreen.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.054746835443037975 - nodes in this community are weakly interconnected._
-- **Why does `scripts` connect `scripts` to `package.json`?**
-  _High betweenness centrality (0.035) - this node is a cross-community bridge._
-- **Should `apiClient.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.06779661016949153 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06429548563611491 - nodes in this community are weakly interconnected._
+- **Why does `react` connect `react-native` to `BottomTabNavigator.tsx`, `package.json`, `ResetPasswordScreen.tsx`, `apiClient.ts`, `IdeaDetailsScreen.tsx`, `HomeScreen.tsx`, `ProfileScreen.tsx`, `ActivityScreen.tsx`, `ValidateModalScreen.tsx`, `IdeaDetailsScreen.test.tsx`, `signInScreen.test.tsx`?**
+  _High betweenness centrality (0.105) - this node is a cross-community bridge._
+- **Should `BottomTabNavigator.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.06196078431372549 - nodes in this community are weakly interconnected._
+- **Should `package.json` be split into smaller, more focused modules?**
+  _Cohesion score 0.05187074829931973 - nodes in this community are weakly interconnected._
+- **Should `ResetPasswordScreen.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.1347517730496454 - nodes in this community are weakly interconnected._
