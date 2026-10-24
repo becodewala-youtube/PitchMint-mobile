@@ -41,6 +41,7 @@ Running `npm audit` on Expo SDK 57 reports moderate/high advisories for `node-fo
 ---
 
 ## 3. Expo SDK Patch Version Alignment
-- **Current Version:** `expo@57.0.28`
-- **Diagnostic Result:** `npx expo-doctor` flags a patch mismatch: expected `~57.0.31`.
-- **Resolution:** A dedicated maintenance pull request has been prepared to patch Expo to `~57.0.31` cleanly.
+- **Current Version:** `expo@~57.0.31`
+- **Status:** Resolved on `main` (merged via PR #3).
+- **Diagnostic Result:** `npx expo-doctor` passes all 21/21 checks cleanly with zero patch mismatches detected.
+- **Compatibility:** `npx expo install --check` validates that core dependencies (`expo`, `expo-secure-store`, `expo-status-bar`, `react-native`, `react`) match Expo SDK 57 recommended specifications.

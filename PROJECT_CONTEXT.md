@@ -5,7 +5,7 @@ This document captures the verified facts, versions, scripts, and status of `Pit
 ---
 
 ## 1. Stack & Dependency Versions
-- **Expo SDK:** `~57.0.28` (Target patch: `~57.0.31`)
+- **Expo SDK:** `~57.0.31`
 - **React Native:** `0.86.3`
 - **React:** `19.2.3`
 - **TypeScript:** `~6.0.3` (Strict mode)
