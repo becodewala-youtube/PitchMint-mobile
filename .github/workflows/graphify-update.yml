@@ -52,5 +52,6 @@ jobs:
             echo "No changes in knowledge graph."
           else
             git commit -m "chore(graphify): update knowledge graph on main [skip ci]"
+            git pull --rebase origin main || true
             git push
           fi
