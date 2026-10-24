@@ -1,57 +1,40 @@
-This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+# PitchMint Mobile — Agent Instructions
 
-## Expo has changed — do not trust your training data
+This is the independent React Native / Expo mobile application for the PitchMint platform.
 
-Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
+## Repository Boundaries & Isolation
+1. **Decoupled Repositories:** `PitchMint-mobile` is an independent repository alongside `PitchMint-Backend` and `PitchMint-frontend`.
+2. **Never Create Monorepos or Cross-Repo Links:** Do not create monorepos, symlinks, or cross-workspace dependencies. Never modify files outside `PitchMint-mobile`.
+3. **Read-Only Design Reference:** `design-mobile-app-from-website` is purely reference material.
 
-1. Read the major version of the `expo` package in `package.json`.
-2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
-3. For anything else, fetch https://docs.expo.dev/llms.txt — an index of all Expo docs with corrections to common LLM misconceptions. Follow its links to the specific page you need; never answer from memory.
+## Architecture & Technology Stack
+- **Framework:** Expo SDK 57 (Continuous Native Generation / CNG, EAS ready)
+- **Runtime:** React Native 0.86.3, React 19.2.3, TypeScript 6.0.3 (Strict)
+- **Navigation:** React Navigation 7 (`@react-navigation/native`, `@react-navigation/native-stack`, `@react-navigation/bottom-tabs`). Do NOT use Expo Router.
+- **Persistence:** Hardware-backed `expo-secure-store` with memory-fallback for testing.
+- **Design:** Dark-only Arena design system (Base `#000000`, violet accent `#7C3AED`, 48dp min touch targets).
 
-## Commands
+## Mandatory Engineering Rules
+- **Zero Secrets:** Never place server secrets (`JWT_SECRET`, `GEMINI_API_KEY`, etc.) in client code or configurations.
+- **No Unsafe Logging:** Never log passwords, tokens, or sensitive payloads.
+- **Testing:** Every change must include or update tests. Always verify `npm test` and `npm run typecheck` pass.
+- **Approval Gate:** Never merge pull requests or deploy autonomously. The owner must review and approve all PRs.
 
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
-
+## Verification Commands
 ```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
+npm run typecheck                  # Verify TypeScript compiler
+npm test                           # Run complete Jest test suite
+npm run doctor                     # Run Expo diagnostics
+npx expo export --platform android # Validate Android JS bundle export
 ```
 
-Run lint and typecheck before declaring any task done.
-
-## Navigation & Routing
-
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
-
-## Building with EAS
-
-Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
-Docs: https://docs.expo.dev/eas/index.md
-
-## PitchMint Workspace Boundaries & Rules
-
-1. **Repository Isolation:**
-   - The PitchMint suite consists of three decoupled repositories: `PitchMint-Backend`, `PitchMint-frontend`, and `PitchMint-mobile`.
-   - The web frontend and backend **must remain independent repositories**.
-   - NEVER modify files in `PitchMint-Backend` or `PitchMint-frontend` while working on the mobile app.
-   - Do NOT create a monorepo, symlinks, or shared workspace root.
-
-2. **Mobile Security Mandates:**
-   - Mobile client binaries are distributed to public devices and can be reverse engineered.
-   - NEVER place server secrets, Gemini API keys, Razorpay secret keys, or JWT signing secrets in mobile code or configuration.
-
-3. **Public-Release Blockers (Tracked Separately):**
-   - **Account Deletion:** Apple and Google mandate an in-app account deletion flow. The backend must add `DELETE /api/auth/account` before public store submission.
-   - **Store Billing:** Google Play and Apple prohibit external payment gateways (e.g. Razorpay web checkouts) for in-app consumed digital goods. Native Google Play Billing will be introduced post-MVP.
-
-## Rules
-
-- If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
-- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
-- Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+## Detailed Documentation Directory
+- Comprehensive Rules: [`.agents/rules/`](.agents/rules/)
+  - Project Scope: [`.agents/rules/project.md`](.agents/rules/project.md)
+  - Architecture: [`.agents/rules/architecture.md`](.agents/rules/architecture.md)
+  - Coding Standards: [`.agents/rules/coding.md`](.agents/rules/coding.md)
+  - SDLC Workflow: [`.agents/rules/workflow.md`](.agents/rules/workflow.md)
+- Verified Project Facts: [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md)
+- Architecture Deep Dive: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- Known Issues & Blockers: [`docs/known-issues.md`](docs/known-issues.md)
+- Development Workflow: [`docs/development-workflow.md`](docs/development-workflow.md)

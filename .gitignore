@@ -9,6 +9,9 @@ dist/
 web-build/
 expo-env.d.ts
 
+# Graphify
+graphify-out/
+
 # Native
 .kotlin/
 *.orig.*
