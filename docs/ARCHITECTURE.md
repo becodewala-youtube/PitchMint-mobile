@@ -15,38 +15,62 @@
 
 ```
 PitchMint-mobile/
+├── .agents/                 # AI engineering rules and SDLC workflows
+│   └── rules/               # project.md, architecture.md, coding.md, workflow.md
+├── .github/                 # GitHub workflows and automation
+│   ├── workflows/ci.yml     # Automated PR & push CI pipeline
+│   └── dependabot.yml       # Weekly dependency and security scanning
 ├── assets/                  # App launcher icons, splash screen, adaptive icons
-├── docs/                    # Architecture and developer setup instructions
+├── docs/                    # Architecture, workflow, and known-issues documentation
 │   ├── ARCHITECTURE.md      # This document
-│   └── SETUP.md             # Local environment and execution guide
+│   ├── SETUP.md             # Local environment and execution guide
+│   ├── development-workflow.md # SDLC and CI instructions
+│   └── known-issues.md      # Tracked public-release blockers and security notes
 ├── src/
 │   ├── app/                 # Root application wrapper & runtime providers
 │   │   ├── App.tsx          # Root container: NavigationContainer & StatusBar
-│   │   └── AppProviders.tsx # SafeAreaProvider and AppErrorBoundary
+│   │   └── AppProviders.tsx # SafeAreaProvider, AuthProvider, OnboardingProvider
+│   ├── context/             # Global application contexts
+│   │   ├── AuthContext.tsx  # User session, JWT state, login/logout actions
+│   │   └── OnboardingContext.tsx # Onboarding status and completion actions
 │   ├── navigation/          # React Navigation configuration
-│   │   ├── types.ts         # Strictly typed RootStack and MainTab ParamLists
-│   │   ├── RootNavigator.tsx# Root Stack Navigator (MainTabs + Modal routes)
-│   │   └── BottomTabNavigator.tsx # 5-position bottom tab bar + raised Validate CTA
+│   │   ├── types.ts         # Strictly typed ParamLists (RootStack, MainTab, AuthStack)
+│   │   ├── RootNavigator.tsx# Root Stack Navigator (AuthLoading, Onboarding, Auth, MainTabs)
+│   │   ├── BottomTabNavigator.tsx # 5-position bottom tab bar + raised Validate CTA
+│   │   └── AuthNavigator.tsx# Authentication stack (SignIn, SignUp, Forgot, Reset, Verify)
 │   ├── theme/               # Dark theme tokens inspired by Arena prototype
-│   │   ├── colors.ts        # Palette: #090A0F base, card surfaces, #7C3AED purple
+│   │   ├── colors.ts        # Palette: #000000 base, card surfaces, #7C3AED violet
 │   │   ├── spacing.ts       # Layout grid, border radiuses, 48dp touch targets, shadows
 │   │   ├── typography.ts    # Scaled type sizes and font weights
 │   │   └── index.ts         # Consolidated export and navigationDarkTheme
 │   ├── components/          # Reusable atomic presentation components
 │   │   ├── ScreenContainer.tsx # Safe-area & scroll wrapper
 │   │   ├── Card.tsx         # Dark elevated card surface
+│   │   ├── AuthCard.tsx     # Form wrapper card for authentication screens
 │   │   ├── Badge.tsx        # Status & score pill chips
+│   │   ├── Pill.tsx         # Multi-state filter chips
+│   │   ├── ScoreBar.tsx     # Visual validation score indicator
 │   │   ├── Button.tsx       # 48dp minimum accessible button with feedback
+│   │   ├── GoogleSignInButton.tsx # Branded Google OAuth button
+│   │   ├── Input.tsx        # Accessible styled text input with error display
 │   │   ├── Icon.tsx         # Zero-dependency native vector primitives
 │   │   └── index.ts
-│   ├── features/            # MVP screen placeholders with realistic mock data
+│   ├── features/            # Feature modules and screens
 │   │   ├── home/screens/HomeScreen.tsx       # Welcome, credits card, recent validations
 │   │   ├── ideas/screens/IdeasScreen.tsx     # Saved ideas catalog with score filters
 │   │   ├── validate/screens/ValidateModalScreen.tsx # Center (+) modal validation launcher
 │   │   ├── activity/screens/ActivityScreen.tsx # Chronological log (replaces Toolkit)
-│   │   └── profile/screens/ProfileScreen.tsx # Founder profile & compliance notices
-│   └── config/              # Safe client runtime configuration
-│       └── env.ts           # Environment variables without server secrets
+│   │   ├── profile/screens/ProfileScreen.tsx # Founder profile & compliance notices
+│   │   ├── onboarding/screens/               # WelcomeScreen.tsx & OnboardingScreen.tsx
+│   │   └── auth/screens/                     # SignIn, SignUp, Forgot, Reset, Verify, Loading
+│   ├── services/            # API client, auth API, and storage services
+│   │   ├── api/apiClient.ts # Native fetch wrapper with token injection and 401 handler
+│   │   ├── api/authApi.ts   # Backend auth endpoints
+│   │   ├── auth/googleAuthService.ts # Google OAuth native integration
+│   │   └── storage/         # Hardware-backed SecureStore (tokenStorage, onboardingStorage)
+│   ├── config/              # Safe client runtime configuration
+│   │   └── env.ts           # Environment variables without server secrets
+│   └── utils/               # Validation helpers (email, password strength)
 ├── app.json                 # Expo project manifest (dark theme, portrait orientation)
 ├── index.ts                 # Expo entrypoint (registerRootComponent)
 ├── App.tsx                  # Root re-export pointing to src/app/App

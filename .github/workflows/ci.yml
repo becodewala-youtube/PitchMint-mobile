@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate, Test & Bundle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies from lockfile
+        run: npm ci
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Run Jest test suite
+        run: npm test -- --ci --maxWorkers=2
+
+      - name: Expo Doctor diagnostic check
+        run: npx expo-doctor
+        # Advisory until Expo patch update PR (~57.0.31) merges into main
+        continue-on-error: true
+
+      - name: Validate Android JS bundle export
+        env:
+          EXPO_PUBLIC_API_URL: http://localhost:4000
+        run: npx expo export --platform android
+
+      - name: Dependency security audit (Advisory)
+        run: npm audit --audit-level=high
+        continue-on-error: true
