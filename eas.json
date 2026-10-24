@@ -1,0 +1,31 @@
+{
+  "cli": {
+    "version": ">= 14.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_ENABLE_DEMO_TOPUP": "true",
+        "EXPO_PUBLIC_ALLOW_CLEARTEXT": "true"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_ENABLE_DEMO_TOPUP": "false",
+        "EXPO_PUBLIC_ALLOW_CLEARTEXT": "false"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
