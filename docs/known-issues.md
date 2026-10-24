@@ -16,6 +16,7 @@ This document tracks known limitations, external dependencies, and public releas
 - **Policy Reference:** Google Play Billing Policy (Section 3) and Apple App Store Review Guideline 3.1.1.
 - **Requirement:** Digital goods consumed directly within the app (such as idea validation credits) must use Google Play In-App Billing / Apple In-App Purchase. Third-party web payment gateways (e.g. Razorpay web checkouts) are prohibited for in-app credit consumption.
 - **Current State:** PitchMint web uses Razorpay. The mobile app does not embed Razorpay checkout webviews to prevent immediate store rejection.
+- **Development & Demo Top-Up (Phase 3B.1):** Development and personal-demo builds reuse the website's verified development simulation endpoint (`POST /api/credits/simulate-payment-success`) to credit the user's MongoDB account without real payments. The UI is strictly gated by `config.features.enableDemoTopUp` (defaults to `__DEV__`, or `EXPO_PUBLIC_ENABLE_DEMO_TOPUP=true` for standalone personal-demo APKs). The backend doubly enforces development/test server environments (route mounting and HTTP 403 `DEVELOPMENT_ONLY`).
 - **Action Required:** Post-MVP integration of native in-app billing (`react-native-iap` or Expo In-App Purchases) before public store distribution.
 
 ### C. Google OAuth & Local Password Collision

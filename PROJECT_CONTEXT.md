@@ -90,14 +90,28 @@ PitchMint-mobile/
 
 ## 6. Current Testing & CI Status
 - **Test Suites:** 20 passed, 20 total.
-- **Tests:** 127 passed, 127 total.
+- **Tests:** 136 passed, 136 total.
 - **TypeScript:** Clean pass (`tsc --noEmit` exits 0).
-- **Android JS Export:** Passes (`npx expo export --platform android` bundles 889 modules into Hermes bytecode).
+- **Android JS Export:** Passes (`npx expo export --platform android` bundles 889 modules into Hermes bytecode in ~7.8s).
 - **Expo Doctor:** 21/21 checks passed cleanly on Expo SDK 57.0.31.
 
 ---
 
-## 7. Known Limitations & Tracked Backlog
+## 7. Development & Demo Top-Up Configuration (Phase 3B.1)
+- **Feature Flag:** `config.features.enableDemoTopUp` in `src/config/env.ts`.
+- **Default Resolution:** Enabled in `__DEV__` (local development); disabled in production (`NODE_ENV === 'production'`).
+- **Standalone Demo APK Configuration:** To include the demo top-up controls in a standalone preview/personal-demo release APK, compile with `EXPO_PUBLIC_ENABLE_DEMO_TOPUP=true`.
+- **Server-Side Security Enforcement:** The backend doubly restricts `POST /api/credits/simulate-payment-success`:
+  1. Route-level guard: Only mounted if `NODE_ENV === 'development' || NODE_ENV === 'test'`.
+  2. Controller guard: Returns HTTP 403 `DEVELOPMENT_ONLY` if not in development or test.
+- **Authoritative Balance Sync:** After a simulated purchase, the mobile app calls `refreshUser()` to fetch the updated MongoDB balance from `/api/auth/me`. The mobile app never calculates or fabricates credits locally.
+
+---
+
+## 8. Known Limitations & Tracked Backlog
+- Store-mandated in-app account deletion (`DELETE /api/auth/account`) pending backend deployment before public release.
+- Native In-App Billing (Google Play / Apple StoreKit) required for production store credit purchases; web Razorpay checkout is not embedded to maintain store compliance.
+- Backend request idempotency on `POST /api/idea/submit` recommended for high-volume commercial launch.
 1. **In-App Account Deletion:** Apple Guideline 5.1.1(v) & Google Play policy mandate in-app deletion. Blocked on backend endpoint `DELETE /api/auth/account`.
 2. **Native Digital Store Billing:** Google Play and Apple prohibit third-party checkouts (Razorpay) for in-app consumed digital credits. Native store billing needed before store launch.
 3. **Backend Password/OAuth Collision:** Backend requires account linking logic when a Google OAuth user attempts local password login.

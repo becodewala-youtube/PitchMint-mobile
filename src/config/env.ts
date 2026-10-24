@@ -18,6 +18,7 @@ export interface AppConfig {
   features: {
     enableMockData: boolean;
     enableDevBanners: boolean;
+    enableDemoTopUp: boolean;
   };
 }
 
@@ -66,6 +67,21 @@ const getDefaultApiUrl = (): string => {
   return `http://localhost:${backendPort}`;
 };
 
+/**
+ * Resolves whether the development demo credit top-up UI should be available.
+ * 1. Explicit EXPO_PUBLIC_ENABLE_DEMO_TOPUP env var ('true' or 'false').
+ * 2. Defaults to true in __DEV__; false in production.
+ */
+const isDemoTopUpEnabled = (): boolean => {
+  if (process.env.EXPO_PUBLIC_ENABLE_DEMO_TOPUP === 'true') {
+    return true;
+  }
+  if (process.env.EXPO_PUBLIC_ENABLE_DEMO_TOPUP === 'false') {
+    return false;
+  }
+  return __DEV__;
+};
+
 export const config: AppConfig = {
   appName: 'PitchMint Mobile',
   appVersion: '1.0.0-phase2',
@@ -75,6 +91,7 @@ export const config: AppConfig = {
   features: {
     enableMockData: false, // Live auth flow against backend
     enableDevBanners: true,
+    enableDemoTopUp: isDemoTopUpEnabled(),
   },
 };
 
