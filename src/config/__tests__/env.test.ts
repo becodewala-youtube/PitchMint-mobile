@@ -5,21 +5,26 @@ describe('Environment Configuration (env.ts)', () => {
     it('returns a clean URL unchanged', () => {
       expect(sanitizeApiUrl('http://192.168.1.100:4000')).toBe('http://192.168.1.100:4000');
       expect(sanitizeApiUrl('https://api.pitchmint.com')).toBe('https://api.pitchmint.com');
+      expect(sanitizeApiUrl('https://pitch-mint-backend.vercel.app')).toBe('https://pitch-mint-backend.vercel.app');
     });
 
     it('strips trailing slashes', () => {
       expect(sanitizeApiUrl('http://192.168.1.100:4000/')).toBe('http://192.168.1.100:4000');
       expect(sanitizeApiUrl('http://192.168.1.100:4000///')).toBe('http://192.168.1.100:4000');
+      expect(sanitizeApiUrl('https://pitch-mint-backend.vercel.app/')).toBe('https://pitch-mint-backend.vercel.app');
     });
 
     it('strips redundant /api suffix to prevent doubled mobile paths (/api/api)', () => {
       expect(sanitizeApiUrl('http://192.168.1.100:4000/api')).toBe('http://192.168.1.100:4000');
       expect(sanitizeApiUrl('http://192.168.1.100:4000/api/')).toBe('http://192.168.1.100:4000');
       expect(sanitizeApiUrl('https://backend.pitchmint.com/api')).toBe('https://backend.pitchmint.com');
+      expect(sanitizeApiUrl('https://pitch-mint-backend.vercel.app/api')).toBe('https://pitch-mint-backend.vercel.app');
+      expect(sanitizeApiUrl('https://pitch-mint-backend.vercel.app/api/')).toBe('https://pitch-mint-backend.vercel.app');
     });
 
     it('trims leading and trailing whitespace', () => {
       expect(sanitizeApiUrl('  http://192.168.1.100:4000/api  ')).toBe('http://192.168.1.100:4000');
+      expect(sanitizeApiUrl('  https://pitch-mint-backend.vercel.app/  ')).toBe('https://pitch-mint-backend.vercel.app');
     });
   });
 
@@ -28,7 +33,7 @@ describe('Environment Configuration (env.ts)', () => {
       expect(isDemoTopUpEnabled('true')).toBe(true);
     });
 
-    it('returns false when explicit flag is "false"', () => {
+    it('returns false when explicit flag is "false" (production and live preview demo default)', () => {
       expect(isDemoTopUpEnabled('false')).toBe(false);
     });
 
@@ -41,6 +46,8 @@ describe('Environment Configuration (env.ts)', () => {
   describe('getDefaultApiUrl', () => {
     it('uses configured URL, sanitizing extra slashes and /api', () => {
       expect(getDefaultApiUrl('http://192.168.1.50:4000/api/')).toBe('http://192.168.1.50:4000');
+      expect(getDefaultApiUrl('https://pitch-mint-backend.vercel.app')).toBe('https://pitch-mint-backend.vercel.app');
+      expect(getDefaultApiUrl('https://pitch-mint-backend.vercel.app/api')).toBe('https://pitch-mint-backend.vercel.app');
     });
 
     it('does not contain any hardcoded developer LAN IP addresses in fallback paths', () => {

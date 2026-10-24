@@ -15,10 +15,9 @@ const { withAndroidManifest } = require('@expo/config-plugins');
  */
 module.exports = function withCleartextTraffic(config) {
   const env = process.env;
-  const isPreview = env['EAS_BUILD_PROFILE'] === 'preview';
   const isExplicitlyAllowed = env['EXPO_PUBLIC_ALLOW_CLEARTEXT'] === 'true';
 
-  if (!isPreview && !isExplicitlyAllowed) {
+  if (!isExplicitlyAllowed) {
     return config;
   }
 
