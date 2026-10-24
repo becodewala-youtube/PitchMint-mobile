@@ -1,10 +1,10 @@
-import React from 'react';
 import {
   StyleSheet,
   View,
   ScrollView,
   ViewStyle,
   StyleProp,
+  RefreshControlProps,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme';
@@ -16,6 +16,7 @@ interface ScreenContainerProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
   withHeaderOffset?: boolean;
   withTopGlow?: boolean;
+  refreshControl?: React.ReactElement<RefreshControlProps>;
 }
 
 /**
@@ -29,6 +30,7 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
   contentContainerStyle,
   withHeaderOffset = true,
   withTopGlow = true,
+  refreshControl,
 }) => {
   const insets = useSafeAreaInsets();
 
@@ -46,6 +48,7 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
       {scrollable ? (
         <ScrollView
           style={styles.scrollView}
+          refreshControl={refreshControl}
           contentContainerStyle={[
             styles.scrollContent,
             {

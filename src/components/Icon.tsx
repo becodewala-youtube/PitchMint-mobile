@@ -19,10 +19,12 @@ export type IconName =
   | 'zap'
   | 'search'
   | 'chevronRight'
+  | 'chevronLeft'
   | 'chevronDown'
   | 'arrowRight'
   | 'check'
   | 'close'
+  | 'alertCircle'
   | 'sparkles'
   | 'mail'
   | 'bell'
@@ -433,6 +435,22 @@ export const Icon: React.FC<IconProps> = ({
         </View>
       );
 
+    case 'chevronLeft':
+      return (
+        <View style={[styles.center, { width: s, height: s }, style]}>
+          <View
+            style={{
+              width: s * 0.35,
+              height: s * 0.35,
+              borderBottomWidth: stroke + 0.4,
+              borderLeftWidth: stroke + 0.4,
+              borderColor: color,
+              transform: [{ rotate: '45deg' }],
+            }}
+          />
+        </View>
+      );
+
     case 'chevronDown':
       return (
         <View style={[styles.center, { width: s, height: s }, style]}>
@@ -487,6 +505,41 @@ export const Icon: React.FC<IconProps> = ({
               transform: [{ rotate: '-45deg' }],
             }}
           />
+        </View>
+      );
+
+    case 'alertCircle':
+      return (
+        <View style={[styles.center, { width: s, height: s }, style]}>
+          <View
+            style={{
+              width: s * 0.75,
+              height: s * 0.75,
+              borderRadius: (s * 0.75) / 2,
+              borderWidth: stroke,
+              borderColor: color,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <View
+              style={{
+                width: stroke,
+                height: s * 0.25,
+                backgroundColor: color,
+                borderRadius: 1,
+                marginBottom: 2,
+              }}
+            />
+            <View
+              style={{
+                width: stroke + 0.5,
+                height: stroke + 0.5,
+                borderRadius: 1,
+                backgroundColor: color,
+              }}
+            />
+          </View>
         </View>
       );
 

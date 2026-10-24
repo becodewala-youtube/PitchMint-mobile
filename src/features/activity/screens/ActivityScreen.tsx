@@ -1,65 +1,99 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
-import { ScreenContainer, Card, IconBadge, Pill, Icon } from '../../../components';
-import { colors, spacing, typography, borderRadius } from '../../../theme';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+  ScrollView,
+  RefreshControl,
+  ActivityIndicator,
+} from 'react-native';
+import { ScreenContainer, Card, IconBadge, Pill, Icon, IconName } from '../../../components';
+import { colors, spacing, typography, borderRadius, Tone } from '../../../theme';
+import { activityApi, ActivityHistoryItem, BackendServiceType } from '../../../services/api/activityApi';
+import { formatDisplayDateTime } from '../../../utils/date';
 
-interface ActivityItem {
-  id: string;
-  type: 'validation' | 'credit' | 'account';
-  title: string;
-  detail: string;
-  creditsChange?: string;
-  timestamp: string;
-}
-
-const MOCK_ACTIVITIES: ActivityItem[] = [
-  {
-    id: 'a1',
-    type: 'validation',
-    title: 'Startup Validation Completed',
-    detail: 'AI Copilot for Dental Clinics scored 88/100',
-    creditsChange: '-1 credit',
-    timestamp: 'Oct 11, 2026 • 02:45 PM',
-  },
-  {
-    id: 'a2',
-    type: 'validation',
-    title: 'Startup Validation Completed',
-    detail: 'Sub-lease Micro Marketplace scored 74/100',
-    creditsChange: '-1 credit',
-    timestamp: 'Oct 08, 2026 • 11:20 AM',
-  },
-  {
-    id: 'a3',
-    type: 'credit',
-    title: 'Monthly Credits Allocation',
-    detail: 'Free starter monthly quota renewed automatically',
-    creditsChange: '+3 credits',
-    timestamp: 'Oct 01, 2026 • 12:00 AM',
-  },
-  {
-    id: 'a4',
-    type: 'account',
-    title: 'Account Established',
-    detail: 'Signed up for PitchMint Founder Studio',
-    timestamp: 'Sep 28, 2026 • 09:15 AM',
-  },
-];
+/**
+ * Maps backend service type to an appropriate Icon and Tone for consistent visual styling.
+ */
+const getServiceVisuals = (
+  serviceType: BackendServiceType
+): { icon: IconName; tone: Tone } => {
+  switch (serviceType) {
+    case 'idea_validation':
+      return { icon: 'zap', tone: 'violet' };
+    case 'pitch_deck':
+      return { icon: 'fileText', tone: 'blue' };
+    case 'canvas':
+      return { icon: 'panelsTopLeft', tone: 'emerald' };
+    case 'competitor_analysis':
+      return { icon: 'users', tone: 'orange' };
+    case 'pitch_simulator':
+      return { icon: 'messageSquare', tone: 'pink' };
+    case 'market_research':
+      return { icon: 'search', tone: 'cyan' };
+    case 'investor_matching':
+      return { icon: 'award', tone: 'amber' };
+    default:
+      return { icon: 'activity', tone: 'gray' };
+  }
+};
 
 /**
  * ActivityScreen - Chronological Audit Feed
- * Replaces the prototype's deferred Toolkit destination in the 5-position navigation.
+ * Connects to live backend GET /api/history (returns direct array).
  */
 export const ActivityScreen: React.FC = () => {
-  const [filter, setFilter] = useState<'all' | 'validation' | 'credit'>('all');
+  const [filter, setFilter] = useState<string>('all');
+  const [activities, setActivities] = useState<ActivityHistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = MOCK_ACTIVITIES.filter((a) => {
-    if (filter === 'all') return true;
-    return a.type === filter;
-  });
+  const fetchActivities = useCallback(async (serviceTypeFilter: string = 'all') => {
+    setError(null);
+    try {
+      const response = await activityApi.getActivityHistory({
+        serviceType: serviceTypeFilter !== 'all' ? serviceTypeFilter : undefined,
+        page: 1,
+        limit: 30,
+      });
+      setActivities(response);
+    } catch (err: any) {
+      console.warn('[ActivityScreen] Error loading activity history:', err?.message || err);
+      setError(err?.message || 'Unable to load activity history. Please try again.');
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchActivities(filter);
+  }, [fetchActivities, filter]);
+
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    fetchActivities(filter);
+  }, [fetchActivities, filter]);
+
+  const handleFilterChange = (newFilter: string) => {
+    setFilter(newFilter);
+    setIsLoading(true);
+    fetchActivities(newFilter);
+  };
 
   return (
-    <ScreenContainer>
+    <ScreenContainer
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          tintColor={colors.brand.primary}
+          colors={[colors.brand.primary]}
+        />
+      }
+    >
       {/* 1. Header with PageTitle */}
       <View style={styles.headerRow}>
         <IconBadge name="activity" tone="violet" size={48} />
@@ -75,11 +109,11 @@ export const ActivityScreen: React.FC = () => {
       <Card variant="surface" style={styles.scopeNoticeCard}>
         <View style={styles.scopeNoticeHeader}>
           <Icon name="sparkles" size={14} color={colors.brand.soft} />
-          <Text style={styles.scopeNoticeTitle}>Architectural Note</Text>
+          <Text style={styles.scopeNoticeTitle}>Verified Live Feed</Text>
         </View>
         <Text style={styles.scopeNoticeText}>
-          Per the PitchMint Mobile roadmap, this Activity log occupies the 4th navigation
-          position. Unfinished web tools (Interactive Canvas, Simulator) remain deferred.
+          Connected directly to your PitchMint backend history endpoint. Every evaluation,
+          market analysis, and credit usage event is tracked here.
         </Text>
       </Card>
 
@@ -90,19 +124,22 @@ export const ActivityScreen: React.FC = () => {
         contentContainerStyle={styles.filterChipScroll}
       >
         {[
-          { key: 'all', label: 'All Activities (4)' },
-          { key: 'validation', label: 'Idea Validations' },
-          { key: 'credit', label: 'Credits' },
+          { key: 'all', label: `All (${activities.length})` },
+          { key: 'idea_validation', label: 'Validations' },
+          { key: 'pitch_deck', label: 'Pitch Decks' },
+          { key: 'competitor_analysis', label: 'Competitors' },
         ].map((f) => {
           const isActive = filter === f.key;
           return (
             <Pressable
               key={f.key}
-              onPress={() => setFilter(f.key as any)}
+              onPress={() => handleFilterChange(f.key)}
               style={[
                 styles.chip,
                 isActive ? styles.chipActive : styles.chipInactive,
               ]}
+              accessibilityRole="button"
+              accessibilityLabel={f.label}
             >
               <Text
                 style={[
@@ -117,44 +154,76 @@ export const ActivityScreen: React.FC = () => {
         })}
       </ScrollView>
 
-      {/* 4. Timeline Cards */}
-      <View style={styles.timelineList}>
-        {filtered.map((item) => {
-          const isCreditDeduction = item.creditsChange?.startsWith('-');
-          const isCreditAdd = item.creditsChange?.startsWith('+');
+      {/* 4. Loading State */}
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={colors.brand.primary} />
+          <Text style={styles.loadingText}>Loading activity history...</Text>
+        </View>
+      )}
 
-          const getIcon = () => {
-            if (item.type === 'validation') return 'zap';
-            if (item.type === 'credit') return 'wallet';
-            return 'profile';
-          };
+      {/* 5. Error State with Retry */}
+      {!isLoading && error && (
+        <Card variant="surface" style={styles.errorCard}>
+          <IconBadge name="alertCircle" tone="red" size={36} />
+          <View style={styles.errorCol}>
+            <Text style={styles.errorTitle}>Could not load activity</Text>
+            <Text style={styles.errorSubtitle}>{error}</Text>
+            <Pressable
+              onPress={() => fetchActivities(filter)}
+              style={styles.retryPill}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading activity"
+            >
+              <Text style={styles.retryPillText}>Retry</Text>
+            </Pressable>
+          </View>
+        </Card>
+      )}
 
-          const getTone = () => {
-            if (item.type === 'validation') return 'violet';
-            if (item.type === 'credit') return 'emerald';
-            return 'gray';
-          };
+      {/* 6. Empty State */}
+      {!isLoading && !error && activities.length === 0 && (
+        <View style={styles.emptyContainer}>
+          <IconBadge name="activity" tone="gray" size={56} />
+          <Text style={styles.emptyTitle}>No activity recorded yet</Text>
+          <Text style={styles.emptySubtitle}>
+            When you run idea validations or interact with PitchMint tools, your activity audit log
+            will automatically appear here.
+          </Text>
+        </View>
+      )}
 
-          return (
-            <Card key={item.id} style={styles.activityCard}>
-              <View style={styles.cardTopRow}>
-                <IconBadge name={getIcon()} tone={getTone()} size={36} />
-                <View style={styles.titleCol}>
-                  <Text style={styles.activityTitle}>{item.title}</Text>
-                  <Text style={styles.timestamp}>{item.timestamp}</Text>
+      {/* 7. Real Timeline Cards */}
+      {!isLoading && !error && (
+        <View style={styles.timelineList}>
+          {activities.map((item) => {
+            const { icon, tone } = getServiceVisuals(item.serviceType);
+            const dateStr = formatDisplayDateTime(item.createdAt);
+            const creditsUsed = item.creditsUsed ?? 0;
+
+            return (
+              <Card key={item._id} style={styles.activityCard}>
+                <View style={styles.cardTopRow}>
+                  <IconBadge name={icon} tone={tone} size={36} />
+                  <View style={styles.titleCol}>
+                    <Text style={styles.activityTitle}>{item.title}</Text>
+                    {dateStr ? <Text style={styles.timestamp}>{dateStr}</Text> : null}
+                  </View>
+                  {creditsUsed > 0 && (
+                    <Pill
+                      label={`-${creditsUsed} credit${creditsUsed === 1 ? '' : 's'}`}
+                      tone="red"
+                    />
+                  )}
                 </View>
-                {item.creditsChange && (
-                  <Pill
-                    label={item.creditsChange}
-                    tone={isCreditAdd ? 'emerald' : isCreditDeduction ? 'red' : 'gray'}
-                  />
-                )}
-              </View>
-              <Text style={styles.detailText}>{item.detail}</Text>
-            </Card>
-          );
-        })}
-      </View>
+                {item.description ? (
+                  <Text style={styles.detailText}>{item.description}</Text>
+                ) : null}
+              </Card>
+            );
+          })}
+        </View>
+      )}
     </ScreenContainer>
   );
 };
@@ -231,6 +300,68 @@ const styles = StyleSheet.create({
   },
   chipTextInactive: {
     color: colors.text.secondary,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xxl,
+    gap: spacing.sm,
+  },
+  loadingText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+  },
+  errorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  errorCol: {
+    flex: 1,
+  },
+  errorTitle: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semiBold,
+    color: colors.text.primary,
+  },
+  errorSubtitle: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.secondary,
+    marginTop: 2,
+    marginBottom: spacing.sm,
+  },
+  retryPill: {
+    backgroundColor: colors.brand.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: borderRadius.full,
+    alignSelf: 'flex-start',
+  },
+  retryPillText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semiBold,
+    color: '#FFFFFF',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.xxxl,
+  },
+  emptyTitle: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semiBold,
+    color: colors.text.primary,
+    marginTop: spacing.md,
+  },
+  emptySubtitle: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+    maxWidth: 260,
+    lineHeight: 18,
   },
   timelineList: {
     gap: spacing.xs,
