@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, spacing, typography, borderRadius } from '../../../theme';
-import { Button, Input, Icon } from '../../../components';
-import { useAuth } from '../../../context/AuthContext';
+import { colors, spacing, typography } from '../../../theme';
+import { Button, Input, Icon, AuthCard } from '../../../components';
+import { authApi } from '../../../services/api/authApi';
 import {
   validateEmail,
   validatePassword,
@@ -30,30 +30,26 @@ type ResetPasswordRouteProp = RouteProp<AuthStackParamList, 'ResetPassword'>;
 export const ResetPasswordScreen: React.FC = () => {
   const navigation = useNavigation<ResetPasswordNavigationProp>();
   const route = useRoute<ResetPasswordRouteProp>();
-  const { resetPassword, clearError } = useAuth();
 
   const [email, setEmail] = useState(route.params?.email ?? '');
-  const [token, setToken] = useState(route.params?.token ?? '');
+  const [token, setToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
 
   const [emailError, setEmailError] = useState<string | null>(null);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [confirmError, setConfirmError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (route.params?.email) setEmail(route.params.email);
-    if (route.params?.token) setToken(route.params.token);
-  }, [route.params]);
+    if (route.params?.email) {
+      setEmail(route.params.email);
+    }
+  }, [route.params?.email]);
 
   const handleSubmit = async () => {
     setSubmitError(null);
-    clearError();
 
-    // 1. Email validation
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) {
       setEmailError(emailValidation.error);
@@ -61,7 +57,6 @@ export const ResetPasswordScreen: React.FC = () => {
     }
     setEmailError(null);
 
-    // 2. Token validation
     const tokenValidation = validateResetToken(token);
     if (!tokenValidation.isValid) {
       setTokenError(tokenValidation.error);
@@ -69,7 +64,6 @@ export const ResetPasswordScreen: React.FC = () => {
     }
     setTokenError(null);
 
-    // 3. Password validation
     const passwordValidation = validatePassword(newPassword);
     if (!passwordValidation.isValid) {
       setPasswordError(passwordValidation.error);
@@ -77,32 +71,23 @@ export const ResetPasswordScreen: React.FC = () => {
     }
     setPasswordError(null);
 
-    // 4. Confirm match
-    if (newPassword !== confirmPassword) {
-      setConfirmError('Passwords do not match');
-      return;
-    }
-    setConfirmError(null);
-
     setLoading(true);
     try {
-      const response = await resetPassword({
+      await authApi.resetPassword({
         email: email.trim(),
         token: token.trim(),
         newPassword,
       });
 
-      // Navigate to Sign in with success notice
       navigation.navigate('SignIn', {
         initialEmail: email.trim(),
-        noticeMessage:
-          response.message || 'Password reset successfully! Please sign in with your new password.',
+        noticeMessage: 'Password successfully updated. You can now sign in.',
       });
     } catch (err: any) {
       setSubmitError(
         err instanceof ApiError
           ? err.message
-          : 'Unable to reset password. Please check your reset code and try again.'
+          : 'Failed to reset password. Please verify your token and try again.'
       );
     } finally {
       setLoading(false);
@@ -111,179 +96,174 @@ export const ResetPasswordScreen: React.FC = () => {
 
   return (
     <KeyboardAvoidingView
-      style={styles.keyboardContainer}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      testID="reset-password-screen-root"
     >
+      <View style={styles.ambientGlow} pointerEvents="none" />
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.logoBadge}>
-            <Icon name="lock" size={24} color={colors.brand.soft} />
+        <AuthCard
+          title="Set new password"
+          subtitle="Enter the reset code sent to your email and choose a new password"
+          icon={<Icon name="lock" size={24} color={colors.brand.soft} />}
+          testID="reset-password-auth-card"
+        >
+          {/* Error Banner */}
+          {submitError && (
+            <View style={styles.errorBox} testID="reset-password-error-box">
+              <Icon name="close" size={16} color={colors.tones.red.text} />
+              <Text style={styles.errorBoxText}>{submitError}</Text>
+            </View>
+          )}
+
+          {/* Form Inputs */}
+          <View style={styles.form}>
+            <Input
+              label="Account Email"
+              placeholder="you@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (emailError) setEmailError(null);
+                if (submitError) setSubmitError(null);
+              }}
+              error={emailError}
+              leftIcon="mail"
+              testID="reset-password-email-input"
+            />
+
+            <Input
+              label="Reset Code / Token"
+              placeholder="Enter code from email"
+              value={token}
+              onChangeText={(text) => {
+                setToken(text);
+                if (tokenError) setTokenError(null);
+                if (submitError) setSubmitError(null);
+              }}
+              error={tokenError}
+              helperText="The code displayed in your password reset email"
+              leftIcon="shield"
+              testID="reset-password-token-input"
+            />
+
+            <Input
+              label="New Password"
+              placeholder="Enter new password"
+              isPassword
+              autoCapitalize="none"
+              autoComplete="new-password"
+              value={newPassword}
+              onChangeText={(text) => {
+                setNewPassword(text);
+                if (passwordError) setPasswordError(null);
+                if (submitError) setSubmitError(null);
+              }}
+              error={passwordError}
+              helperText="At least 8 chars with uppercase, lowercase, number, and special character"
+              leftIcon="lock"
+              testID="reset-password-new-password-input"
+            />
+
+            <Button
+              title={loading ? 'Updating…' : 'Reset password'}
+              onPress={handleSubmit}
+              loading={loading}
+              size="lg"
+              rightIcon={<Icon name="arrowRight" size={16} color="#FFFFFF" />}
+              style={styles.submitBtn}
+              testID="reset-password-submit-btn"
+            />
           </View>
-          <Text style={styles.title}>Set new password</Text>
-          <Text style={styles.subtitle}>
-            Enter the reset code sent to your email and choose a new password.
-          </Text>
-        </View>
 
-        {/* Error Banner */}
-        {submitError && (
-          <View style={styles.errorBox}>
-            <Icon name="close" size={16} color={colors.tones.red.text} />
-            <Text style={styles.errorBoxText}>{submitError}</Text>
+          {/* Footer Back */}
+          <View style={styles.footerRow}>
+            <Pressable
+              onPress={() => navigation.navigate('SignIn')}
+              accessibilityRole="button"
+              accessibilityLabel="Back to Sign in"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              {({ pressed }) => (
+                <Text style={[styles.backLink, pressed && styles.backLinkPressed]}>
+                  Back to Sign in
+                </Text>
+              )}
+            </Pressable>
           </View>
-        )}
-
-        {/* Form Inputs */}
-        <View style={styles.form}>
-          <Input
-            label="Account Email"
-            placeholder="founder@example.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              if (emailError) setEmailError(null);
-            }}
-            error={emailError}
-            leftIcon="mail"
-          />
-
-          <Input
-            label="Reset Code / Token"
-            placeholder="Enter code from email"
-            value={token}
-            onChangeText={(text) => {
-              setToken(text);
-              if (tokenError) setTokenError(null);
-            }}
-            error={tokenError}
-            helperText="The code displayed in your password reset email"
-            leftIcon="shield"
-          />
-
-          <Input
-            label="New Password"
-            placeholder="Enter new password"
-            isPassword
-            value={newPassword}
-            onChangeText={(text) => {
-              setNewPassword(text);
-              if (passwordError) setPasswordError(null);
-            }}
-            error={passwordError}
-            helperText="At least 8 chars with uppercase, lowercase, number, and special character"
-            leftIcon="lock"
-          />
-
-          <Input
-            label="Confirm New Password"
-            placeholder="Confirm new password"
-            isPassword
-            value={confirmPassword}
-            onChangeText={(text) => {
-              setConfirmPassword(text);
-              if (confirmError) setConfirmError(null);
-            }}
-            error={confirmError}
-            leftIcon="lock"
-          />
-
-          <Button
-            title="Reset Password"
-            onPress={handleSubmit}
-            loading={loading}
-            style={styles.submitBtn}
-          />
-        </View>
-
-        {/* Footer Back */}
-        <View style={styles.footerRow}>
-          <Pressable
-            onPress={() => navigation.navigate('SignIn')}
-            accessibilityRole="button"
-          >
-            <Text style={styles.backLink}>Back to Sign in</Text>
-          </Pressable>
-        </View>
+        </AuthCard>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  keyboardContainer: {
+  container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#000000',
+  },
+  ambientGlow: {
+    position: 'absolute',
+    top: '8%',
+    alignSelf: 'center',
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(124, 58, 237, 0.16)',
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxxl,
-    paddingBottom: spacing.xxl,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     justifyContent: 'center',
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  logoBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: borderRadius.card,
-    backgroundColor: colors.background.card2,
-    borderWidth: 1,
-    borderColor: colors.border.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  title: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
-    color: colors.text.primary,
-    letterSpacing: -0.5,
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: typography.sizes.base,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    maxWidth: 320,
+  form: {
+    width: '100%',
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.tones.red.bg,
-    borderColor: colors.tones.red.border,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.25)',
     borderWidth: 1,
-    borderRadius: borderRadius.card,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: spacing.md,
     gap: spacing.sm,
   },
   errorBoxText: {
     flex: 1,
-    fontSize: typography.sizes.sm,
+    fontSize: 13,
     color: colors.tones.red.text,
-  },
-  form: {
-    width: '100%',
+    lineHeight: 18,
   },
   submitBtn: {
     width: '100%',
     marginTop: spacing.sm,
   },
   footerRow: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
     alignItems: 'center',
-    marginTop: spacing.xl,
+    justifyContent: 'center',
   },
   backLink: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.secondary,
+    fontSize: 12,
+    fontWeight: typography.weights.semiBold,
+    color: colors.text.primary,
+    textDecorationLine: 'underline',
+  },
+  backLinkPressed: {
+    opacity: 0.75,
   },
 });

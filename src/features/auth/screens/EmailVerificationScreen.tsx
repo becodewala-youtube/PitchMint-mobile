@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, spacing, typography, borderRadius } from '../../../theme';
-import { Button, Input, Icon } from '../../../components';
+import { colors, spacing, typography } from '../../../theme';
+import { Button, Input, Icon, AuthCard } from '../../../components';
 import { useAuth } from '../../../context/AuthContext';
 import { validateVerificationCode } from '../../../utils/validation';
 import { ApiError } from '../../../services/api/apiClient';
@@ -34,48 +34,43 @@ export const EmailVerificationScreen: React.FC = () => {
   const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [successNotice, setSuccessNotice] = useState<string | null>(
-    fromRegistration
-      ? 'A 6-digit verification code has been sent to your email.'
-      : null
-  );
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(60);
 
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
+    let timer: NodeJS.Timeout;
+    if (resendCooldown > 0) {
+      timer = setTimeout(() => setResendCooldown((prev) => prev - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const handleVerify = async () => {
     setSubmitError(null);
     setSuccessNotice(null);
     clearError();
 
-    const validation = validateVerificationCode(code);
-    if (!validation.isValid) {
-      setCodeError(validation.error);
+    const codeValidation = validateVerificationCode(code);
+    if (!codeValidation.isValid) {
+      setCodeError(codeValidation.error);
       return;
     }
     setCodeError(null);
 
     setLoading(true);
     try {
-      await verifyEmail({ email, token: code.trim() });
-      // Successfully verified and authenticated; RootNavigator shifts to MainTabs
+      await verifyEmail({
+        email: email.trim(),
+        token: code.trim(),
+      });
+      // Context hydrates token and user; RootNavigator shifts to MainTabs
     } catch (err: any) {
       setSubmitError(
         err instanceof ApiError
           ? err.message
-          : 'Invalid or expired verification code. Please check and try again.'
+          : 'Invalid or expired verification code. Please request a new code.'
       );
     } finally {
       setLoading(false);
@@ -86,8 +81,9 @@ export const EmailVerificationScreen: React.FC = () => {
     if (resendCooldown > 0 || resending) return;
     setSubmitError(null);
     setSuccessNotice(null);
-    setResending(true);
+    clearError();
 
+    setResending(true);
     try {
       const response = await resendVerification(email);
       setSuccessNotice(response.message || 'New verification code sent to your email.');
@@ -105,211 +101,214 @@ export const EmailVerificationScreen: React.FC = () => {
 
   return (
     <KeyboardAvoidingView
-      style={styles.keyboardContainer}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      testID="email-verification-screen-root"
     >
+      <View style={styles.ambientGlow} pointerEvents="none" />
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.logoBadge}>
-            <Icon name="mail" size={24} color={colors.brand.soft} />
+        <AuthCard
+          title="Verify your email"
+          subtitle={`We sent a 6-digit code to ${email || 'your email'}`}
+          icon={<Icon name="mail" size={24} color={colors.brand.soft} />}
+          testID="email-verification-auth-card"
+        >
+          {/* Success Banner */}
+          {successNotice && (
+            <View style={styles.noticeBox} testID="verification-notice-box">
+              <Icon name="check" size={16} color={colors.tones.emerald.text} />
+              <Text style={styles.noticeText}>{successNotice}</Text>
+            </View>
+          )}
+
+          {/* Error Banner */}
+          {submitError && (
+            <View style={styles.errorBox} testID="verification-error-box">
+              <Icon name="close" size={16} color={colors.tones.red.text} />
+              <Text style={styles.errorBoxText}>{submitError}</Text>
+            </View>
+          )}
+
+          {/* Verification Input */}
+          <View style={styles.form}>
+            <Input
+              label="6-Digit Verification Code"
+              placeholder="123456"
+              keyboardType="number-pad"
+              maxLength={6}
+              value={code}
+              onChangeText={(text) => {
+                setCode(text.replace(/[^0-9]/g, ''));
+                if (codeError) setCodeError(null);
+                if (submitError) setSubmitError(null);
+              }}
+              error={codeError}
+              helperText="Code expires in 10 minutes"
+              leftIcon="shield"
+              testID="verification-code-input"
+            />
+
+            <Button
+              title={loading ? 'Verifying…' : 'Verify & continue'}
+              onPress={handleVerify}
+              loading={loading}
+              size="lg"
+              rightIcon={<Icon name="arrowRight" size={16} color="#FFFFFF" />}
+              style={styles.submitBtn}
+              testID="verification-submit-btn"
+            />
           </View>
-          <Text style={styles.title}>Verify your email</Text>
-          <Text style={styles.subtitle}>
-            Enter the 6-digit code sent to:
-          </Text>
-          <Text style={styles.emailHighlight}>{email}</Text>
-        </View>
 
-        {/* Success Banner */}
-        {successNotice && (
-          <View style={styles.noticeBox}>
-            <Icon name="check" size={16} color={colors.tones.emerald.text} />
-            <Text style={styles.noticeText}>{successNotice}</Text>
-          </View>
-        )}
-
-        {/* Error Banner */}
-        {submitError && (
-          <View style={styles.errorBox}>
-            <Icon name="close" size={16} color={colors.tones.red.text} />
-            <Text style={styles.errorBoxText}>{submitError}</Text>
-          </View>
-        )}
-
-        {/* Verification Input */}
-        <View style={styles.form}>
-          <Input
-            label="6-Digit Verification Code"
-            placeholder="123456"
-            keyboardType="number-pad"
-            maxLength={6}
-            value={code}
-            onChangeText={(text) => {
-              setCode(text.replace(/[^0-9]/g, ''));
-              if (codeError) setCodeError(null);
-            }}
-            error={codeError}
-            helperText="Code expires in 10 minutes"
-            leftIcon="shield"
-          />
-
-          <Button
-            title="Verify & Continue"
-            onPress={handleVerify}
-            loading={loading}
-            style={styles.submitBtn}
-          />
-        </View>
-
-        {/* Resend Section */}
-        <View style={styles.resendSection}>
-          <Text style={styles.resendPrompt}>Didn't receive the code?</Text>
-          <Pressable
-            onPress={handleResend}
-            disabled={resendCooldown > 0 || resending}
-            accessibilityRole="button"
-          >
-            <Text
-              style={[
-                styles.resendLink,
-                resendCooldown > 0 && styles.resendDisabled,
-              ]}
+          {/* Resend Section */}
+          <View style={styles.resendSection}>
+            <Text style={styles.resendPrompt}>Didn't receive the code? </Text>
+            <Pressable
+              onPress={handleResend}
+              disabled={resendCooldown > 0 || resending}
+              accessibilityRole="button"
+              accessibilityLabel={
+                resendCooldown > 0
+                  ? `Resend code in ${resendCooldown} seconds`
+                  : 'Resend code'
+              }
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              {resending
-                ? 'Sending code...'
-                : resendCooldown > 0
-                ? `Resend code in ${resendCooldown}s`
-                : 'Resend code'}
-            </Text>
-          </Pressable>
-        </View>
+              <Text
+                style={[
+                  styles.resendLink,
+                  resendCooldown > 0 && styles.resendDisabled,
+                ]}
+              >
+                {resending
+                  ? 'Sending code...'
+                  : resendCooldown > 0
+                  ? `Resend in ${resendCooldown}s`
+                  : 'Resend code'}
+              </Text>
+            </Pressable>
+          </View>
 
-        {/* Footer Change Account Option */}
-        <View style={styles.footerRow}>
-          <Pressable
-            onPress={() => navigation.navigate('SignIn', { initialEmail: email })}
-            accessibilityRole="button"
-          >
-            <Text style={styles.backLink}>Back to Sign in</Text>
-          </Pressable>
-        </View>
+          {/* Footer Change Account Option */}
+          <View style={styles.footerRow}>
+            <Pressable
+              onPress={() => navigation.navigate('SignIn', { initialEmail: email })}
+              accessibilityRole="button"
+              accessibilityLabel="Back to Sign in"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              {({ pressed }) => (
+                <Text style={[styles.backLink, pressed && styles.backLinkPressed]}>
+                  Back to Sign in
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        </AuthCard>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  keyboardContainer: {
+  container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#000000',
+  },
+  ambientGlow: {
+    position: 'absolute',
+    top: '8%',
+    alignSelf: 'center',
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(124, 58, 237, 0.16)',
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxxl * 1.5,
-    paddingBottom: spacing.xxl,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     justifyContent: 'center',
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  logoBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: borderRadius.card,
-    backgroundColor: colors.background.card2,
-    borderWidth: 1,
-    borderColor: colors.border.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  title: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
-    color: colors.text.primary,
-    letterSpacing: -0.5,
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: typography.sizes.base,
-    color: colors.text.secondary,
-    textAlign: 'center',
-  },
-  emailHighlight: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semiBold,
-    color: colors.brand.soft,
-    marginTop: 2,
+  form: {
+    width: '100%',
   },
   noticeBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.tones.emerald.bg,
-    borderColor: colors.tones.emerald.border,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderColor: 'rgba(16, 185, 129, 0.25)',
     borderWidth: 1,
-    borderRadius: borderRadius.card,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: spacing.md,
     gap: spacing.sm,
   },
   noticeText: {
     flex: 1,
-    fontSize: typography.sizes.sm,
+    fontSize: 13,
     color: colors.tones.emerald.text,
+    lineHeight: 18,
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.tones.red.bg,
-    borderColor: colors.tones.red.border,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.25)',
     borderWidth: 1,
-    borderRadius: borderRadius.card,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: spacing.md,
     gap: spacing.sm,
   },
   errorBoxText: {
     flex: 1,
-    fontSize: typography.sizes.sm,
+    fontSize: 13,
     color: colors.tones.red.text,
-  },
-  form: {
-    width: '100%',
+    lineHeight: 18,
   },
   submitBtn: {
     width: '100%',
     marginTop: spacing.sm,
   },
   resendSection: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.xl,
-    marginBottom: spacing.lg,
-    gap: 4,
+    justifyContent: 'center',
+    marginTop: 18,
   },
   resendPrompt: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.secondary,
+    fontSize: 12,
+    color: colors.text.muted,
   },
   resendLink: {
-    fontSize: typography.sizes.sm,
-    color: colors.brand.soft,
+    fontSize: 12,
     fontWeight: typography.weights.semiBold,
+    color: colors.brand.soft,
   },
   resendDisabled: {
     color: colors.text.muted,
+    opacity: 0.6,
   },
   footerRow: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
     alignItems: 'center',
-    marginTop: spacing.md,
+    justifyContent: 'center',
   },
   backLink: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.secondary,
+    fontSize: 12,
+    fontWeight: typography.weights.semiBold,
+    color: colors.text.primary,
+    textDecorationLine: 'underline',
+  },
+  backLinkPressed: {
+    opacity: 0.75,
   },
 });

@@ -8,7 +8,7 @@ import {
   ViewStyle,
   StyleProp,
 } from 'react-native';
-import { colors, spacing, borderRadius, typography, touchTargets } from '../theme';
+import { spacing, typography } from '../theme';
 import { googleAuthService } from '../services/auth/googleAuthService';
 import { useAuth } from '../context/AuthContext';
 
@@ -18,18 +18,64 @@ export interface GoogleSignInButtonProps {
 }
 
 /**
- * Google "G" Icon rendered with native vector primitives
+ * Geometric, zero-dependency 4-color Google "G" vector
+ * Matches official Google branding: Red (#EA4335), Yellow (#FBBC05), Green (#34A853), Blue (#4285F4)
  */
-const GoogleLogo: React.FC = () => {
+const GoogleLogo: React.FC<{ size?: number }> = ({ size = 18 }) => {
+  const r = size / 2;
+  const stroke = Math.round(size * 0.22);
+
   return (
-    <View style={styles.googleIconContainer}>
-      <Text style={styles.googleLetter}>G</Text>
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: r,
+          borderWidth: stroke,
+          borderTopColor: '#EA4335',
+          borderRightColor: '#4285F4',
+          borderBottomColor: '#34A853',
+          borderLeftColor: '#FBBC05',
+          position: 'relative',
+        }}
+      >
+        {/* Top-right cutout */}
+        <View
+          style={{
+            position: 'absolute',
+            top: -stroke,
+            right: -stroke,
+            width: r,
+            height: r,
+            borderTopRightRadius: r,
+            backgroundColor: '#FFFFFF',
+          }}
+        />
+        {/* Blue horizontal crossbar into center */}
+        <View
+          style={{
+            position: 'absolute',
+            right: -stroke,
+            top: r - stroke - stroke / 2,
+            width: r + stroke * 0.35,
+            height: stroke,
+            backgroundColor: '#4285F4',
+            borderTopLeftRadius: 1,
+            borderBottomLeftRadius: 1,
+          }}
+        />
+      </View>
     </View>
   );
 };
 
 /**
  * Arena-styled Google Sign-In Button
+ * - Crisp white pill container (rounded-2xl / 16px radius, 48px height)
+ * - Authentic 4-color Google "G" vector
+ * - Dark 600 weight label ("Continue with Google")
+ * - 0.98 scale tactile press feedback
  */
 export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   style,
@@ -65,10 +111,10 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
       accessibilityLabel="Continue with Google"
     >
       {loading ? (
-        <ActivityIndicator size="small" color={colors.text.primary} />
+        <ActivityIndicator size="small" color="#111827" />
       ) : (
         <View style={styles.content}>
-          <GoogleLogo />
+          <GoogleLogo size={18} />
           <Text style={styles.text}>Continue with Google</Text>
         </View>
       )}
@@ -78,18 +124,18 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    height: touchTargets.minTouchSize,
-    backgroundColor: colors.background.card2,
-    borderRadius: borderRadius.card,
+    height: 48,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border.medium,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
   },
   buttonPressed: {
-    backgroundColor: colors.background.card3,
-    borderColor: colors.brand.primary,
+    transform: [{ scale: 0.98 }],
+    opacity: 0.95,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -98,25 +144,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  googleIconContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  googleLetter: {
-    fontSize: 14,
-    fontWeight: typography.weights.bold,
-    color: '#4285F4',
+    gap: 10,
   },
   text: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.medium,
-    color: colors.text.primary,
+    fontSize: 13,
+    fontWeight: typography.weights.semiBold,
+    color: '#111827',
     letterSpacing: -0.2,
   },
 });

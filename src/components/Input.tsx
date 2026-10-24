@@ -7,6 +7,7 @@ import {
   Pressable,
   TextInputProps,
   ViewStyle,
+  TextStyle,
   StyleProp,
 } from 'react-native';
 import { colors, spacing, borderRadius, typography, touchTargets } from '../theme';
@@ -14,6 +15,7 @@ import { Icon, IconName } from './Icon';
 
 export interface InputProps extends TextInputProps {
   label?: string;
+  labelStyle?: StyleProp<TextStyle>;
   error?: string | null;
   leftIcon?: IconName;
   isPassword?: boolean;
@@ -26,6 +28,7 @@ export interface InputProps extends TextInputProps {
  */
 export const Input: React.FC<InputProps> = ({
   label,
+  labelStyle,
   error,
   leftIcon,
   isPassword = false,
@@ -43,7 +46,7 @@ export const Input: React.FC<InputProps> = ({
 
   return (
     <View style={[styles.wrapper, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text style={[styles.label, labelStyle]}>{label}</Text>}
 
       <View
         style={[
@@ -112,27 +115,26 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   label: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.semiBold,
-    color: colors.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    fontSize: 12,
+    fontWeight: typography.weights.medium,
+    color: '#D1D5DB', // gray-300
     marginBottom: 6,
     marginLeft: 2,
   },
   inputContainer: {
-    minHeight: touchTargets.minTouchSize,
+    height: 48,
+    minHeight: 48,
     backgroundColor: colors.background.card2,
-    borderRadius: borderRadius.card,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border.subtle,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 14,
   },
   inputFocused: {
     borderColor: colors.brand.primary,
-    backgroundColor: colors.background.card3,
+    backgroundColor: colors.background.card2,
   },
   inputError: {
     borderColor: colors.tones.red.text,
@@ -140,7 +142,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     color: colors.text.primary,
-    fontSize: typography.sizes.base,
+    fontSize: 14,
     paddingVertical: spacing.sm,
   },
   inputWithLeftIcon: {

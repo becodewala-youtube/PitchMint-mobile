@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, spacing, typography, borderRadius } from '../../../theme';
-import { Button, Input, Icon } from '../../../components';
-import { useAuth } from '../../../context/AuthContext';
+import { colors, spacing, typography } from '../../../theme';
+import { Button, Input, Icon, AuthCard } from '../../../components';
+import { authApi } from '../../../services/api/authApi';
 import { validateEmail } from '../../../utils/validation';
 import { ApiError } from '../../../services/api/apiClient';
 import { AuthStackParamList } from '../../../navigation/types';
@@ -26,7 +26,6 @@ type ForgotPasswordRouteProp = RouteProp<AuthStackParamList, 'ForgotPassword'>;
 export const ForgotPasswordScreen: React.FC = () => {
   const navigation = useNavigation<ForgotPasswordNavigationProp>();
   const route = useRoute<ForgotPasswordRouteProp>();
-  const { forgotPassword, clearError } = useAuth();
 
   const [email, setEmail] = useState(route.params?.initialEmail ?? '');
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -35,20 +34,17 @@ export const ForgotPasswordScreen: React.FC = () => {
 
   const handleSubmit = async () => {
     setSubmitError(null);
-    clearError();
 
-    const validation = validateEmail(email);
-    if (!validation.isValid) {
-      setEmailError(validation.error);
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      setEmailError(emailValidation.error);
       return;
     }
     setEmailError(null);
 
     setLoading(true);
     try {
-      await forgotPassword(email.trim());
-
-      // Navigate to ResetPasswordScreen with email pre-populated
+      await authApi.forgotPassword({ email: email.trim() });
       navigation.navigate('ResetPassword', {
         email: email.trim(),
       });
@@ -56,7 +52,7 @@ export const ForgotPasswordScreen: React.FC = () => {
       setSubmitError(
         err instanceof ApiError
           ? err.message
-          : 'Unable to process password reset request. Please try again.'
+          : 'Unable to process reset request. Please check your email and try again.'
       );
     } finally {
       setLoading(false);
@@ -65,144 +61,139 @@ export const ForgotPasswordScreen: React.FC = () => {
 
   return (
     <KeyboardAvoidingView
-      style={styles.keyboardContainer}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      testID="forgot-password-screen-root"
     >
+      <View style={styles.ambientGlow} pointerEvents="none" />
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.logoBadge}>
-            <Icon name="lock" size={24} color={colors.brand.soft} />
+        <AuthCard
+          title="Forgot password?"
+          subtitle="Enter your email and we'll send you a reset link"
+          icon={<Icon name="lock" size={24} color={colors.brand.soft} />}
+          testID="forgot-password-auth-card"
+        >
+          {/* Error Banner */}
+          {submitError && (
+            <View style={styles.errorBox} testID="forgot-password-error-box">
+              <Icon name="close" size={16} color={colors.tones.red.text} />
+              <Text style={styles.errorBoxText}>{submitError}</Text>
+            </View>
+          )}
+
+          {/* Form Inputs */}
+          <View style={styles.form}>
+            <Input
+              label="Email Address"
+              placeholder="you@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (emailError) setEmailError(null);
+                if (submitError) setSubmitError(null);
+              }}
+              error={emailError}
+              leftIcon="mail"
+              testID="forgot-password-email-input"
+            />
+
+            <Button
+              title={loading ? 'Sending code…' : 'Send reset link'}
+              onPress={handleSubmit}
+              loading={loading}
+              size="lg"
+              rightIcon={<Icon name="arrowRight" size={16} color="#FFFFFF" />}
+              style={styles.submitBtn}
+              testID="forgot-password-submit-btn"
+            />
           </View>
-          <Text style={styles.title}>Forgot password</Text>
-          <Text style={styles.subtitle}>
-            Enter your registered email address. We'll send you a password reset code.
-          </Text>
-        </View>
 
-        {/* Error Banner */}
-        {submitError && (
-          <View style={styles.errorBox}>
-            <Icon name="close" size={16} color={colors.tones.red.text} />
-            <Text style={styles.errorBoxText}>{submitError}</Text>
+          {/* Shortcut to enter token directly */}
+          <View style={styles.hasCodeRow}>
+            <Text style={styles.hasCodePrompt}>Already have a reset code? </Text>
+            <Pressable
+              onPress={() =>
+                navigation.navigate('ResetPassword', {
+                  email: email.trim() || undefined,
+                })
+              }
+              accessibilityRole="button"
+              accessibilityLabel="Already have a reset code? Enter code directly"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.hasCodeLink}>Enter code directly</Text>
+            </Pressable>
           </View>
-        )}
 
-        {/* Form Inputs */}
-        <View style={styles.form}>
-          <Input
-            label="Email Address"
-            placeholder="founder@example.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              if (emailError) setEmailError(null);
-            }}
-            error={emailError}
-            leftIcon="mail"
-          />
-
-          <Button
-            title="Send Reset Code"
-            onPress={handleSubmit}
-            loading={loading}
-            style={styles.submitBtn}
-          />
-        </View>
-
-        {/* Shortcut to enter token directly */}
-        <View style={styles.hasCodeRow}>
-          <Text style={styles.hasCodePrompt}>Already have a reset code?</Text>
-          <Pressable
-            onPress={() =>
-              navigation.navigate('ResetPassword', {
-                email: email.trim() || undefined,
-              })
-            }
-            accessibilityRole="button"
-          >
-            <Text style={styles.hasCodeLink}>Enter code directly</Text>
-          </Pressable>
-        </View>
-
-        {/* Footer Back */}
-        <View style={styles.footerRow}>
-          <Pressable
-            onPress={() => navigation.navigate('SignIn')}
-            accessibilityRole="button"
-          >
-            <Text style={styles.backLink}>Back to Sign in</Text>
-          </Pressable>
-        </View>
+          {/* Footer Back */}
+          <View style={styles.footerRow}>
+            <Pressable
+              onPress={() => navigation.navigate('SignIn')}
+              accessibilityRole="button"
+              accessibilityLabel="Back to Sign in"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              testID="forgot-password-back-link"
+            >
+              {({ pressed }) => (
+                <Text style={[styles.backLink, pressed && styles.backLinkPressed]}>
+                  Back to Sign in
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        </AuthCard>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  keyboardContainer: {
+  container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#000000',
+  },
+  ambientGlow: {
+    position: 'absolute',
+    top: '8%',
+    alignSelf: 'center',
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(124, 58, 237, 0.16)',
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxxl * 1.5,
-    paddingBottom: spacing.xxl,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     justifyContent: 'center',
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  logoBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: borderRadius.card,
-    backgroundColor: colors.background.card2,
-    borderWidth: 1,
-    borderColor: colors.border.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  title: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
-    color: colors.text.primary,
-    letterSpacing: -0.5,
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: typography.sizes.base,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    maxWidth: 300,
+  form: {
+    width: '100%',
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.tones.red.bg,
-    borderColor: colors.tones.red.border,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.25)',
     borderWidth: 1,
-    borderRadius: borderRadius.card,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: spacing.md,
     gap: spacing.sm,
   },
   errorBoxText: {
     flex: 1,
-    fontSize: typography.sizes.sm,
+    fontSize: 13,
     color: colors.tones.red.text,
-  },
-  form: {
-    width: '100%',
+    lineHeight: 18,
   },
   submitBtn: {
     width: '100%',
@@ -212,24 +203,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing.xl,
-    gap: spacing.xs,
+    marginTop: 18,
   },
   hasCodePrompt: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.secondary,
+    fontSize: 12,
+    color: colors.text.muted,
   },
   hasCodeLink: {
-    fontSize: typography.sizes.sm,
-    color: colors.brand.soft,
+    fontSize: 12,
     fontWeight: typography.weights.semiBold,
+    color: colors.brand.soft,
   },
   footerRow: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
     alignItems: 'center',
-    marginTop: spacing.xl,
+    justifyContent: 'center',
   },
   backLink: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.secondary,
+    fontSize: 12,
+    fontWeight: typography.weights.semiBold,
+    color: colors.text.primary,
+    textDecorationLine: 'underline',
+  },
+  backLinkPressed: {
+    opacity: 0.75,
   },
 });
