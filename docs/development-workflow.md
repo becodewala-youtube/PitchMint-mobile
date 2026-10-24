@@ -27,26 +27,32 @@ Graphify produces a repository-local semantic and architectural graph of the cod
 - Python 3.10+ (Verified on Python 3.12.3)
 - `graphifyy` package installed (`pip install graphifyy`)
 
-### Generation Command
+### Generation Commands
 To generate the code graph deterministically without requiring external LLM API keys or incurring token costs:
 
-```powershell
-# Run headless AST-based extraction on code files
-python -m graphify extract . --code-only
+```bash
+# Convenience npm script (runs extract, cluster, and html export)
+npm run graphify:update
 
-# Generate interactive HTML visualization
+# Or run commands directly:
+python -m graphify extract . --code-only
+python -m graphify cluster-only .
 python -m graphify export html
 ```
 
-### Generated Artifacts (`graphify-out/`)
-- `graph.json`: Raw graph structure containing nodes, edges, and community clusters.
-- `GRAPH_REPORT.md`: Architectural summary including god nodes, surprising connections, and suggested investigation questions.
-- `graph.html`: Standalone interactive visualization viewable in any web browser without a local server.
+### Generated & Tracked Deliverables (`graphify-out/`)
+- `graphify-out/graph.json`: Raw graph structure containing nodes, edges, and community clusters.
+- `graphify-out/GRAPH_REPORT.md`: Architectural summary including god nodes, surprising connections, and suggested questions.
+- `graphify-out/graph.html`: Standalone interactive visualization viewable in any web browser without a local server.
+- `graphify-out/manifest.json`: Incremental extraction state.
 
-### Maintenance & Source Control Policy
-- `graphify-out/` is added to `.gitignore`. It is generated locally on demand and should not bloat git history.
-- **When to Refresh:** Developers should re-run Graphify extraction after substantial architectural refactors, adding new feature modules, or restructuring navigation hierarchies.
-- **Non-Blocking:** Graph generation is an advisory tool for architecture visualization and AI assistance; it is **not** a mandatory CI blocker on trivial commits.
+### Automated CI/CD Graph Updates on PR Merge
+- Defined in `.github/workflows/graphify-update.yml`.
+- Whenever a PR is merged into `main` (push event on `main`), GitHub Actions automatically:
+  1. Installs `graphifyy` in Python 3.12.
+  2. Runs deterministic AST extraction and exports `graph.html`.
+  3. Commits and pushes the updated graph deliverables (`graph.json`, `GRAPH_REPORT.md`, `graph.html`) back to `main` with `[skip ci]`.
+- Internal cache directories (`graphify-out/cache/` and `graphify-out/.graphify_*`) are ignored in `.gitignore`.
 
 ---
 

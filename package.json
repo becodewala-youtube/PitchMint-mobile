@@ -32,7 +32,10 @@
     "typecheck": "tsc --noEmit",
     "doctor": "npx expo-doctor",
     "test": "jest",
-    "export:android": "expo export --platform android"
+    "export:android": "expo export --platform android",
+    "graphify:extract": "python -m graphify extract . --code-only",
+    "graphify:html": "python -m graphify export html",
+    "graphify:update": "python -m graphify extract . --code-only && python -m graphify cluster-only . && python -m graphify export html"
   },
   "private": true
 }

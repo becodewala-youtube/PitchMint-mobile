@@ -30,10 +30,13 @@ This document captures the verified facts, versions, scripts, and status of `Pit
 PitchMint-mobile/
 ├── .agents/rules/           # SDLC, architecture, coding, and project rules
 ├── .github/
-│   ├── workflows/ci.yml     # Automated CI verification workflow
+│   ├── workflows/
+│   │   ├── ci.yml           # Automated CI verification workflow
+│   │   └── graphify-update.yml # Auto-updates knowledge graph when PR merges to main
 │   └── dependabot.yml       # Dependency update schedule and group policy
 ├── assets/                  # Launcher icon, splash screen, adaptive icons
 ├── docs/                    # Architecture, known issues, and workflow docs
+├── graphify-out/            # Generated knowledge graph (graph.json, GRAPH_REPORT.md, graph.html)
 ├── src/
 │   ├── app/                 # App root component and AppProviders
 │   ├── navigation/          # React Navigation stacks, tabs, and types
@@ -60,6 +63,10 @@ PitchMint-mobile/
 - `npm run typecheck`: Run TypeScript compiler (`tsc --noEmit`).
 - `npm run doctor`: Run `npx expo-doctor` diagnostic checks.
 - `npm test`: Run Jest unit and component test suites.
+- `npm run export:android`: Run `npx expo export --platform android` bundle verification.
+- `npm run graphify:update`: Run AST extraction, clustering, and HTML graph export.
+- `npm run graphify:extract`: Run code-only AST extraction to `graphify-out/graph.json`.
+- `npm run graphify:html`: Generate standalone interactive `graphify-out/graph.html`.
 
 ---
 
