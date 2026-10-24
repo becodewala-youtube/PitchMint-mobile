@@ -66,7 +66,24 @@ export const IdeasScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
     fetchIdeas(1);
+
+    if (typeof (navigation as any)?.addListener === 'function') {
+      const unsubscribe = (navigation as any).addListener('focus', () => {
+        if (isMounted) {
+          fetchIdeas(1);
+        }
+      });
+      return () => {
+        isMounted = false;
+        unsubscribe();
+      };
+    }
+
+    return () => {
+      isMounted = false;
+    };
   }, [fetchIdeas]);
 
   const handleRefresh = useCallback(() => {
