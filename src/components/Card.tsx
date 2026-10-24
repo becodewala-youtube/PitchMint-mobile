@@ -13,6 +13,7 @@ interface CardProps {
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   variant?: 'default' | 'highlight' | 'surface' | 'subtle';
+  testID?: string;
 }
 
 /**
@@ -26,6 +27,7 @@ export const Card: React.FC<CardProps> = ({
   style,
   onPress,
   variant = 'default',
+  testID,
 }) => {
   const getCardStyle = (): ViewStyle => {
     switch (variant) {
@@ -55,6 +57,7 @@ export const Card: React.FC<CardProps> = ({
   if (onPress) {
     return (
       <Pressable
+        testID={testID}
         onPress={onPress}
         style={({ pressed }) => [
           styles.base,
@@ -69,7 +72,7 @@ export const Card: React.FC<CardProps> = ({
   }
 
   return (
-    <View style={[styles.base, getCardStyle(), style]}>
+    <View testID={testID} style={[styles.base, getCardStyle(), style]}>
       {children}
     </View>
   );

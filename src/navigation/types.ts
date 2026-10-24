@@ -25,6 +25,7 @@ export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList> | undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList>;
   ValidateModal: undefined;
+  IdeaDetails: { ideaId: string };
 };
 
 export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;

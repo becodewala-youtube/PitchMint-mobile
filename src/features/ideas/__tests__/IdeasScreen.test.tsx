@@ -68,6 +68,31 @@ describe('IdeasScreen Integration (Phase 3A)', () => {
     expect(textNodes).toContain('Sub-lease Marketplace');
   });
 
+  it('navigates to IdeaDetails with ideaId when an idea card is pressed', async () => {
+    jest.spyOn(ideasApi, 'getSavedIdeas').mockResolvedValue({
+      success: true,
+      ideas: sampleIdeas,
+      total: 2,
+      totalPages: 1,
+      currentPage: 1,
+    });
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<IdeasScreen />);
+    });
+
+    const root = renderer!.root;
+    const card = root.findByProps({ testID: 'idea-card-id-1' });
+    expect(card).toBeDefined();
+
+    await act(async () => {
+      card.props.onPress();
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith('IdeaDetails', { ideaId: 'id-1' });
+  });
+
   it('filters ideas client-side when typing into search input', async () => {
     jest.spyOn(ideasApi, 'getSavedIdeas').mockResolvedValue({
       success: true,
