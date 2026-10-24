@@ -26,6 +26,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: Setup Python
@@ -50,11 +51,11 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes in knowledge graph."
           else
-            git commit -m "chore(graphify): update knowledge graph on main [skip ci]"
-            if ! git pull --rebase origin main; then
-              echo "Error: git pull --rebase origin main failed. Aborting rebase to avoid unsafe push."
+            git commit -m "chore(graphify): update knowledge graph on ${{ github.ref_name }} [skip ci]"
+            if ! git pull --rebase origin ${{ github.ref_name }}; then
+              echo "Error: git pull --rebase origin ${{ github.ref_name }} failed. Aborting rebase to avoid unsafe push."
               git rebase --abort || true
               exit 1
             fi
-            git push origin main
+            git push origin HEAD:${{ github.ref_name }}
           fi
