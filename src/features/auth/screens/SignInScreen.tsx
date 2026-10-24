@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, spacing, typography, borderRadius } from '../../../theme';
-import { Button, Input, GoogleSignInButton, Icon } from '../../../components';
+import { colors, spacing, typography } from '../../../theme';
+import { Button, Input, GoogleSignInButton, Icon, AuthCard } from '../../../components';
 import { useAuth } from '../../../context/AuthContext';
 import { validateEmail } from '../../../utils/validation';
 import { ApiError } from '../../../services/api/apiClient';
@@ -20,6 +20,20 @@ import { AuthStackParamList } from '../../../navigation/types';
 type SignInNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'SignIn'>;
 type SignInRouteProp = RouteProp<AuthStackParamList, 'SignIn'>;
 
+/**
+ * PitchMint Sign In Screen
+ *
+ * Faithfully redesigned to match the Arena design prototype:
+ * - Floating glassmorphic AuthCard with 24px radius, white/8% border, elevated drop shadow
+ * - Top-centered PitchMint logo badge with ambient radial violet glow
+ * - Refined title ("Welcome Back") & subtitle ("Sign in to continue your journey")
+ * - 48px input fields with left icons and eye toggle
+ * - Right-aligned muted "Forgot your password?" trigger
+ * - Signature "btn-3d" Sign In button with right arrow icon
+ * - Centered "Or continue with" divider
+ * - Crisp white Google pill button with authentic 4-color Google vector logo
+ * - Bottom bordered switch link ("Don't have an account? Sign up")
+ */
 export const SignInScreen: React.FC = () => {
   const navigation = useNavigation<SignInNavigationProp>();
   const route = useRoute<SignInRouteProp>();
@@ -90,238 +104,262 @@ export const SignInScreen: React.FC = () => {
 
   return (
     <KeyboardAvoidingView
-      style={styles.keyboardContainer}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      testID="signin-screen-root"
     >
+      {/* Ambient background glow matching Arena auth backdrop */}
+      <View style={styles.ambientGlow} pointerEvents="none" />
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.logoBadge}>
-            <Icon name="sparkles" size={24} color={colors.brand.soft} />
+        <AuthCard
+          title="Welcome Back"
+          subtitle="Sign in to continue your journey"
+          testID="signin-auth-card"
+        >
+          {/* Notice Banner (e.g., after password reset or email verification) */}
+          {noticeMessage && (
+            <View style={styles.noticeBox} testID="signin-notice-box">
+              <Icon name="check" size={16} color={colors.tones.emerald.text} />
+              <Text style={styles.noticeText}>{noticeMessage}</Text>
+            </View>
+          )}
+
+          {/* Form Error Banner */}
+          {submitError && (
+            <View style={styles.errorBox} testID="signin-error-box">
+              <Icon name="close" size={16} color={colors.tones.red.text} />
+              <Text style={styles.errorBoxText}>{submitError}</Text>
+            </View>
+          )}
+
+          {/* Inputs */}
+          <View style={styles.form}>
+            <Input
+              label="Email Address"
+              placeholder="you@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (emailError) setEmailError(null);
+                if (submitError) setSubmitError(null);
+              }}
+              error={emailError}
+              leftIcon="mail"
+              testID="signin-email-input"
+            />
+
+            <Input
+              label="Password"
+              placeholder="••••••••"
+              isPassword
+              autoCapitalize="none"
+              autoComplete="current-password"
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (passwordError) setPasswordError(null);
+                if (submitError) setSubmitError(null);
+              }}
+              error={passwordError}
+              leftIcon="lock"
+              testID="signin-password-input"
+            />
+
+            {/* Forgot Password Link */}
+            <View style={styles.forgotRow}>
+              <Pressable
+                onPress={() =>
+                  navigation.navigate('ForgotPassword', {
+                    initialEmail: email.trim() || undefined,
+                  })
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Forgot your password?"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                testID="signin-forgot-password-link"
+              >
+                {({ pressed }) => (
+                  <Text style={[styles.forgotText, pressed && styles.forgotTextPressed]}>
+                    Forgot your password?
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+
+            {/* 3D Sign In CTA Button */}
+            <Button
+              title={loading ? 'Signing in…' : 'Sign in'}
+              onPress={handleSubmit}
+              loading={loading}
+              size="lg"
+              rightIcon={<Icon name="arrowRight" size={16} color="#FFFFFF" />}
+              style={styles.submitBtn}
+              testID="signin-submit-btn"
+            />
           </View>
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>
-            Sign in to continue validating your startup ideas.
-          </Text>
-        </View>
 
-        {/* Notice Message if any */}
-        {noticeMessage && (
-          <View style={styles.noticeBox}>
-            <Icon name="check" size={16} color={colors.tones.emerald.text} />
-            <Text style={styles.noticeText}>{noticeMessage}</Text>
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <View style={styles.dividerBadge}>
+              <Text style={styles.dividerText}>Or continue with</Text>
+            </View>
+            <View style={styles.dividerLine} />
           </View>
-        )}
 
-        {/* Form Error Banner */}
-        {submitError && (
-          <View style={styles.errorBox}>
-            <Icon name="close" size={16} color={colors.tones.red.text} />
-            <Text style={styles.errorBoxText}>{submitError}</Text>
-          </View>
-        )}
+          {/* Google Sign In Button */}
+          <GoogleSignInButton style={styles.googleBtn} />
 
-        {/* Form Inputs */}
-        <View style={styles.form}>
-          <Input
-            label="Email Address"
-            placeholder="founder@example.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              if (emailError) setEmailError(null);
-            }}
-            error={emailError}
-            leftIcon="mail"
-          />
-
-          <Input
-            label="Password"
-            placeholder="Enter your password"
-            isPassword
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text);
-              if (passwordError) setPasswordError(null);
-            }}
-            error={passwordError}
-            leftIcon="lock"
-          />
-
-          <View style={styles.forgotRow}>
+          {/* Bottom Switcher */}
+          <View style={styles.footerRow}>
+            <Text style={styles.footerText}>Don't have an account? </Text>
             <Pressable
-              onPress={() =>
-                navigation.navigate('ForgotPassword', {
-                  initialEmail: email.trim() || undefined,
-                })
-              }
+              onPress={() => navigation.navigate('SignUp')}
               accessibilityRole="button"
+              accessibilityLabel="Don't have an account? Sign up"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              testID="signin-signup-link"
             >
-              <Text style={styles.forgotText}>Forgot password?</Text>
+              {({ pressed }) => (
+                <Text style={[styles.footerLink, pressed && styles.footerLinkPressed]}>
+                  Sign up
+                </Text>
+              )}
             </Pressable>
           </View>
-
-          <Button
-            title="Sign In"
-            onPress={handleSubmit}
-            loading={loading}
-            style={styles.submitBtn}
-          />
-        </View>
-
-        {/* Divider */}
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>OR</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        {/* Google Sign In */}
-        <GoogleSignInButton style={styles.googleBtn} />
-
-        {/* Bottom Switcher */}
-        <View style={styles.footerRow}>
-          <Text style={styles.footerText}>Don't have an account?</Text>
-          <Pressable
-            onPress={() => navigation.navigate('SignUp')}
-            accessibilityRole="button"
-          >
-            <Text style={styles.footerLink}>Create account</Text>
-          </Pressable>
-        </View>
+        </AuthCard>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  keyboardContainer: {
+  container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#000000',
+  },
+  ambientGlow: {
+    position: 'absolute',
+    top: '8%',
+    alignSelf: 'center',
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(124, 58, 237, 0.16)',
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxxl * 1.5,
-    paddingBottom: spacing.xxl,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     justifyContent: 'center',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  logoBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: borderRadius.card,
-    backgroundColor: colors.background.card2,
-    borderWidth: 1,
-    borderColor: colors.border.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  title: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
-    color: colors.text.primary,
-    letterSpacing: -0.5,
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: typography.sizes.base,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    maxWidth: 280,
-  },
-  noticeBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.tones.emerald.bg,
-    borderColor: colors.tones.emerald.border,
-    borderWidth: 1,
-    borderRadius: borderRadius.card,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
-  },
-  noticeText: {
-    flex: 1,
-    fontSize: typography.sizes.sm,
-    color: colors.tones.emerald.text,
-  },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.tones.red.bg,
-    borderColor: colors.tones.red.border,
-    borderWidth: 1,
-    borderRadius: borderRadius.card,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
-  },
-  errorBoxText: {
-    flex: 1,
-    fontSize: typography.sizes.sm,
-    color: colors.tones.red.text,
   },
   form: {
     width: '100%',
   },
+  noticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.tones.emerald.text,
+    lineHeight: 18,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  errorBoxText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.tones.red.text,
+    lineHeight: 18,
+  },
   forgotRow: {
     alignItems: 'flex-end',
-    marginBottom: spacing.lg,
     marginTop: -spacing.xs,
+    marginBottom: spacing.md,
   },
   forgotText: {
-    fontSize: typography.sizes.xs,
-    color: colors.brand.soft,
-    fontWeight: typography.weights.medium,
+    fontSize: 11,
+    fontWeight: typography.weights.semiBold,
+    color: colors.text.secondary, // #9CA3AF
+    letterSpacing: -0.1,
+  },
+  forgotTextPressed: {
+    color: colors.text.primary,
   },
   submitBtn: {
     width: '100%',
   },
   dividerRow: {
+    position: 'relative',
+    marginVertical: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: spacing.xl,
+    justifyContent: 'center',
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.border.subtle,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  dividerBadge: {
+    paddingHorizontal: 12,
+    backgroundColor: '#0A0A0A',
   },
   dividerText: {
-    marginHorizontal: spacing.md,
-    fontSize: typography.sizes.xs,
-    color: colors.text.muted,
-    fontWeight: typography.weights.semiBold,
-    letterSpacing: 0.8,
+    fontSize: 11,
+    fontWeight: typography.weights.medium,
+    color: colors.text.muted, // #6B7280
+    letterSpacing: 0.2,
   },
   googleBtn: {
     width: '100%',
-    marginBottom: spacing.xxl,
   },
   footerRow: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
   },
   footerText: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.secondary,
+    fontSize: 12,
+    color: colors.text.secondary, // #9CA3AF
   },
   footerLink: {
-    fontSize: typography.sizes.sm,
-    color: colors.brand.soft,
+    fontSize: 12,
     fontWeight: typography.weights.semiBold,
+    color: colors.text.primary, // #FFFFFF
+    textDecorationLine: 'underline',
+  },
+  footerLinkPressed: {
+    opacity: 0.75,
   },
 });
