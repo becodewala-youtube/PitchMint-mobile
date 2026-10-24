@@ -1,6 +1,59 @@
 import { apiClient, ApiError } from './apiClient';
 import { parseIdeaTitleAndDesc, hasSubDocument, ParsedIdeaCard } from '../../utils/ideaParser';
 
+export interface PitchDeckSlideItem {
+  problem?: string;
+  solution?: string;
+  marketSize?: string;
+  businessModel?: string;
+  competitors?: string;
+  goToMarket?: string;
+  team?: string;
+  financials?: string;
+  milestones?: string;
+  askAndUse?: string;
+  [key: string]: string | undefined;
+}
+
+export interface CanvasContentData {
+  problem?: string;
+  solution?: string;
+  keyMetrics?: string;
+  uniqueValueProposition?: string;
+  channels?: string;
+  customerSegments?: string;
+  costStructure?: string;
+  revenueStreams?: string;
+  unfairAdvantage?: string;
+  [key: string]: string | undefined;
+}
+
+export interface CompetitorSwot {
+  strengths?: string[];
+  weaknesses?: string[];
+  opportunities?: string[];
+  threats?: string[];
+}
+
+export interface CompetitorItem {
+  name?: string;
+  description?: string;
+  swot?: CompetitorSwot;
+}
+
+export interface PitchSimulationQuestion {
+  id?: string;
+  question?: string;
+  category?: string;
+  answer?: string;
+  feedback?: {
+    rating?: number;
+    strengths?: string[];
+    improvements?: string[];
+    additionalAdvice?: string;
+  } | null;
+}
+
 export interface BackendIdea {
   _id: string;
   userId: string;
@@ -15,18 +68,14 @@ export interface BackendIdea {
     monetization?: { score?: number; text?: string };
     overall?: { score?: number; text?: string };
   };
-  pitchDeckContent?: Record<string, any>;
-  canvasContent?: Record<string, any>;
+  pitchDeckContent?: PitchDeckSlideItem;
+  canvasContent?: CanvasContentData;
   competitorAnalysis?: {
     summary?: string;
-    competitors?: Array<{
-      name?: string;
-      description?: string;
-      swot?: { strengths?: string[]; weaknesses?: string[]; opportunities?: string[]; threats?: string[] };
-    }>;
+    competitors?: CompetitorItem[];
   };
   pitchSimulation?: {
-    questions?: Array<any>;
+    questions?: PitchSimulationQuestion[];
   };
   createdAt: string;
 }
@@ -110,8 +159,25 @@ export const ideasApi = {
    * Fetches a single idea by ID.
    * Route: GET /api/idea/:id
    */
-  getIdeaById(id: string): Promise<BackendIdea> {
-    return apiClient.get<BackendIdea>(`/api/idea/${id}`);
+  async getIdeaById(id: string): Promise<BackendIdea> {
+    const trimmedId = id?.trim();
+    if (!trimmedId) {
+      throw new ApiError({
+        message: 'Invalid idea identifier',
+        status: 400,
+      });
+    }
+
+    const response = await apiClient.get<BackendIdea>(`/api/idea/${trimmedId}`);
+
+    if (!response || typeof response !== 'object' || !response._id) {
+      throw new ApiError({
+        message: 'Received invalid or empty idea data from server',
+        status: 502,
+      });
+    }
+
+    return response;
   },
 
   /**

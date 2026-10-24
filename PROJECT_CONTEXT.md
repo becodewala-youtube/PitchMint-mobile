@@ -89,15 +89,30 @@ PitchMint-mobile/
 ---
 
 ## 6. Current Testing & CI Status
-- **Test Suites:** 20 passed, 20 total.
-- **Tests:** 136 passed, 136 total.
+- **Test Suites:** 21 passed, 21 total.
+- **Tests:** 146 passed, 146 total.
 - **TypeScript:** Clean pass (`tsc --noEmit` exits 0).
-- **Android JS Export:** Passes (`npx expo export --platform android` bundles 889 modules into Hermes bytecode in ~7.8s).
+- **Android JS Export:** Passes (`npx expo export --platform android` bundles 890 modules into Hermes bytecode in ~8.6s).
 - **Expo Doctor:** 21/21 checks passed cleanly on Expo SDK 57.0.31.
 
 ---
 
-## 7. Development & Demo Top-Up Configuration (Phase 3B.1)
+## 7. Saved Idea Deep-Dive & Action Hub (Phase 3C)
+- **Detail Route:** `IdeaDetails` in `RootStackParamList` taking `{ ideaId: string }`.
+- **Authoritative Data Fetch:** Directly queries `GET /api/idea/:id` through `ideasApi.getIdeaById(id)`.
+- **Validation Presentation:** Real overall score (`ScoreRing`), Phase 3B verdict thresholds (80+ Strong Potential, 60-79 Moderate Potential, <60 Needs Iteration), and breakdown ScoreBars for Market Demand, Competition, and Monetization Feasibility.
+- **AI Evidence Accordions:** Collapsible explanation text for demand, competition, monetization, and overall strategic recommendation.
+- **Stored Action Modules:** Inspects and conditionally renders stored modules when generated:
+  - `competitorAnalysis`: Summary, competitor descriptions, and 4-quadrant SWOT matrix.
+  - `pitchDeckContent`: 10-slide outline.
+  - `canvasContent`: 9-block Lean Business Model Canvas.
+  - `pitchSimulation`: Investor questions, founder answers, and feedback ratings.
+  - If a module has not been generated for the idea, renders an honest neutral "Not generated yet" empty state.
+- **Action Hub:** Navigates back to Saved Ideas and launches `ValidateModalScreen` to validate new ideas.
+
+---
+
+## 8. Development & Demo Top-Up Configuration (Phase 3B.1)
 - **Feature Flag:** `config.features.enableDemoTopUp` in `src/config/env.ts`.
 - **Default Resolution:** Enabled in `__DEV__` (local development); disabled in production (`NODE_ENV === 'production'`).
 - **Standalone Demo APK Configuration:** To include the demo top-up controls in a standalone preview/personal-demo release APK, compile with `EXPO_PUBLIC_ENABLE_DEMO_TOPUP=true`.
@@ -108,7 +123,7 @@ PitchMint-mobile/
 
 ---
 
-## 8. Known Limitations & Tracked Backlog
+## 9. Known Limitations & Tracked Backlog
 - Store-mandated in-app account deletion (`DELETE /api/auth/account`) pending backend deployment before public release.
 - Native In-App Billing (Google Play / Apple StoreKit) required for production store credit purchases; web Razorpay checkout is not embedded to maintain store compliance.
 - Backend request idempotency on `POST /api/idea/submit` recommended for high-volume commercial launch.

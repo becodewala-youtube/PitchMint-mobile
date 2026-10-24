@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BottomTabNavigator } from './BottomTabNavigator';
 import { ValidateModalScreen } from '../features/validate/screens/ValidateModalScreen';
+import { IdeaDetailsScreen } from '../features/ideas/screens/IdeaDetailsScreen';
 import { AuthNavigator } from './AuthNavigator';
 import { AuthLoadingScreen } from '../features/auth/screens/AuthLoadingScreen';
 import { WelcomeScreen, OnboardingScreen } from '../features/onboarding';
@@ -46,6 +47,13 @@ export const RootNavigator: React.FC = () => {
             options={{
               presentation: 'modal',
               animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen
+            name="IdeaDetails"
+            component={IdeaDetailsScreen}
+            options={{
+              animation: 'slide_from_right',
             }}
           />
         </>

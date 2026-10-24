@@ -279,7 +279,8 @@ export const IdeasScreen: React.FC = () => {
           return (
             <Card
               key={idea.id}
-              onPress={() => navigation.navigate('ValidateModal')}
+              testID={`idea-card-${idea.id}`}
+              onPress={() => navigation.navigate('IdeaDetails', { ideaId: idea.id } as any)}
               style={styles.ideaCard}
             >
               <View style={styles.ideaCardRow}>

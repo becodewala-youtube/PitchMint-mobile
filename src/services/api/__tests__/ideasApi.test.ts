@@ -78,21 +78,35 @@ describe('IdeasApi Service', () => {
     expect(card.hasSimulation).toBe(false);
   });
 
-  it('fetches a single idea by ID', async () => {
-    const mockIdea: BackendIdea = {
-      _id: 'idea-999',
-      userId: 'usr-1',
-      ideaText: 'Single Idea',
-      overallScore: 80,
-      createdAt: '2026-10-24T00:00:00Z',
-    };
+  describe('getIdeaById', () => {
+    it('fetches a single idea by ID from /api/idea/:id', async () => {
+      const mockIdea: BackendIdea = {
+        _id: 'idea-999',
+        userId: 'usr-1',
+        ideaText: 'Single Idea',
+        overallScore: 80,
+        createdAt: '2026-10-24T00:00:00Z',
+      };
 
-    const getSpy = jest.spyOn(apiClient, 'get').mockResolvedValue(mockIdea as any);
+      const getSpy = jest.spyOn(apiClient, 'get').mockResolvedValue(mockIdea as any);
 
-    const res = await ideasApi.getIdeaById('idea-999');
+      const res = await ideasApi.getIdeaById('idea-999');
 
-    expect(getSpy).toHaveBeenCalledWith('/api/idea/idea-999');
-    expect(res._id).toBe('idea-999');
+      expect(getSpy).toHaveBeenCalledWith('/api/idea/idea-999');
+      expect(res._id).toBe('idea-999');
+    });
+
+    it('rejects with ApiError(400) if idea ID is empty or whitespace', async () => {
+      await expect(ideasApi.getIdeaById('   ')).rejects.toThrow('Invalid idea identifier');
+    });
+
+    it('rejects with ApiError(502) if server returns invalid idea payload', async () => {
+      jest.spyOn(apiClient, 'get').mockResolvedValue(null as any);
+
+      await expect(ideasApi.getIdeaById('idea-999')).rejects.toThrow(
+        'Received invalid or empty idea data from server'
+      );
+    });
   });
 
   describe('submitIdea', () => {
