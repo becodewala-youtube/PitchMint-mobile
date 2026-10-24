@@ -34,6 +34,22 @@ Run lint and typecheck before declaring any task done.
 Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
 Docs: https://docs.expo.dev/eas/index.md
 
+## PitchMint Workspace Boundaries & Rules
+
+1. **Repository Isolation:**
+   - The PitchMint suite consists of three decoupled repositories: `PitchMint-Backend`, `PitchMint-frontend`, and `PitchMint-mobile`.
+   - The web frontend and backend **must remain independent repositories**.
+   - NEVER modify files in `PitchMint-Backend` or `PitchMint-frontend` while working on the mobile app.
+   - Do NOT create a monorepo, symlinks, or shared workspace root.
+
+2. **Mobile Security Mandates:**
+   - Mobile client binaries are distributed to public devices and can be reverse engineered.
+   - NEVER place server secrets, Gemini API keys, Razorpay secret keys, or JWT signing secrets in mobile code or configuration.
+
+3. **Public-Release Blockers (Tracked Separately):**
+   - **Account Deletion:** Apple and Google mandate an in-app account deletion flow. The backend must add `DELETE /api/auth/account` before public store submission.
+   - **Store Billing:** Google Play and Apple prohibit external payment gateways (e.g. Razorpay web checkouts) for in-app consumed digital goods. Native Google Play Billing will be introduced post-MVP.
+
 ## Rules
 
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
