@@ -13,13 +13,15 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_ENABLE_DEMO_TOPUP": "true",
-        "EXPO_PUBLIC_ALLOW_CLEARTEXT": "true"
+        "EXPO_PUBLIC_API_URL": "https://pitch-mint-backend.vercel.app",
+        "EXPO_PUBLIC_ENABLE_DEMO_TOPUP": "false",
+        "EXPO_PUBLIC_ALLOW_CLEARTEXT": "false"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
+        "EXPO_PUBLIC_API_URL": "https://pitch-mint-backend.vercel.app",
         "EXPO_PUBLIC_ENABLE_DEMO_TOPUP": "false",
         "EXPO_PUBLIC_ALLOW_CLEARTEXT": "false"
       }

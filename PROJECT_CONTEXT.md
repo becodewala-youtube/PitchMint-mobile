@@ -139,9 +139,10 @@ PitchMint-mobile/
 - **User-Facing App Name:** `PitchMint` (under Android launcher icon).
 - **EAS Profile:** `eas.json` defines `preview` profile with `android.buildType: "apk"` and `distribution: "internal"`.
 - **EAS Project ID:** Not hardcoded or invented; linked via interactive `npx eas-cli init`.
-- **Demo Top-Up Flag:** Configured via `EXPO_PUBLIC_ENABLE_DEMO_TOPUP=true` in preview profile; disabled in production profile.
-- **Cleartext HTTP Handling:** `plugins/withCleartextTraffic.js` conditionally sets `android:usesCleartextTraffic="true"` only for `preview` builds (`EAS_BUILD_PROFILE === 'preview'` or `EXPO_PUBLIC_ALLOW_CLEARTEXT === 'true'`). Production builds enforce strict HTTPS.
+- **Target Live Backend:** `https://pitch-mint-backend.vercel.app` in `eas.json` (shares live MongoDB database with web application).
+- **Demo Top-Up Flag:** Configured via `EXPO_PUBLIC_ENABLE_DEMO_TOPUP=false` in preview and production profiles.
+- **Cleartext HTTP Handling:** `plugins/withCleartextTraffic.js` only sets `android:usesCleartextTraffic="true"` when `EXPO_PUBLIC_ALLOW_CLEARTEXT === 'true'` is explicitly requested. Preview profile disables cleartext (`false`), strictly enforcing HTTPS.
 - **Base URL Sanitization:** `sanitizeApiUrl()` strips trailing `/` and redundant `/api` suffixes to guarantee robust connectivity against `PitchMint-Backend`.
-- **No Committed Secrets or IPs:** Developer LAN IPs are removed from source code; generic default `http://localhost:4000` is committed; real devices configure `EXPO_PUBLIC_API_URL` via EAS or `.env.local`.
+- **No Committed Secrets or IPs:** Generic default in `.env` for local development; live backend configured directly in `eas.json` for APK builds.
 - **Build Guide:** Detailed step-by-step PowerShell commands located in [`docs/personal-demo-apk-build.md`](docs/personal-demo-apk-build.md).
 
