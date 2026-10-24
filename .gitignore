@@ -9,8 +9,9 @@ dist/
 web-build/
 expo-env.d.ts
 
-# Graphify
-graphify-out/
+# Graphify (track graph deliverables, ignore transient cache)
+graphify-out/cache/
+graphify-out/.graphify_*
 
 # Native
 .kotlin/
