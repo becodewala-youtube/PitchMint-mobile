@@ -89,11 +89,11 @@ PitchMint-mobile/
 ---
 
 ## 6. Current Testing & CI Status
-- **Test Suites:** 10 passed, 10 total.
-- **Tests:** 75 passed, 75 total.
+- **Test Suites:** 19 passed, 19 total.
+- **Tests:** 111 passed, 111 total.
 - **TypeScript:** Clean pass (`tsc --noEmit` exits 0).
-- **Android JS Export:** Passes (`npx expo export --platform android` bundles 884 modules into Hermes bytecode).
-- **Expo Doctor:** 20/21 passed on SDK 57.0.28 (1 patch version mismatch: `expo ~57.0.31` expected; addressed in patch PR).
+- **Android JS Export:** Passes (`npx expo export --platform android` bundles 888 modules into Hermes bytecode).
+- **Expo Doctor:** 21/21 checks passed cleanly on Expo SDK 57.0.31.
 
 ---
 

@@ -38,6 +38,25 @@ describe('ApiClient', () => {
     expect(capturedHeaders['Content-Type']).toBe('application/json');
   });
 
+  it('should not attach Authorization header when no token exists in storage', async () => {
+    jest.spyOn(tokenStorage, 'getToken').mockResolvedValue(null);
+
+    let capturedHeaders: any = null;
+    global.fetch = jest.fn().mockImplementation((url, init) => {
+      capturedHeaders = init.headers;
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        text: () => Promise.resolve(JSON.stringify({ ok: true })),
+      });
+    });
+
+    await apiClient.get('/api/idea/saved');
+
+    expect(capturedHeaders['Authorization']).toBeUndefined();
+  });
+
   it('should omit Authorization header when skipAuth is true', async () => {
     jest.spyOn(tokenStorage, 'getToken').mockResolvedValue('test-jwt-token');
 

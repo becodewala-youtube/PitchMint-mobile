@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   Switch,
   Pressable,
+  Alert,
+  RefreshControl,
 } from 'react-native';
 import {
   ScreenContainer,
@@ -14,6 +16,8 @@ import {
   IconName,
 } from '../../../components';
 import { colors, Tone, spacing, typography, borderRadius } from '../../../theme';
+import { useAuth } from '../../../context/AuthContext';
+import { ideasApi } from '../../../services/api/ideasApi';
 
 interface SettingRowProps {
   icon: IconName;
@@ -41,6 +45,8 @@ const SettingRow: React.FC<SettingRowProps> = ({
         styles.rowContainer,
         pressed && styles.rowPressed,
       ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
     >
       <IconBadge name={icon} tone={danger ? 'red' : tone} size={34} />
       <Text
@@ -57,23 +63,44 @@ const SettingRow: React.FC<SettingRowProps> = ({
   );
 };
 
-import { useAuth } from '../../../context/AuthContext';
-import { Alert } from 'react-native';
-
 /**
  * ProfileScreen - Settings & Account Management
+ * Connects to live authenticated user session and verified account metrics.
  * Exact match to the Arena prototype specifications.
  */
 export const ProfileScreen: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, refreshUser, signOut } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [founderTipsEnabled, setFounderTipsEnabled] = useState(true);
+  const [totalIdeasCount, setTotalIdeasCount] = useState<number>(0);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const displayName = user?.name || 'Founder';
   const displayEmail = user?.email || 'founder@pitchmint.app';
   const displayCredits = user?.credits ?? 0;
-  const displayPlan = user?.plan ? user.plan.toUpperCase() : user?.isPremium ? 'PREMIUM' : 'FREE';
+  const displayPlan = (user?.plan || (user?.isPremium ? 'PRO' : 'FREE')).toUpperCase();
   const initialLetter = (displayName[0] || 'F').toUpperCase();
+
+  const loadProfileMetrics = useCallback(async () => {
+    try {
+      await refreshUser();
+      const response = await ideasApi.getSavedIdeas({ page: 1, limit: 1 });
+      setTotalIdeasCount(response.total ?? 0);
+    } catch (err) {
+      console.warn('[ProfileScreen] Error loading account metrics:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshUser]);
+
+  useEffect(() => {
+    loadProfileMetrics();
+  }, [loadProfileMetrics]);
+
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    loadProfileMetrics();
+  }, [loadProfileMetrics]);
 
   const handleSignOut = () => {
     Alert.alert(
@@ -93,11 +120,20 @@ export const ProfileScreen: React.FC = () => {
   };
 
   return (
-    <ScreenContainer>
+    <ScreenContainer
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          tintColor={colors.brand.primary}
+          colors={[colors.brand.primary]}
+        />
+      }
+    >
       {/* Title */}
       <Text style={styles.screenTitle}>Settings</Text>
 
-      {/* 1. Profile Hero Card */}
+      {/* 1. Profile Hero Card with Verified Live Data */}
       <Card style={styles.profileCard}>
         <View style={styles.profileHeroRow}>
           <View style={styles.avatarLarge}>
@@ -113,8 +149,11 @@ export const ProfileScreen: React.FC = () => {
             </View>
           </View>
           <Pressable
-            onPress={() => alert(`Logged in as ${displayEmail}`)}
+            onPress={() =>
+              Alert.alert('User Profile', `Name: ${displayName}\nEmail: ${displayEmail}\nPlan: ${displayPlan}`)
+            }
             style={styles.pencilBtn}
+            accessibilityRole="button"
             accessibilityLabel="View profile info"
           >
             <Icon name="user" size={14} color={colors.text.secondary} />
@@ -124,7 +163,7 @@ export const ProfileScreen: React.FC = () => {
         {/* 3-Column Stats Sub-bar */}
         <View style={styles.profileStatsBar}>
           <View style={styles.statCol}>
-            <Text style={styles.statColValue}>0</Text>
+            <Text style={styles.statColValue}>{totalIdeasCount}</Text>
             <Text style={styles.statColLabel}>Ideas</Text>
           </View>
           <View style={[styles.statCol, styles.statColDivider]}>
@@ -158,9 +197,14 @@ export const ProfileScreen: React.FC = () => {
         <SettingRow
           icon="wallet"
           label="Credits & billing"
-          value="8 left"
+          value={`${displayCredits} available`}
           tone="violet"
-          onPress={() => alert('8 validation credits remaining.')}
+          onPress={() =>
+            Alert.alert(
+              'Credits & Billing',
+              `You have ${displayCredits} validation credit${displayCredits === 1 ? '' : 's'} available.\nDigital top-ups will be available via native store billing.`
+            )
+          }
         />
         <View style={styles.divider} />
         <SettingRow
@@ -199,14 +243,14 @@ export const ProfileScreen: React.FC = () => {
           icon="help"
           label="Help Center"
           tone="emerald"
-          onPress={() => alert('Opening Help Center')}
+          onPress={() => Alert.alert('Help Center', 'PitchMint Knowledge Base & FAQs')}
         />
         <View style={styles.divider} />
         <SettingRow
           icon="mail"
           label="Contact us"
           tone="cyan"
-          onPress={() => alert('Opening support chat')}
+          onPress={() => Alert.alert('Contact Support', 'Reach our team at support@pitchmint.app')}
         />
         <View style={styles.divider} />
         <SettingRow
@@ -224,7 +268,7 @@ export const ProfileScreen: React.FC = () => {
           icon="shield"
           label="Privacy Policy"
           tone="gray"
-          onPress={() => alert('Privacy Policy')}
+          onPress={() => Alert.alert('Privacy Policy', 'https://pitchmint.app/privacy')}
         />
         <View style={styles.divider} />
         <View style={styles.complianceNoteBox}>
