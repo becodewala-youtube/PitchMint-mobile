@@ -38,3 +38,4 @@ npx expo export --platform android # Validate Android JS bundle export
 - Architecture Deep Dive: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - Known Issues & Blockers: [`docs/known-issues.md`](docs/known-issues.md)
 - Development Workflow: [`docs/development-workflow.md`](docs/development-workflow.md)
+- Personal Demo APK Guide: [`docs/personal-demo-apk-build.md`](docs/personal-demo-apk-build.md)

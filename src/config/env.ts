@@ -23,21 +23,38 @@ export interface AppConfig {
 }
 
 /**
+ * Sanitizes backend base URL:
+ * - Trims whitespace
+ * - Strips trailing slashes
+ * - Strips any trailing '/api' suffix (since mobile API paths already prefix '/api')
+ */
+export const sanitizeApiUrl = (rawUrl: string): string => {
+  let cleaned = rawUrl.trim().replace(/\/+$/, '');
+  if (cleaned.endsWith('/api')) {
+    cleaned = cleaned.slice(0, -4).replace(/\/+$/, '');
+  }
+  return cleaned;
+};
+
+/**
  * Resolves the default development API base URL:
  * 1. Explicit EXPO_PUBLIC_API_URL environment variable (highest priority).
  * 2. In __DEV__, dynamically resolve host machine IP from NativeModules.SourceCode.scriptURL
  *    (this automatically works when running on a physical phone via Expo Go on the same Wi-Fi!).
- * 3. Default host machine LAN IP (10.54.82.173:4000).
- * 4. Android emulator fallback (10.0.2.2:4000).
- * 5. iOS Simulator / Web fallback (localhost:4000).
+ * 3. Android emulator fallback (10.0.2.2:4000).
+ * 4. iOS Simulator / Web fallback (localhost:4000).
+ *
+ * NOTE: Never hardcode a machine-specific IP address in source code.
+ * Physical phone testing on LAN or remote demo environments should provide
+ * EXPO_PUBLIC_API_URL in .env.local or EAS build configuration.
  */
-const getDefaultApiUrl = (): string => {
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
+export const getDefaultApiUrl = (overrideUrl?: string): string => {
+  const envApiUrl = overrideUrl ?? (process.env['EXPO_PUBLIC_API_URL'] || process.env.EXPO_PUBLIC_API_URL);
+  if (envApiUrl) {
+    return sanitizeApiUrl(envApiUrl);
   }
 
   const backendPort = 4000;
-  const DEFAULT_LAN_IP = '10.54.82.173';
 
   if (__DEV__) {
     try {
@@ -46,8 +63,7 @@ const getDefaultApiUrl = (): string => {
         const match = scriptURL.match(/^https?:\/\/([^:/]+)/);
         const host = match ? match[1] : null;
         if (host) {
-          // If running on a physical device, host will be the dev machine's Wi-Fi IP (e.g. 10.54.82.173)
-          // If running on Android emulator, host will be 10.0.2.2 or 127.0.0.1
+          // If running in development client or emulator, dynamically adapt to Metro host
           return `http://${host}:${backendPort}`;
         }
       }
@@ -56,12 +72,9 @@ const getDefaultApiUrl = (): string => {
     }
   }
 
-  // Physical phone testing on local network
+  // Standard emulator / simulator loopbacks
   if (Platform.OS === 'android') {
-    return `http://${DEFAULT_LAN_IP}:${backendPort}`;
-  }
-  if (Platform.OS === 'ios') {
-    return `http://${DEFAULT_LAN_IP}:${backendPort}`;
+    return `http://10.0.2.2:${backendPort}`;
   }
 
   return `http://localhost:${backendPort}`;
@@ -72,18 +85,19 @@ const getDefaultApiUrl = (): string => {
  * 1. Explicit EXPO_PUBLIC_ENABLE_DEMO_TOPUP env var ('true' or 'false').
  * 2. Defaults to true in __DEV__; false in production.
  */
-const isDemoTopUpEnabled = (): boolean => {
-  if (process.env.EXPO_PUBLIC_ENABLE_DEMO_TOPUP === 'true') {
+export const isDemoTopUpEnabled = (overrideFlag?: string): boolean => {
+  const envDemoTopUp = overrideFlag ?? (process.env['EXPO_PUBLIC_ENABLE_DEMO_TOPUP'] ?? process.env.EXPO_PUBLIC_ENABLE_DEMO_TOPUP);
+  if (envDemoTopUp === 'true') {
     return true;
   }
-  if (process.env.EXPO_PUBLIC_ENABLE_DEMO_TOPUP === 'false') {
+  if (envDemoTopUp === 'false') {
     return false;
   }
   return __DEV__;
 };
 
 export const config: AppConfig = {
-  appName: 'PitchMint Mobile',
+  appName: 'PitchMint',
   appVersion: '1.0.0-phase2',
   environment: __DEV__ ? 'development' : 'production',
   isDev: __DEV__,
