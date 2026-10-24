@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -14,10 +14,42 @@ import {
   IconBadge,
   Icon,
   IconName,
+  Badge,
+  Button,
 } from '../../../components';
-import { colors, Tone, spacing, typography, borderRadius } from '../../../theme';
+import { colors, Tone, spacing, typography, borderRadius, touchTargets } from '../../../theme';
 import { useAuth } from '../../../context/AuthContext';
 import { ideasApi } from '../../../services/api/ideasApi';
+import { creditsApi } from '../../../services/api/creditsApi';
+import { ApiError } from '../../../services/api/apiClient';
+import { config } from '../../../config/env';
+
+/**
+ * Verified credit plans matching PitchMint Backend CREDIT_PLANS.
+ */
+const DEMO_PLANS = [
+  {
+    id: 'starter',
+    name: 'Starter Pack',
+    credits: 25,
+    price: 99,
+    description: '25 idea validations',
+  },
+  {
+    id: 'pro',
+    name: 'Pro Pack',
+    credits: 100,
+    price: 499,
+    description: '100 idea validations + priority AI',
+  },
+  {
+    id: 'premium',
+    name: 'Founder Pack',
+    credits: 500,
+    price: 999,
+    description: '500 idea validations + full export',
+  },
+];
 
 interface SettingRowProps {
   icon: IconName;
@@ -75,6 +107,24 @@ export const ProfileScreen: React.FC = () => {
   const [totalIdeasCount, setTotalIdeasCount] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
+  // Demo credit top-up state
+  const [isPurchasing, setIsPurchasing] = useState<boolean>(false);
+  const [activePlanId, setActivePlanId] = useState<string | null>(null);
+  const [topUpStatus, setTopUpStatus] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
+
+  const isPurchasingRef = useRef<boolean>(false);
+  const isMountedRef = useRef<boolean>(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const displayName = user?.name || 'Founder';
   const displayEmail = user?.email || 'founder@pitchmint.app';
   const displayCredits = user?.credits ?? 0;
@@ -101,6 +151,61 @@ export const ProfileScreen: React.FC = () => {
     setIsRefreshing(true);
     loadProfileMetrics();
   }, [loadProfileMetrics]);
+
+  /**
+   * Dispatches simulated payment against development backend and refreshes authoritative balance.
+   */
+  const handleDemoTopUp = async (planId: string, planName: string, planCredits: number) => {
+    // Guard against duplicate taps / concurrent executions
+    if (isPurchasingRef.current || isPurchasing) {
+      return;
+    }
+    isPurchasingRef.current = true;
+    setIsPurchasing(true);
+    setActivePlanId(planId);
+    setTopUpStatus(null);
+
+    try {
+      const res = await creditsApi.simulatePaymentSuccess({ planId });
+
+      // Synchronize authoritative state with backend in MongoDB
+      await refreshUser();
+      await loadProfileMetrics();
+
+      if (isMountedRef.current) {
+        setTopUpStatus({
+          type: 'success',
+          message: `Success! Added ${res.purchased || planCredits} credits (${res.planName || planName}). New balance: ${res.credits}.`,
+        });
+      }
+    } catch (err: any) {
+      let msg = 'Failed to top up demo credits. Please try again.';
+      if (err instanceof ApiError) {
+        if (err.status === 403) {
+          msg = 'Backend rejected simulation: only allowed in development or test environments.';
+        } else if (err.status === 400) {
+          msg = err.message || 'Invalid plan selected.';
+        } else {
+          msg = err.message || msg;
+        }
+      } else if (err?.message) {
+        msg = err.message;
+      }
+
+      if (isMountedRef.current) {
+        setTopUpStatus({
+          type: 'error',
+          message: msg,
+        });
+      }
+    } finally {
+      isPurchasingRef.current = false;
+      if (isMountedRef.current) {
+        setIsPurchasing(false);
+        setActivePlanId(null);
+      }
+    }
+  };
 
   const handleSignOut = () => {
     Alert.alert(
@@ -191,6 +296,100 @@ export const ProfileScreen: React.FC = () => {
         </View>
       </Card>
 
+      {/* Dev / Demo Credit Top-Up Section (Gated by config.features.enableDemoTopUp) */}
+      {config.features.enableDemoTopUp && (
+        <View style={styles.demoTopUpSection}>
+          <View style={styles.demoCategoryHeader}>
+            <Text style={styles.sectionCategory}>DEV / DEMO CREDIT TOP-UP</Text>
+            <Badge label="DEV ONLY" variant="amber" />
+          </View>
+
+          <Card style={styles.demoCard}>
+            <View style={styles.demoCardHeader}>
+              <IconBadge name="zap" tone="amber" size={38} />
+              <View style={styles.demoCardHeaderTextCol}>
+                <Text style={styles.demoCardTitle}>Development Credit Top-Up</Text>
+                <Text style={styles.demoCardSubtitle}>
+                  Simulate purchasing credit packs against the development backend without real payments.
+                </Text>
+              </View>
+            </View>
+
+            {/* Status Feedback Banner */}
+            {topUpStatus && (
+              <View
+                testID="demo-topup-status-banner"
+                style={[
+                  styles.statusBanner,
+                  topUpStatus.type === 'success' ? styles.statusSuccess : styles.statusError,
+                ]}
+              >
+                <Icon
+                  name={topUpStatus.type === 'success' ? 'check' : 'alertCircle'}
+                  size={16}
+                  color={
+                    topUpStatus.type === 'success'
+                      ? colors.tones.emerald.text
+                      : colors.tones.red.text
+                  }
+                />
+                <Text
+                  style={[
+                    styles.statusBannerText,
+                    {
+                      color:
+                        topUpStatus.type === 'success'
+                          ? colors.tones.emerald.text
+                          : colors.tones.red.text,
+                    },
+                  ]}
+                >
+                  {topUpStatus.message}
+                </Text>
+              </View>
+            )}
+
+            {/* Plan Options */}
+            <View style={styles.plansContainer}>
+              {DEMO_PLANS.map((plan, index) => {
+                const isCurrentLoading = isPurchasing && activePlanId === plan.id;
+                return (
+                  <View key={plan.id}>
+                    {index > 0 && <View style={styles.demoDivider} />}
+                    <View style={styles.planRow}>
+                      <View style={styles.planInfoCol}>
+                        <View style={styles.planTitleRow}>
+                          <Text style={styles.planNameText}>{plan.name}</Text>
+                          <Badge label={`+${plan.credits}`} variant="emerald" />
+                        </View>
+                        <Text style={styles.planDescText}>
+                          {plan.description} · ₹{plan.price} (Simulated)
+                        </Text>
+                      </View>
+
+                      <Button
+                        testID={`demo-topup-${plan.id}`}
+                        title={isCurrentLoading ? 'Adding...' : `+${plan.credits}`}
+                        variant="primary"
+                        size="sm"
+                        loading={isCurrentLoading}
+                        disabled={isPurchasing}
+                        onPress={() => handleDemoTopUp(plan.id, plan.name, plan.credits)}
+                        style={styles.planAddButton}
+                      />
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+
+            <Text style={styles.demoSecurityDisclaimer}>
+              Backend enforces environment validation. Simulated payments are strictly prohibited in production.
+            </Text>
+          </Card>
+        </View>
+      )}
+
       {/* 3. Section: ACCOUNT */}
       <Text style={styles.sectionCategory}>ACCOUNT</Text>
       <Card style={styles.settingsGroupCard}>
@@ -202,7 +401,9 @@ export const ProfileScreen: React.FC = () => {
           onPress={() =>
             Alert.alert(
               'Credits & Billing',
-              `You have ${displayCredits} validation credit${displayCredits === 1 ? '' : 's'} available.\nDigital top-ups will be available via native store billing.`
+              config.features.enableDemoTopUp
+                ? `You have ${displayCredits} validation credit${displayCredits === 1 ? '' : 's'} available.\nUse the Dev Top-Up controls above to simulate adding test credits.`
+                : `You have ${displayCredits} validation credit${displayCredits === 1 ? '' : 's'} available.\nDigital top-ups will be available via native store billing.`
             )
           }
         />
@@ -418,6 +619,113 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginBottom: spacing.xs,
     paddingHorizontal: 2,
+  },
+  demoTopUpSection: {
+    marginBottom: spacing.lg,
+  },
+  demoCategoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+    paddingHorizontal: 2,
+  },
+  demoCard: {
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    backgroundColor: 'rgba(245, 158, 11, 0.04)',
+    marginBottom: 0,
+    padding: spacing.md,
+  },
+  demoCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  demoCardHeaderTextCol: {
+    flex: 1,
+  },
+  demoCardTitle: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.semiBold,
+    color: colors.text.primary,
+  },
+  demoCardSubtitle: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.secondary,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.sm + 2,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+  },
+  statusSuccess: {
+    backgroundColor: colors.tones.emerald.bg,
+    borderColor: colors.tones.emerald.border,
+  },
+  statusError: {
+    backgroundColor: colors.tones.red.bg,
+    borderColor: colors.tones.red.border,
+  },
+  statusBannerText: {
+    flex: 1,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
+    lineHeight: 16,
+  },
+  plansContainer: {
+    backgroundColor: colors.background.card2,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    overflow: 'hidden',
+  },
+  planRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+  },
+  planInfoCol: {
+    flex: 1,
+  },
+  planTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  planNameText: {
+    fontSize: typography.sizes.sm + 1,
+    fontWeight: typography.weights.semiBold,
+    color: colors.text.primary,
+  },
+  planDescText: {
+    fontSize: typography.sizes.micro,
+    color: colors.text.muted,
+    marginTop: 3,
+  },
+  planAddButton: {
+    minWidth: 84,
+    minHeight: touchTargets.minTouchSize,
+  },
+  demoDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  demoSecurityDisclaimer: {
+    fontSize: typography.sizes.micro,
+    color: colors.text.muted,
+    marginTop: spacing.md,
+    textAlign: 'center',
+    lineHeight: 14,
   },
   settingsGroupCard: {
     padding: 0,

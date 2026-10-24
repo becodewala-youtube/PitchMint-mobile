@@ -26,6 +26,7 @@ import { creditsApi } from '../../../services/api/creditsApi';
 import { ApiError } from '../../../services/api/apiClient';
 import { parseIdeaTitleAndDesc } from '../../../utils/ideaParser';
 import { RootStackNavigationProp } from '../../../navigation/types';
+import { config } from '../../../config/env';
 
 const TIPS = [
   { icon: 'target' as const, title: 'Problem & Solution', desc: 'Name the pain point and who feels it.' },
@@ -559,8 +560,22 @@ export const ValidateModalScreen: React.FC = () => {
             <Text style={styles.creditWarningTitle}>Zero Credits Remaining</Text>
           </View>
           <Text style={styles.creditWarningBody}>
-            Validating a startup idea requires 1 credit. In-app credit top-ups will be available in the upcoming native app store release.
+            Validating a startup idea requires 1 credit.{' '}
+            {config.features.enableDemoTopUp
+              ? 'You can add demo credits in Settings for testing.'
+              : 'In-app credit top-ups will be available in the upcoming native app store release.'}
           </Text>
+          {config.features.enableDemoTopUp && (
+            <Pressable
+              testID="demo-topup-navigate-button"
+              onPress={() => navigation.navigate('MainTabs', { screen: 'Profile' } as any)}
+              style={styles.demoTopUpShortcutBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Top up demo credits in Settings"
+            >
+              <Text style={styles.demoTopUpShortcutText}>Top Up Demo Credits in Settings →</Text>
+            </Pressable>
+          )}
         </Card>
       )}
 
@@ -752,6 +767,16 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xs,
     color: colors.text.secondary,
     lineHeight: 18,
+  },
+  demoTopUpShortcutBtn: {
+    marginTop: spacing.sm,
+    alignSelf: 'flex-start',
+    paddingVertical: spacing.xs,
+  },
+  demoTopUpShortcutText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semiBold,
+    color: colors.tones.amber.text,
   },
   errorCard: {
     backgroundColor: 'rgba(239, 68, 68, 0.08)',

@@ -25,6 +25,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { ideasApi, mapBackendIdeaToCard } from '../../../services/api/ideasApi';
 import { ParsedIdeaCard } from '../../../utils/ideaParser';
 import { formatRelativeTime } from '../../../utils/date';
+import { config } from '../../../config/env';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -125,11 +126,16 @@ export const HomeScreen: React.FC = () => {
 
       {/* 2. Credit Balance Strip */}
       <Pressable
+        testID="home-credit-balance-strip"
         onPress={() => {
-          Alert.alert(
-            'Credit Balance',
-            `You have ${availableCredits} validation credit${availableCredits === 1 ? '' : 's'} available.\nIn-app credit purchases will be available in the upcoming native store release.`
-          );
+          if (config.features.enableDemoTopUp) {
+            navigation.navigate('MainTabs', { screen: 'Profile' } as any);
+          } else {
+            Alert.alert(
+              'Credit Balance',
+              `You have ${availableCredits} validation credit${availableCredits === 1 ? '' : 's'} available.\nIn-app credit purchases will be available in the upcoming native store release.`
+            );
+          }
         }}
         style={styles.creditStrip}
         accessibilityRole="button"
@@ -144,7 +150,9 @@ export const HomeScreen: React.FC = () => {
           </View>
         </View>
         <View style={styles.buyPill}>
-          <Text style={styles.buyPillText}>+ Buy</Text>
+          <Text style={styles.buyPillText}>
+            {config.features.enableDemoTopUp ? 'Top Up' : '+ Buy'}
+          </Text>
         </View>
       </Pressable>
 
