@@ -72,6 +72,44 @@ describe('Environment Configuration (env.ts)', () => {
     });
   });
 
+  describe('Tracked .env configuration safety', () => {
+    it('guards against committing a machine-specific LAN IP as the default backend URL in .env', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const envPath = path.resolve(__dirname, '../../../.env');
+      const envContent = fs.readFileSync(envPath, 'utf-8');
+
+      // 1. Must use the official deployed HTTPS Vercel backend
+      const apiUrlMatch = envContent.match(/^EXPO_PUBLIC_API_URL=(.+)$/m);
+      expect(apiUrlMatch?.[1].trim()).toBe('https://pitch-mint-backend.vercel.app');
+
+      // 2. Must not allow cleartext traffic by default
+      const cleartextMatch = envContent.match(/^EXPO_PUBLIC_ALLOW_CLEARTEXT=(.+)$/m);
+      expect(cleartextMatch?.[1].trim()).toBe('false');
+
+      // 3. Must not contain any machine-specific LAN or private IP addresses
+      const developerLanIpRegex = /\b(10\.(?!0\.2\.2)\d{1,3}|192\.168\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3})\.\d{1,3}\b/;
+      expect(envContent).not.toMatch(developerLanIpRegex);
+    });
+
+    it('guards against machine-specific LAN IP in .env.example defaults', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const envExamplePath = path.resolve(__dirname, '../../../.env.example');
+      const envExampleContent = fs.readFileSync(envExamplePath, 'utf-8');
+
+      const apiUrlMatch = envExampleContent.match(/^EXPO_PUBLIC_API_URL=(.+)$/m);
+      expect(apiUrlMatch?.[1].trim()).toBe('https://pitch-mint-backend.vercel.app');
+
+      const cleartextMatch = envExampleContent.match(/^EXPO_PUBLIC_ALLOW_CLEARTEXT=(.+)$/m);
+      expect(cleartextMatch?.[1].trim()).toBe('false');
+
+      // Must not contain any machine-specific LAN IP (emulator 10.0.2.2 comment is standard documentation)
+      const developerLanIpRegex = /\b(10\.(?!0\.2\.2)\d{1,3}|192\.168\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3})\.\d{1,3}\b/;
+      expect(envExampleContent).not.toMatch(developerLanIpRegex);
+    });
+  });
+
   describe('config and getAppConfig', () => {
     it('provides application name aligned with PitchMint brand', () => {
       expect(config.appName).toBe('PitchMint');
