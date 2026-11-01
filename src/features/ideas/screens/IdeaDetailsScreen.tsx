@@ -32,6 +32,7 @@ import {
   CompetitorItem,
   PitchSimulationQuestion,
   PitchDeckResponse,
+  CanvasResponse,
 } from '../../../services/api/ideasApi';
 import { ApiError } from '../../../services/api/apiClient';
 import { useAuth } from '../../../context/AuthContext';
@@ -79,11 +80,14 @@ export const IdeaDetailsScreen: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isGeneratingDeck, setIsGeneratingDeck] = useState<boolean>(false);
   const [showDeckConfirmModal, setShowDeckConfirmModal] = useState<boolean>(false);
+  const [isGeneratingCanvas, setIsGeneratingCanvas] = useState<boolean>(false);
+  const [showCanvasConfirmModal, setShowCanvasConfirmModal] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>('demand');
 
   const isMountedRef = useRef<boolean>(true);
   const isSubmittingDeckRef = useRef<boolean>(false);
+  const isSubmittingCanvasRef = useRef<boolean>(false);
 
   const fetchIdeaDetails = useCallback(
     async (isPullToRefresh = false) => {
@@ -351,6 +355,114 @@ export const IdeaDetailsScreen: React.FC = () => {
       if (isMountedRef.current) {
         setIsGeneratingDeck(false);
         isSubmittingDeckRef.current = false;
+      }
+    }
+  };
+
+  const handleViewCanvas = (initialBlockIndex: number = 0) => {
+    navigation.navigate('Canvas', {
+      ideaId,
+      ideaTitle: parsedTitle,
+      initialBlockIndex,
+    });
+  };
+
+  const handleOpenCanvasConfirm = () => {
+    if (userCredits < 1) {
+      Alert.alert(
+        'Insufficient Credits',
+        'You need at least 1 credit to generate a Business Model Canvas. Please add credits to your account.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    setShowCanvasConfirmModal(true);
+  };
+
+  const handleConfirmGenerateCanvas = async () => {
+    if (isSubmittingCanvasRef.current) return;
+    isSubmittingCanvasRef.current = true;
+    setIsGeneratingCanvas(true);
+    setShowCanvasConfirmModal(false);
+
+    const isRegen = hasCanvas;
+    const prevCanvasString = JSON.stringify(idea?.canvasContent || {});
+
+    try {
+      const updatedIdea: CanvasResponse = isRegen
+        ? await ideasApi.regenerateCanvas(ideaId)
+        : await ideasApi.generateCanvas(ideaId);
+
+      if (isMountedRef.current) {
+        setIdea(updatedIdea);
+      }
+      await refreshUser().catch(() => {});
+
+      navigation.navigate('Canvas', {
+        ideaId,
+        ideaTitle: parsedTitle,
+        initialBlockIndex: 0,
+      });
+    } catch (err: any) {
+      if (!isMountedRef.current) return;
+
+      let msg = isRegen
+        ? 'Failed to regenerate business model canvas. Please try again.'
+        : 'Failed to generate business model canvas. Please try again.';
+
+      if (err instanceof ApiError) {
+        if (err.status === 402) {
+          msg = 'Insufficient credits. 1 credit is required to generate a canvas.';
+        } else if (err.status === 429) {
+          msg = 'Rate limit reached: Maximum 2 generation requests allowed per minute. Please wait 60 seconds before trying again.';
+        } else if (err.status === 0) {
+          Alert.alert(
+            'Network Request Timed Out',
+            'Your generation request was sent, but the network connection was interrupted. The AI may still be processing your canvas on the server.\n\nPlease tap "Check Status" in a few moments rather than resubmitting.',
+            [
+              {
+                text: 'Check Status',
+                onPress: async () => {
+                  try {
+                    const fresh = await ideasApi.getIdeaById(ideaId);
+                    if (isMountedRef.current && fresh?.canvasContent) {
+                      const newCanvasString = JSON.stringify(fresh.canvasContent);
+                      if (!isRegen || newCanvasString !== prevCanvasString) {
+                        setIdea(fresh);
+                        await refreshUser().catch(() => {});
+                        navigation.navigate('Canvas', {
+                          ideaId,
+                          ideaTitle: parsedTitle,
+                          initialBlockIndex: 0,
+                        });
+                        return;
+                      }
+                    }
+                    Alert.alert(
+                      'Still Processing',
+                      'The canvas update has not appeared yet. Please pull to refresh in a few moments.'
+                    );
+                  } catch {
+                    Alert.alert('Connection Error', 'Could not reach server to verify canvas status.');
+                  }
+                },
+              },
+              { text: 'OK', style: 'cancel' },
+            ]
+          );
+          return;
+        } else {
+          msg = err.message || msg;
+        }
+      } else if (err?.message) {
+        msg = err.message;
+      }
+
+      Alert.alert(isRegen ? 'Regeneration Failed' : 'Generation Failed', msg, [{ text: 'OK' }]);
+    } finally {
+      if (isMountedRef.current) {
+        setIsGeneratingCanvas(false);
+        isSubmittingCanvasRef.current = false;
       }
     }
   };
@@ -719,18 +831,53 @@ export const IdeaDetailsScreen: React.FC = () => {
 
         {hasCanvas ? (
           <View style={styles.moduleContentArea}>
+            <View style={styles.deckActionRow}>
+              <Button
+                testID="idea-details-view-canvas-button"
+                title="View Canvas"
+                variant="primary"
+                onPress={() => handleViewCanvas(0)}
+                leftIcon={<Icon name="panelsTopLeft" size={16} color="#FFFFFF" />}
+                style={styles.viewDeckBtn}
+              />
+              <Button
+                testID="idea-details-regenerate-canvas-button"
+                title={isGeneratingCanvas ? 'Regenerating…' : 'Regenerate (1 Credit)'}
+                variant="secondary"
+                disabled={isGeneratingCanvas}
+                onPress={handleOpenCanvasConfirm}
+                leftIcon={
+                  isGeneratingCanvas ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Icon name="sparkles" size={16} color={colors.brand.primary} />
+                  )
+                }
+                style={styles.regenerateDeckBtn}
+              />
+            </View>
+
             <View style={styles.canvasGrid}>
-              {CANVAS_BLOCKS.map((block) => {
+              {CANVAS_BLOCKS.map((block, bIdx) => {
                 const text = idea.canvasContent?.[block.key];
                 if (!text) return null;
 
                 return (
-                  <View key={block.key} style={styles.canvasBox}>
+                  <Pressable
+                    key={block.key}
+                    testID={`idea-details-canvas-preview-${bIdx}`}
+                    onPress={() => handleViewCanvas(bIdx)}
+                    style={styles.canvasBox}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open canvas block ${block.label}`}
+                  >
                     <Text style={[styles.canvasBoxLabel, { color: colors.tones[block.tone].text }]}>
                       {block.label}
                     </Text>
-                    <Text style={styles.canvasBoxText}>{text}</Text>
-                  </View>
+                    <Text style={styles.canvasBoxText} numberOfLines={3}>
+                      {text}
+                    </Text>
+                  </Pressable>
                 );
               })}
             </View>
@@ -740,6 +887,26 @@ export const IdeaDetailsScreen: React.FC = () => {
             <Text style={styles.moduleEmptyText}>
               A 9-block business model canvas has not been generated for this idea yet.
             </Text>
+            <View style={styles.uncreatedCreditRow}>
+              <Text style={styles.uncreatedCreditText}>
+                {`Cost: 1 Credit • Your Balance: ${userCredits} ${userCredits === 1 ? 'Credit' : 'Credits'}`}
+              </Text>
+            </View>
+            <Button
+              testID="idea-details-generate-canvas-button"
+              title={isGeneratingCanvas ? 'Generating Canvas with AI…' : 'Generate Canvas (1 Credit)'}
+              variant="primary"
+              disabled={isGeneratingCanvas}
+              onPress={handleOpenCanvasConfirm}
+              leftIcon={
+                isGeneratingCanvas ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Icon name="sparkles" size={16} color="#FFFFFF" />
+                )
+              }
+              style={styles.generateDeckBtn}
+            />
           </View>
         )}
       </Card>
@@ -898,6 +1065,58 @@ export const IdeaDetailsScreen: React.FC = () => {
               title="Cancel"
               variant="ghost"
               onPress={() => setShowDeckConfirmModal(false)}
+              style={styles.modalCancelBtn}
+            />
+          </Card>
+        </View>
+      </Modal>
+
+      {/* 1-Credit Pre-Flight Confirmation Modal (Business Model Canvas) */}
+      <Modal
+        visible={showCanvasConfirmModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowCanvasConfirmModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Card style={styles.confirmModalCard}>
+            <IconBadge name="sparkles" tone="violet" size={44} />
+            <Text style={styles.modalTitle}>
+              {hasCanvas ? 'Regenerate Business Model Canvas?' : 'Generate Business Model Canvas?'}
+            </Text>
+            <Text style={styles.modalBody}>
+              PitchMint AI will analyze this startup idea using lean startup principles to create a comprehensive 9-block model.
+            </Text>
+
+            <View style={styles.modalCreditBox}>
+              <View style={styles.modalCreditRow}>
+                <Text style={styles.modalCreditLabel}>Cost:</Text>
+                <Text style={styles.modalCreditValue}>1 Credit</Text>
+              </View>
+              <View style={styles.modalCreditRow}>
+                <Text style={styles.modalCreditLabel}>Current Balance:</Text>
+                <Text style={styles.modalCreditValue}>{`${userCredits} Credits`}</Text>
+              </View>
+              <View style={[styles.modalCreditRow, styles.modalCreditRowLast]}>
+                <Text style={styles.modalCreditLabel}>Remaining After:</Text>
+                <Text style={[styles.modalCreditValue, { color: colors.tones.emerald.text }]}>
+                  {`${Math.max(0, userCredits - 1)} Credits`}
+                </Text>
+              </View>
+            </View>
+
+            <Button
+              testID="idea-details-confirm-generate-canvas-button"
+              title="Confirm & Deduct 1 Credit"
+              variant="primary"
+              onPress={handleConfirmGenerateCanvas}
+              style={styles.modalConfirmBtn}
+            />
+            <Button
+              testID="idea-details-cancel-generate-canvas-button"
+              title="Cancel"
+              variant="ghost"
+              onPress={() => setShowCanvasConfirmModal(false)}
               style={styles.modalCancelBtn}
             />
           </Card>

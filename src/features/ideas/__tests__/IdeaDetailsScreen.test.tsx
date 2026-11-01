@@ -508,4 +508,243 @@ describe('IdeaDetailsScreen Integration (Phase 3C & 4A)', () => {
       expect(getSpy).toHaveBeenCalledWith('idea-123');
     });
   });
+
+  describe('Business Model Canvas Integration (Phase 4B)', () => {
+    const ideaWithoutCanvas: BackendIdea = {
+      ...fullIdea,
+      canvasContent: undefined,
+    };
+
+    const ideaWithCanvas: BackendIdea = {
+      ...fullIdea,
+      canvasContent: {
+        problem: 'Dental clinics lose revenue to missed recall appointments.',
+        solution: 'Autonomous conversational voice agent.',
+        uniqueValueProposition: 'Zero-hardware AI agent.',
+        unfairAdvantage: 'Direct EHR integration.',
+        customerSegments: 'Independent dental practices.',
+        keyMetrics: 'Patient reactivation rate.',
+        channels: 'Dental supply distributor partnerships.',
+        costStructure: 'Cloud server infrastructure.',
+        revenueStreams: '$249/month SaaS subscription.',
+      },
+    };
+
+    it('renders empty canvas state with 1-credit cost and generate button when not generated', async () => {
+      jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(ideaWithoutCanvas);
+
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(<IdeaDetailsScreen />);
+      });
+
+      const root = renderer!.root;
+      const fullText = root.findAllByType(Text).map((t) => t.props.children).flat(Infinity).filter(Boolean).join(' ');
+
+      expect(fullText).toContain('A 9-block business model canvas has not been generated for this idea yet.');
+      expect(fullText).toContain('Cost: 1 Credit • Your Balance: 5 Credits');
+
+      const genBtn = root.findByProps({ testID: 'idea-details-generate-canvas-button' });
+      expect(genBtn).toBeTruthy();
+    });
+
+    it('opens confirmation modal and generates canvas deducting 1 credit and navigating to Canvas', async () => {
+      jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(ideaWithoutCanvas);
+      const updatedResponse = {
+        ...ideaWithCanvas,
+        userCredits: 4,
+      };
+      const generateSpy = jest.spyOn(ideasApi, 'generateCanvas').mockResolvedValue(updatedResponse);
+
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(<IdeaDetailsScreen />);
+      });
+
+      const root = renderer!.root;
+      const genBtn = root.findByProps({ testID: 'idea-details-generate-canvas-button' });
+
+      // Tap generate button
+      await act(async () => {
+        genBtn.props.onPress();
+      });
+
+      // Confirmation modal is displayed with 1-credit cost
+      let fullText = root.findAllByType(Text).map((t) => t.props.children).flat(Infinity).filter(Boolean).join(' ');
+      expect(fullText).toContain('Generate Business Model Canvas?');
+      expect(fullText).toContain('1 Credit');
+      expect(fullText).toContain('5 Credits');
+      expect(fullText).toContain('4 Credits');
+
+      // Confirm generation
+      const confirmBtn = root.findByProps({ testID: 'idea-details-confirm-generate-canvas-button' });
+      await act(async () => {
+        confirmBtn.props.onPress();
+      });
+
+      expect(generateSpy).toHaveBeenCalledWith('idea-123');
+      expect(mockRefreshUser).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledWith('Canvas', {
+        ideaId: 'idea-123',
+        ideaTitle: 'AI Copilot for Dental Clinics',
+        initialBlockIndex: 0,
+      });
+    });
+
+    it('prevents canvas generation and alerts when credit balance is below 1', async () => {
+      mockUserCredits = 0;
+      jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(ideaWithoutCanvas);
+      const generateSpy = jest.spyOn(ideasApi, 'generateCanvas');
+
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(<IdeaDetailsScreen />);
+      });
+
+      const root = renderer!.root;
+      const genBtn = root.findByProps({ testID: 'idea-details-generate-canvas-button' });
+      await act(async () => {
+        genBtn.props.onPress();
+      });
+
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'Insufficient Credits',
+        expect.stringContaining('You need at least 1 credit'),
+        expect.any(Array)
+      );
+      expect(generateSpy).not.toHaveBeenCalled();
+    });
+
+    it('renders ACTIVE status, View Canvas button, and preview boxes when canvas exists', async () => {
+      jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(ideaWithCanvas);
+
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(<IdeaDetailsScreen />);
+      });
+
+      const root = renderer!.root;
+      const viewBtn = root.findByProps({ testID: 'idea-details-view-canvas-button' });
+      const regenBtn = root.findByProps({ testID: 'idea-details-regenerate-canvas-button' });
+
+      expect(viewBtn).toBeTruthy();
+      expect(regenBtn).toBeTruthy();
+
+      // Tap View Canvas
+      await act(async () => {
+        viewBtn.props.onPress();
+      });
+
+      expect(mockNavigate).toHaveBeenCalledWith('Canvas', {
+        ideaId: 'idea-123',
+        ideaTitle: 'AI Copilot for Dental Clinics',
+        initialBlockIndex: 0,
+      });
+
+      // Tap preview box for block 2 (Solution - index 1)
+      const preview1 = root.findByProps({ testID: 'idea-details-canvas-preview-1' });
+      await act(async () => {
+        preview1.props.onPress();
+      });
+
+      expect(mockNavigate).toHaveBeenCalledWith('Canvas', {
+        ideaId: 'idea-123',
+        ideaTitle: 'AI Copilot for Dental Clinics',
+        initialBlockIndex: 1,
+      });
+    });
+
+    it('handles canvas regeneration with confirmation modal', async () => {
+      jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(ideaWithCanvas);
+      const updatedResponse = {
+        ...ideaWithCanvas,
+        canvasContent: {
+          ...ideaWithCanvas.canvasContent,
+          problem: 'Updated dental pain points.',
+        },
+        userCredits: 4,
+      };
+      const regenerateSpy = jest.spyOn(ideasApi, 'regenerateCanvas').mockResolvedValue(updatedResponse);
+
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(<IdeaDetailsScreen />);
+      });
+
+      const root = renderer!.root;
+      const regenBtn = root.findByProps({ testID: 'idea-details-regenerate-canvas-button' });
+
+      // Tap Regenerate
+      await act(async () => {
+        regenBtn.props.onPress();
+      });
+
+      const confirmBtn = root.findByProps({ testID: 'idea-details-confirm-generate-canvas-button' });
+      await act(async () => {
+        confirmBtn.props.onPress();
+      });
+
+      expect(regenerateSpy).toHaveBeenCalledWith('idea-123');
+      expect(mockRefreshUser).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledWith('Canvas', {
+        ideaId: 'idea-123',
+        ideaTitle: 'AI Copilot for Dental Clinics',
+        initialBlockIndex: 0,
+      });
+    });
+
+    it('does not make API call if user cancels canvas confirmation modal', async () => {
+      jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(ideaWithCanvas);
+      const regenerateSpy = jest.spyOn(ideasApi, 'regenerateCanvas');
+
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(<IdeaDetailsScreen />);
+      });
+
+      const root = renderer!.root;
+      const regenBtn = root.findByProps({ testID: 'idea-details-regenerate-canvas-button' });
+      await act(async () => {
+        regenBtn.props.onPress();
+      });
+
+      const cancelBtn = root.findByProps({ testID: 'idea-details-cancel-generate-canvas-button' });
+      await act(async () => {
+        cancelBtn.props.onPress();
+      });
+
+      expect(regenerateSpy).not.toHaveBeenCalled();
+    });
+
+    it('handles HTTP 429 rate limit during canvas regeneration', async () => {
+      jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(ideaWithCanvas);
+      const error429 = new ApiError({
+        message: 'Too many canvas generation requests, please try again after a minute',
+        status: 429,
+      });
+      jest.spyOn(ideasApi, 'regenerateCanvas').mockRejectedValue(error429);
+
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(<IdeaDetailsScreen />);
+      });
+
+      const root = renderer!.root;
+      const regenBtn = root.findByProps({ testID: 'idea-details-regenerate-canvas-button' });
+      await act(async () => {
+        regenBtn.props.onPress();
+      });
+
+      const confirmBtn = root.findByProps({ testID: 'idea-details-confirm-generate-canvas-button' });
+      await act(async () => {
+        confirmBtn.props.onPress();
+      });
+
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'Regeneration Failed',
+        expect.stringContaining('Rate limit reached: Maximum 2 generation requests'),
+        expect.any(Array)
+      );
+    });
+  });
 });

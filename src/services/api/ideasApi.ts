@@ -132,6 +132,10 @@ export interface PitchDeckResponse extends BackendIdea {
   userCredits?: number;
 }
 
+export interface CanvasResponse extends BackendIdea {
+  userCredits?: number;
+}
+
 /**
  * Service encapsulating PitchMint backend saved idea endpoints.
  */
@@ -263,6 +267,58 @@ export const ideasApi = {
     if (!response || typeof response !== 'object' || !response._id || !response.pitchDeckContent) {
       throw new ApiError({
         message: 'Received an incomplete or malformed pitch deck response from server.',
+        status: 502,
+      });
+    }
+
+    return response;
+  },
+
+  /**
+   * Generates a 9-block Business Model Canvas (Lean Canvas) for an existing idea.
+   * Route: POST /api/canvas/:id
+   * Cost: 1 credit (deducted atomically by backend; refunded on failure)
+   */
+  async generateCanvas(id: string): Promise<CanvasResponse> {
+    const trimmedId = id?.trim();
+    if (!trimmedId) {
+      throw new ApiError({
+        message: 'Invalid idea identifier',
+        status: 400,
+      });
+    }
+
+    const response = await apiClient.post<CanvasResponse>(`/api/canvas/${trimmedId}`);
+
+    if (!response || typeof response !== 'object' || !response._id || !response.canvasContent) {
+      throw new ApiError({
+        message: 'Received an incomplete or malformed canvas response from server.',
+        status: 502,
+      });
+    }
+
+    return response;
+  },
+
+  /**
+   * Regenerates a 9-block Business Model Canvas (Lean Canvas) for an existing idea.
+   * Route: PUT /api/canvas/:id
+   * Cost: 1 credit (deducted atomically by backend; refunded on failure)
+   */
+  async regenerateCanvas(id: string): Promise<CanvasResponse> {
+    const trimmedId = id?.trim();
+    if (!trimmedId) {
+      throw new ApiError({
+        message: 'Invalid idea identifier',
+        status: 400,
+      });
+    }
+
+    const response = await apiClient.put<CanvasResponse>(`/api/canvas/${trimmedId}`);
+
+    if (!response || typeof response !== 'object' || !response._id || !response.canvasContent) {
+      throw new ApiError({
+        message: 'Received an incomplete or malformed canvas response from server.',
         status: 502,
       });
     }
