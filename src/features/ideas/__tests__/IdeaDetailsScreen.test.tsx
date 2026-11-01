@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { Text, Pressable } from 'react-native';
+import { Text, Pressable, Alert } from 'react-native';
 import { IdeaDetailsScreen } from '../screens/IdeaDetailsScreen';
 import { ideasApi, BackendIdea } from '../../../services/api/ideasApi';
 import { ApiError } from '../../../services/api/apiClient';
@@ -9,8 +9,10 @@ import { ApiError } from '../../../services/api/apiClient';
 
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
+const mockRefreshUser = jest.fn().mockResolvedValue(undefined);
 
 let mockRouteParams: { ideaId: string } = { ideaId: 'idea-123' };
+let mockUserCredits = 5;
 
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
@@ -27,10 +29,25 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 44, bottom: 34, left: 0, right: 0 }),
 }));
 
-describe('IdeaDetailsScreen Integration (Phase 3C)', () => {
+jest.mock('../../../context/AuthContext', () => ({
+  useAuth: () => ({
+    user: {
+      id: 'usr-1',
+      name: 'Sarah Connor',
+      email: 'sarah@pitchmint.app',
+      credits: mockUserCredits,
+      plan: 'pro',
+    },
+    refreshUser: mockRefreshUser,
+  }),
+}));
+
+describe('IdeaDetailsScreen Integration (Phase 3C & 4A)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRouteParams = { ideaId: 'idea-123' };
+    mockUserCredits = 5;
+    jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   });
 
   const fullIdea: BackendIdea = {
@@ -303,5 +320,192 @@ describe('IdeaDetailsScreen Integration (Phase 3C)', () => {
     const fullContent = textNodes.join(' ');
     expect(fullContent).toContain('Needs Iteration');
     expect(fullContent).toContain('0/100');
+  });
+
+  describe('Phase 4A: Pitch Deck Generator Integration', () => {
+    const ideaWithoutDeck: BackendIdea = {
+      _id: 'idea-no-deck',
+      userId: 'user-001',
+      ideaText: 'Vertical AI for Plumbing Contractors',
+      overallScore: 78,
+      createdAt: '2026-10-25T12:00:00Z',
+    };
+
+    it('navigates to PitchDeck screen at 0 credit cost when deck already exists', async () => {
+      jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(fullIdea);
+      const generateSpy = jest.spyOn(ideasApi, 'generatePitchDeck');
+      const regenerateSpy = jest.spyOn(ideasApi, 'regeneratePitchDeck');
+
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(<IdeaDetailsScreen />);
+      });
+
+      const root = renderer!.root;
+
+      // Tap "View Pitch Deck"
+      const viewDeckBtn = root.findByProps({ testID: 'idea-details-view-pitch-deck-button' });
+      await act(async () => {
+        viewDeckBtn.props.onPress();
+      });
+
+      // Navigates to PitchDeck with ideaId, 0 credits deducted
+      expect(mockNavigate).toHaveBeenCalledWith('PitchDeck', {
+        ideaId: 'idea-123',
+        ideaTitle: 'AI Copilot for Dental Clinics',
+        initialSlideIndex: 0,
+      });
+      expect(generateSpy).not.toHaveBeenCalled();
+      expect(regenerateSpy).not.toHaveBeenCalled();
+    });
+
+    it('displays Generate Pitch Deck (1 Credit) when idea has no pitch deck', async () => {
+      jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(ideaWithoutDeck);
+
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(<IdeaDetailsScreen />);
+      });
+
+      const root = renderer!.root;
+      const text = root.findAllByType(Text).map((t) => t.props.children).flat(Infinity).filter(Boolean).join(' ');
+
+      expect(text).toContain('A 10-slide investor pitch deck has not been generated for this idea yet.');
+      expect(text).toContain('Cost: 1 Credit • Your Balance: 5 Credits');
+      expect(text).toContain('Generate Pitch Deck (1 Credit)');
+    });
+
+    it('prevents pitch deck generation when user credits < 1 without sending request', async () => {
+      mockUserCredits = 0;
+      jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(ideaWithoutDeck);
+      const generateSpy = jest.spyOn(ideasApi, 'generatePitchDeck');
+
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(<IdeaDetailsScreen />);
+      });
+
+      const root = renderer!.root;
+      const genBtn = root.findByProps({ testID: 'idea-details-generate-pitch-deck-button' });
+
+      await act(async () => {
+        genBtn.props.onPress();
+      });
+
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'Insufficient Credits',
+        expect.stringContaining('You need at least 1 credit'),
+        expect.any(Array)
+      );
+      expect(generateSpy).not.toHaveBeenCalled();
+    });
+
+    it('opens confirmation modal and generates pitch deck with 1 credit deduction', async () => {
+      jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(ideaWithoutDeck);
+
+      const generatedIdea = {
+        ...ideaWithoutDeck,
+        pitchDeckContent: {
+          problem: 'Plumbing dispatch delays',
+          solution: 'Real-time AI dispatch',
+        },
+        userCredits: 4,
+      };
+
+      const generateSpy = jest.spyOn(ideasApi, 'generatePitchDeck').mockResolvedValue(generatedIdea);
+
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(<IdeaDetailsScreen />);
+      });
+
+      const root = renderer!.root;
+      const genBtn = root.findByProps({ testID: 'idea-details-generate-pitch-deck-button' });
+
+      // Tap generate to open confirmation modal
+      await act(async () => {
+        genBtn.props.onPress();
+      });
+
+      const text = root.findAllByType(Text).map((t) => t.props.children).flat(Infinity).filter(Boolean).join(' ');
+      expect(text).toContain('Generate Pitch Deck?');
+      expect(text).toContain('1 Credit');
+      expect(text).toContain('5 Credits');
+      expect(text).toContain('4 Credits');
+
+      // Confirm generation
+      const confirmBtn = root.findByProps({ testID: 'idea-details-confirm-generate-deck-button' });
+      await act(async () => {
+        confirmBtn.props.onPress();
+      });
+
+      expect(generateSpy).toHaveBeenCalledWith('idea-123');
+      expect(mockRefreshUser).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledWith('PitchDeck', {
+        ideaId: 'idea-123',
+        ideaTitle: 'Vertical AI for Plumbing Contractors',
+      });
+    });
+
+    it('handles HTTP 429 rate limit during deck generation', async () => {
+      jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(ideaWithoutDeck);
+      const error429 = new ApiError({
+        message: 'Too many pitch deck generation requests, please try again after a minute',
+        status: 429,
+      });
+      jest.spyOn(ideasApi, 'generatePitchDeck').mockRejectedValue(error429);
+
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(<IdeaDetailsScreen />);
+      });
+
+      const root = renderer!.root;
+      const genBtn = root.findByProps({ testID: 'idea-details-generate-pitch-deck-button' });
+      await act(async () => {
+        genBtn.props.onPress();
+      });
+
+      const confirmBtn = root.findByProps({ testID: 'idea-details-confirm-generate-deck-button' });
+      await act(async () => {
+        confirmBtn.props.onPress();
+      });
+
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'Generation Failed',
+        expect.stringContaining('Rate limit reached: Maximum 2 generation requests'),
+        expect.any(Array)
+      );
+    });
+
+    it('inspects backend idea on ambiguous network error without automatic re-submission', async () => {
+      const getSpy = jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(ideaWithoutDeck);
+      const timeoutError = new ApiError({
+        message: 'Network request timed out',
+        status: 0,
+      });
+      const generateSpy = jest.spyOn(ideasApi, 'generatePitchDeck').mockRejectedValue(timeoutError);
+
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(<IdeaDetailsScreen />);
+      });
+
+      const root = renderer!.root;
+      const genBtn = root.findByProps({ testID: 'idea-details-generate-pitch-deck-button' });
+      await act(async () => {
+        genBtn.props.onPress();
+      });
+
+      const confirmBtn = root.findByProps({ testID: 'idea-details-confirm-generate-deck-button' });
+      await act(async () => {
+        confirmBtn.props.onPress();
+      });
+
+      // Paid generation request executed only once - no automatic duplicate retry
+      expect(generateSpy).toHaveBeenCalledTimes(1);
+      // Fallback read executed to inspect persistence
+      expect(getSpy).toHaveBeenCalledWith('idea-123');
+    });
   });
 });

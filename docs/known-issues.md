@@ -29,6 +29,20 @@ This document tracks known limitations, external dependencies, and public releas
 - **Current Mobile State (Phase 3B):** The mobile app disables automatic retries on uncertain or interrupted outcomes. It preserves the user's input, presents a clear recoverable notification, and provides a direct shortcut to verify the Saved Ideas catalog before resubmitting.
 - **Action Required for Public Release:** Backend team to implement request idempotency middleware (e.g. Redis or database key cache) on `POST /api/idea/submit` prior to high-volume commercial store launch.
 
+### E. Pitch Deck Backend Rate Limiting (2 req/min)
+- **Issue:** The backend enforces a strict rate limiter (`pitchDeckLimiter`) on `POST /api/pitchdeck/:id` and `PUT /api/pitchdeck/:id` of 2 generation requests per minute per IP address.
+- **Current Mobile State (Phase 4A):** Mobile catches HTTP 429 and displays a user-friendly rate limit message ("You've hit the generation limit. Please wait a minute before requesting another pitch deck."), preventing rapid repeated submissions and double-spend attempts.
+- **Action Required:** Keep users informed on the cooldown duration in mobile UI.
+
+### F. Client-Side PDF Export Deferral
+- **Issue:** The PitchMint backend does not produce or serve pre-compiled PDF files for pitch decks. The PitchMint web frontend generates PDFs entirely within the browser using client-side DOM inspection (`jspdf` and `html2canvas`).
+- **Current Mobile State (Phase 4A):** Mobile renders all 10 slides natively in an interactive dark Arena slide viewer with full copy and navigation. PDF binary generation is deferred to a future mobile milestone requiring native print/export libraries (`expo-print` / `expo-sharing`).
+
+### G. Paid Pitch Deck Request Timeouts & No Automatic Retries
+- **Issue:** Both `POST /api/pitchdeck/:id` and `PUT /api/pitchdeck/:id` deduct 1 credit upon receipt and invoke Gemini 2.5 Flash. If a network socket drop or gateway timeout occurs during generation, automated client retries could trigger double credit deduction.
+- **Current Mobile State (Phase 4A):** Mobile enforces zero automatic retries for paid generation requests. On timeout, mobile queries `GET /api/idea/:id` to inspect whether `pitchDeckContent` was successfully saved to MongoDB before asking the user how to proceed.
+
+
 ---
 
 ## 2. Dependency & Security Advisories Analysis

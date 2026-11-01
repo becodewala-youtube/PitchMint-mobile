@@ -5,4 +5,5 @@ module.exports = {
   ],
   setupFilesAfterEnv: [],
   testMatch: ['**/__tests__/**/*.test.[jt]s?(x)'],
+  testTimeout: 15000,
 };

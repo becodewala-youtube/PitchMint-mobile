@@ -89,10 +89,10 @@ PitchMint-mobile/
 ---
 
 ## 6. Current Testing & CI Status
-- **Test Suites:** 23 passed, 23 total.
-- **Tests:** 160 passed, 160 total.
+- **Test Suites:** 24 passed, 24 total.
+- **Tests:** 188 passed, 188 total.
 - **TypeScript:** Clean pass (`tsc --noEmit` exits 0).
-- **Android JS Export:** Passes (`npx expo export --platform android` bundles 890 modules into Hermes bytecode in ~5.9s).
+- **Android JS Export:** Passes (`npx expo export --platform android` bundles 891 modules into Hermes bytecode in ~5.9s).
 - **Expo Doctor:** 21/21 checks passed cleanly on Expo SDK 57.0.31.
 
 ---
@@ -145,4 +145,43 @@ PitchMint-mobile/
 - **Base URL Sanitization:** `sanitizeApiUrl()` strips trailing `/` and redundant `/api` suffixes to guarantee robust connectivity against `PitchMint-Backend`.
 - **No Committed Secrets or IPs:** Generic default in `.env` for local development; live backend configured directly in `eas.json` for APK builds.
 - **Build Guide:** Detailed step-by-step PowerShell commands located in [`docs/personal-demo-apk-build.md`](docs/personal-demo-apk-build.md).
+
+---
+
+## 11. Pitch Deck Generator (Phase 4A)
+- **Detail Route:** `PitchDeck` in `RootStackParamList` taking `{ ideaId: string; ideaTitle?: string; initialSlideIndex?: number }`.
+- **Endpoints:**
+  - `POST /api/pitchdeck/:id`: Generate new 10-slide deck (costs 1 credit, deducted atomically on backend).
+  - `PUT /api/pitchdeck/:id`: Regenerate existing 10-slide deck (costs 1 credit, deducted atomically on backend).
+  - Reopening saved deck costs 0 credits (reads directly from `pitchDeckContent` on MongoDB Idea via `GET /api/idea/:id`).
+- **10 Standard Slide Definitions:**
+  1. Problem (`problem`) — Pain point and market friction.
+  2. Solution (`solution`) — Core value proposition.
+  3. Market Size (`marketSize`) — TAM, SAM, SOM calculations.
+  4. Business Model (`businessModel`) — Revenue streams and pricing.
+  5. Competition (`competitors`) — Competitive matrix & defensibility.
+  6. Go-To-Market (`goToMarket`) — Customer acquisition & channel strategy.
+  7. Team (`team`) — Founding team competencies.
+  8. Financials (`financials`) — Unit economics & projections.
+  9. Milestones (`milestones`) — Roadmap & key deliverables.
+  10. Ask & Use of Funds (`askAndUse`) — Funding requirement & capital allocation.
+- **Dedicated Slide Viewer (`PitchDeckScreen`):**
+  - Dark Arena styling (`#000000` background, `#0A0A0A` cards, `#7C3AED` accent).
+  - Header with title, current slide count (`Slide X of 10`), and animated progress bar.
+  - Previous/Next navigation controls with bounds checking.
+  - 10-slide horizontal thumbnail/chip selector with active slide indicator and dynamic badge styling.
+  - Scrollable slide body for comprehensive AI copy.
+  - In-screen regeneration modal with 1-credit confirmation.
+- **Credit Gating & Synchronous Balance Updates:**
+  - Balance displayed upfront before generation/regeneration.
+  - Pre-flight check blocks requests when credit balance < 1 without touching the network.
+  - Explicit confirmation modal warns of 1-credit deduction before POST/PUT submission.
+  - Prevents duplicate submissions via submission lock refs.
+  - Updates credit balance immediately using backend `userCredits` response field and calls `useAuth().refreshUser()`.
+- **Honest Error & Ambiguous Outcome Handling:**
+  - HTTP 402: Insufficient credits prompt.
+  - HTTP 429: Rate limit warning (2 requests per minute limit).
+  - HTTP 500 / 502: Actionable backend failure message.
+  - Network timeout / socket disconnect: Never automatically resubmits paid requests; queries `GET /api/idea/:id` to check whether MongoDB persisted the deck before prompting the user.
+
 

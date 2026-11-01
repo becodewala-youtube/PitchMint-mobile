@@ -26,6 +26,7 @@ export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList>;
   ValidateModal: undefined;
   IdeaDetails: { ideaId: string };
+  PitchDeck: { ideaId: string; ideaTitle?: string; initialSlideIndex?: number };
 };
 
 export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;

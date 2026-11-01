@@ -27,6 +27,12 @@
     "plugins": [
       "expo-secure-store",
       "./plugins/withCleartextTraffic"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "4be24784-ee41-454e-bcc0-40c72c196404"
+      }
+    },
+    "owner": "antik8795"
   }
 }
