@@ -27,6 +27,7 @@ export type RootStackParamList = {
   ValidateModal: undefined;
   IdeaDetails: { ideaId: string };
   PitchDeck: { ideaId: string; ideaTitle?: string; initialSlideIndex?: number };
+  Canvas: { ideaId: string; ideaTitle?: string; initialBlockIndex?: number };
 };
 
 export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;
