@@ -37,47 +37,54 @@ export const sanitizeApiUrl = (rawUrl: string): string => {
 };
 
 /**
- * Resolves the default development API base URL:
- * 1. Explicit EXPO_PUBLIC_API_URL environment variable (highest priority).
- * 2. In __DEV__, dynamically resolve host machine IP from NativeModules.SourceCode.scriptURL
- *    (this automatically works when running on a physical phone via Expo Go on the same Wi-Fi!).
- * 3. Android emulator fallback (10.0.2.2:4000).
- * 4. iOS Simulator / Web fallback (localhost:4000).
+ * Official deployed PitchMint Backend on Vercel (HTTPS).
+ * Used by default in development (Expo Go), preview builds, and production releases.
+ */
+export const DEFAULT_API_URL = 'https://pitch-mint-backend.vercel.app';
+
+/**
+ * Resolves the backend API base URL:
+ * 1. Explicit overrideUrl parameter or process.env.EXPO_PUBLIC_API_URL (from .env or .env.local).
+ * 2. Deployed HTTPS backend fallback: https://pitch-mint-backend.vercel.app.
  *
- * NOTE: Never hardcode a machine-specific IP address in source code.
- * Physical phone testing on LAN or remote demo environments should provide
- * EXPO_PUBLIC_API_URL in .env.local or EAS build configuration.
+ * NOTE: Deployed HTTPS URLs (such as https://pitch-mint-backend.vercel.app) are NEVER
+ * silently overridden with Metro host IPs.
+ * If a local development backend is deliberately configured (e.g. via .env.local containing
+ * an HTTP localhost or 127.0.0.1 address), it adapts localhost on native Android/iOS
+ * devices to the Metro host or emulator loopback (10.0.2.2).
  */
 export const getDefaultApiUrl = (overrideUrl?: string): string => {
   const envApiUrl = overrideUrl ?? (process.env['EXPO_PUBLIC_API_URL'] || process.env.EXPO_PUBLIC_API_URL);
+
   if (envApiUrl) {
-    return sanitizeApiUrl(envApiUrl);
-  }
+    const cleaned = sanitizeApiUrl(envApiUrl);
 
-  const backendPort = 4000;
-
-  if (__DEV__) {
-    try {
-      const scriptURL: string | undefined = NativeModules.SourceCode?.scriptURL;
-      if (scriptURL) {
-        const match = scriptURL.match(/^https?:\/\/([^:/]+)/);
-        const host = match ? match[1] : null;
-        if (host) {
-          // If running in development client or emulator, dynamically adapt to Metro host
-          return `http://${host}:${backendPort}`;
+    // If an explicit local HTTP loopback address is deliberately configured (e.g. via .env.local),
+    // adapt for native Android/iOS devices so requests reach the developer host machine.
+    if (Platform.OS !== 'web' && (cleaned.startsWith('http://localhost') || cleaned.startsWith('http://127.0.0.1'))) {
+      if (__DEV__) {
+        try {
+          const scriptURL: string | undefined = NativeModules.SourceCode?.scriptURL;
+          if (scriptURL) {
+            const match = scriptURL.match(/^https?:\/\/([^:/]+)/);
+            if (match && match[1] && match[1] !== 'localhost' && match[1] !== '127.0.0.1') {
+              return cleaned.replace(/localhost|127\.0\.0\.1/, match[1]);
+            }
+          }
+        } catch {
+          // Fall through to emulator loopback
         }
       }
-    } catch {
-      // Fall through to platform-based defaults
+      if (Platform.OS === 'android') {
+        return cleaned.replace(/localhost|127\.0\.0\.1/, '10.0.2.2');
+      }
     }
+
+    return cleaned;
   }
 
-  // Standard emulator / simulator loopbacks
-  if (Platform.OS === 'android') {
-    return `http://10.0.2.2:${backendPort}`;
-  }
-
-  return `http://localhost:${backendPort}`;
+  // Deployed HTTPS backend is the default (for Expo Go, preview builds, production)
+  return DEFAULT_API_URL;
 };
 
 /**
