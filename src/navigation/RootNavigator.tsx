@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BottomTabNavigator } from './BottomTabNavigator';
 import { ValidateModalScreen } from '../features/validate/screens/ValidateModalScreen';
 import { IdeaDetailsScreen } from '../features/ideas/screens/IdeaDetailsScreen';
+import { PitchDeckScreen } from '../features/pitch-deck';
 import { AuthNavigator } from './AuthNavigator';
 import { AuthLoadingScreen } from '../features/auth/screens/AuthLoadingScreen';
 import { WelcomeScreen, OnboardingScreen } from '../features/onboarding';
@@ -52,6 +53,13 @@ export const RootNavigator: React.FC = () => {
           <Stack.Screen
             name="IdeaDetails"
             component={IdeaDetailsScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="PitchDeck"
+            component={PitchDeckScreen}
             options={{
               animation: 'slide_from_right',
             }}

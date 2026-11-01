@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
+  Alert,
+  Modal,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { RootStackParamList, RootStackNavigationProp } from '../../../navigation/types';
@@ -29,8 +31,10 @@ import {
   CanvasContentData,
   CompetitorItem,
   PitchSimulationQuestion,
+  PitchDeckResponse,
 } from '../../../services/api/ideasApi';
 import { ApiError } from '../../../services/api/apiClient';
+import { useAuth } from '../../../context/AuthContext';
 import { parseIdeaTitleAndDesc, hasSubDocument } from '../../../utils/ideaParser';
 import { formatDisplayDate } from '../../../utils/date';
 
@@ -69,13 +73,17 @@ export const IdeaDetailsScreen: React.FC = () => {
   const navigation = useNavigation<RootStackNavigationProp>();
   const { ideaId } = route.params;
 
+  const { user, refreshUser } = useAuth();
   const [idea, setIdea] = useState<BackendIdea | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isGeneratingDeck, setIsGeneratingDeck] = useState<boolean>(false);
+  const [showDeckConfirmModal, setShowDeckConfirmModal] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>('demand');
 
   const isMountedRef = useRef<boolean>(true);
+  const isSubmittingDeckRef = useRef<boolean>(false);
 
   const fetchIdeaDetails = useCallback(
     async (isPullToRefresh = false) => {
@@ -261,6 +269,91 @@ export const IdeaDetailsScreen: React.FC = () => {
   const hasSimulation = Boolean(
     idea.pitchSimulation?.questions && idea.pitchSimulation.questions.length > 0
   );
+
+  const userCredits = user?.credits ?? 0;
+
+  const handleViewPitchDeck = (initialSlideIndex: number = 0) => {
+    navigation.navigate('PitchDeck', {
+      ideaId,
+      ideaTitle: parsedTitle,
+      initialSlideIndex,
+    });
+  };
+
+  const handleOpenDeckConfirm = () => {
+    if (userCredits < 1) {
+      Alert.alert(
+        'Insufficient Credits',
+        'You need at least 1 credit to generate a pitch deck. Please add credits to your account.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    setShowDeckConfirmModal(true);
+  };
+
+  const handleConfirmGenerateDeck = async () => {
+    if (isSubmittingDeckRef.current) return;
+    isSubmittingDeckRef.current = true;
+    setIsGeneratingDeck(true);
+    setShowDeckConfirmModal(false);
+
+    try {
+      const updatedIdea: PitchDeckResponse = hasPitchDeck
+        ? await ideasApi.regeneratePitchDeck(ideaId)
+        : await ideasApi.generatePitchDeck(ideaId);
+
+      if (isMountedRef.current) {
+        setIdea(updatedIdea);
+      }
+      await refreshUser().catch(() => {});
+
+      navigation.navigate('PitchDeck', {
+        ideaId,
+        ideaTitle: parsedTitle,
+      });
+    } catch (err: any) {
+      if (!isMountedRef.current) return;
+
+      let msg = 'Failed to generate pitch deck. Please try again.';
+      if (err instanceof ApiError) {
+        if (err.status === 402) {
+          msg = 'Insufficient credits. 1 credit is required to generate a pitch deck.';
+        } else if (err.status === 429) {
+          msg = 'Rate limit reached: Maximum 2 generation requests allowed per minute. Please wait 60 seconds before trying again.';
+        } else {
+          msg = err.message || msg;
+        }
+      } else if (err?.message) {
+        msg = err.message;
+      }
+
+      // If ambiguous network error (status 0), inspect backend directly before offering retry
+      if (err instanceof ApiError && err.status === 0) {
+        try {
+          const fresh = await ideasApi.getIdeaById(ideaId);
+          if (isMountedRef.current && fresh?.pitchDeckContent) {
+            setIdea(fresh);
+            await refreshUser().catch(() => {});
+            navigation.navigate('PitchDeck', {
+              ideaId,
+              ideaTitle: parsedTitle,
+            });
+            return;
+          }
+        } catch {
+          // Keep original error message
+        }
+      }
+
+      Alert.alert('Generation Failed', msg, [{ text: 'OK' }]);
+    } finally {
+      if (isMountedRef.current) {
+        setIsGeneratingDeck(false);
+        isSubmittingDeckRef.current = false;
+      }
+    }
+  };
 
   return (
     <ScreenContainer
@@ -516,9 +609,9 @@ export const IdeaDetailsScreen: React.FC = () => {
         <View style={styles.moduleHeaderRow}>
           <IconBadge name="fileText" tone="blue" size={32} />
           <View style={styles.moduleHeaderTitleCol}>
-            <Text style={styles.moduleTitle}>Pitch Deck Outline</Text>
+            <Text style={styles.moduleTitle}>Pitch Deck Presentation</Text>
             <Text style={styles.moduleSubtitle}>
-              {hasPitchDeck ? '10-slide outline generated' : 'Not generated yet'}
+              {hasPitchDeck ? '10-slide investor presentation ready' : 'Not generated yet'}
             </Text>
           </View>
           <Badge
@@ -529,15 +622,53 @@ export const IdeaDetailsScreen: React.FC = () => {
 
         {hasPitchDeck ? (
           <View style={styles.moduleContentArea}>
-            {PITCH_DECK_SLIDES.map((slide) => {
+            <View style={styles.deckActionRow}>
+              <Button
+                testID="idea-details-view-pitch-deck-button"
+                title="View Pitch Deck"
+                variant="primary"
+                onPress={() => handleViewPitchDeck(0)}
+                leftIcon={<Icon name="fileText" size={16} color="#FFFFFF" />}
+                style={styles.viewDeckBtn}
+              />
+              <Button
+                testID="idea-details-regenerate-pitch-deck-button"
+                title={isGeneratingDeck ? 'Regenerating…' : 'Regenerate (1 Credit)'}
+                variant="secondary"
+                disabled={isGeneratingDeck}
+                onPress={handleOpenDeckConfirm}
+                leftIcon={
+                  isGeneratingDeck ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Icon name="sparkles" size={16} color={colors.brand.primary} />
+                  )
+                }
+                style={styles.regenerateDeckBtn}
+              />
+            </View>
+
+            {PITCH_DECK_SLIDES.map((slide, sIdx) => {
               const content = idea.pitchDeckContent?.[slide.key];
               if (!content) return null;
 
               return (
-                <View key={slide.key} style={styles.slideCard}>
-                  <Text style={styles.slideTitle}>{slide.label}</Text>
-                  <Text style={styles.slideBody}>{content}</Text>
-                </View>
+                <Pressable
+                  key={slide.key}
+                  testID={`idea-details-slide-preview-${sIdx}`}
+                  onPress={() => handleViewPitchDeck(sIdx)}
+                  style={styles.slideCard}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open slide ${slide.label}`}
+                >
+                  <View style={styles.slideCardHeader}>
+                    <Text style={styles.slideTitle}>{slide.label}</Text>
+                    <Icon name="chevronRight" size={14} color={colors.text.muted} />
+                  </View>
+                  <Text style={styles.slideBody} numberOfLines={2}>
+                    {content}
+                  </Text>
+                </Pressable>
               );
             })}
           </View>
@@ -546,6 +677,26 @@ export const IdeaDetailsScreen: React.FC = () => {
             <Text style={styles.moduleEmptyText}>
               A 10-slide investor pitch deck has not been generated for this idea yet.
             </Text>
+            <View style={styles.uncreatedCreditRow}>
+              <Text style={styles.uncreatedCreditText}>
+                {`Cost: 1 Credit • Your Balance: ${userCredits} ${userCredits === 1 ? 'Credit' : 'Credits'}`}
+              </Text>
+            </View>
+            <Button
+              testID="idea-details-generate-pitch-deck-button"
+              title={isGeneratingDeck ? 'Generating Deck with AI…' : 'Generate Pitch Deck (1 Credit)'}
+              variant="primary"
+              disabled={isGeneratingDeck}
+              onPress={handleOpenDeckConfirm}
+              leftIcon={
+                isGeneratingDeck ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Icon name="sparkles" size={16} color="#FFFFFF" />
+                )
+              }
+              style={styles.generateDeckBtn}
+            />
           </View>
         )}
       </Card>
@@ -700,6 +851,58 @@ export const IdeaDetailsScreen: React.FC = () => {
           All data is backed by your cloud MongoDB account.
         </Text>
       </Card>
+
+      {/* 1-Credit Pre-Flight Confirmation Modal */}
+      <Modal
+        visible={showDeckConfirmModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDeckConfirmModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Card style={styles.confirmModalCard}>
+            <IconBadge name="sparkles" tone="violet" size={44} />
+            <Text style={styles.modalTitle}>
+              {hasPitchDeck ? 'Regenerate Pitch Deck?' : 'Generate Pitch Deck?'}
+            </Text>
+            <Text style={styles.modalBody}>
+              PitchMint AI will create a comprehensive 10-slide investor presentation tailored to this idea.
+            </Text>
+
+            <View style={styles.modalCreditBox}>
+              <View style={styles.modalCreditRow}>
+                <Text style={styles.modalCreditLabel}>Cost:</Text>
+                <Text style={styles.modalCreditValue}>1 Credit</Text>
+              </View>
+              <View style={styles.modalCreditRow}>
+                <Text style={styles.modalCreditLabel}>Current Balance:</Text>
+                <Text style={styles.modalCreditValue}>{`${userCredits} Credits`}</Text>
+              </View>
+              <View style={[styles.modalCreditRow, styles.modalCreditRowLast]}>
+                <Text style={styles.modalCreditLabel}>Remaining After:</Text>
+                <Text style={[styles.modalCreditValue, { color: colors.tones.emerald.text }]}>
+                  {`${Math.max(0, userCredits - 1)} Credits`}
+                </Text>
+              </View>
+            </View>
+
+            <Button
+              testID="idea-details-confirm-generate-deck-button"
+              title="Confirm & Deduct 1 Credit"
+              variant="primary"
+              onPress={handleConfirmGenerateDeck}
+              style={styles.modalConfirmBtn}
+            />
+            <Button
+              testID="idea-details-cancel-generate-deck-button"
+              title="Cancel"
+              variant="ghost"
+              onPress={() => setShowDeckConfirmModal(false)}
+              style={styles.modalCancelBtn}
+            />
+          </Card>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 };
@@ -1157,4 +1360,102 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 14,
   },
+  deckActionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  viewDeckBtn: {
+    flex: 1.2,
+    minHeight: touchTargets.minTouchSize,
+  },
+  regenerateDeckBtn: {
+    flex: 1,
+    minHeight: touchTargets.minTouchSize,
+  },
+  slideCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  uncreatedCreditRow: {
+    marginVertical: spacing.sm,
+  },
+  uncreatedCreditText: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.muted,
+    fontWeight: typography.weights.medium,
+  },
+  generateDeckBtn: {
+    width: '100%',
+    marginTop: spacing.xs,
+    minHeight: touchTargets.minTouchSize,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  confirmModalCard: {
+    width: '100%',
+    maxWidth: 380,
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  modalTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  modalBody: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: spacing.md,
+  },
+  modalCreditBox: {
+    width: '100%',
+    backgroundColor: colors.background.card2,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  modalCreditRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  modalCreditRowLast: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    marginTop: 4,
+    paddingTop: 8,
+  },
+  modalCreditLabel: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.muted,
+  },
+  modalCreditValue: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+  },
+  modalConfirmBtn: {
+    width: '100%',
+    marginBottom: spacing.xs,
+  },
+  modalCancelBtn: {
+    width: '100%',
+  },
 });
+

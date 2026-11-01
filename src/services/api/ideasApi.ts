@@ -128,6 +128,10 @@ export const mapBackendIdeaToCard = (raw: BackendIdea): ParsedIdeaCard => {
   };
 };
 
+export interface PitchDeckResponse extends BackendIdea {
+  userCredits?: number;
+}
+
 /**
  * Service encapsulating PitchMint backend saved idea endpoints.
  */
@@ -207,6 +211,58 @@ export const ideasApi = {
     ) {
       throw new ApiError({
         message: 'Received an incomplete or malformed validation response from server.',
+        status: 502,
+      });
+    }
+
+    return response;
+  },
+
+  /**
+   * Generates a 10-slide pitch deck for an existing idea.
+   * Route: POST /api/pitchdeck/:id
+   * Cost: 1 credit (deducted atomically by backend; refunded on failure)
+   */
+  async generatePitchDeck(id: string): Promise<PitchDeckResponse> {
+    const trimmedId = id?.trim();
+    if (!trimmedId) {
+      throw new ApiError({
+        message: 'Invalid idea identifier',
+        status: 400,
+      });
+    }
+
+    const response = await apiClient.post<PitchDeckResponse>(`/api/pitchdeck/${trimmedId}`);
+
+    if (!response || typeof response !== 'object' || !response._id || !response.pitchDeckContent) {
+      throw new ApiError({
+        message: 'Received an incomplete or malformed pitch deck response from server.',
+        status: 502,
+      });
+    }
+
+    return response;
+  },
+
+  /**
+   * Regenerates a 10-slide pitch deck for an existing idea.
+   * Route: PUT /api/pitchdeck/:id
+   * Cost: 1 credit (deducted atomically by backend; refunded on failure)
+   */
+  async regeneratePitchDeck(id: string): Promise<PitchDeckResponse> {
+    const trimmedId = id?.trim();
+    if (!trimmedId) {
+      throw new ApiError({
+        message: 'Invalid idea identifier',
+        status: 400,
+      });
+    }
+
+    const response = await apiClient.put<PitchDeckResponse>(`/api/pitchdeck/${trimmedId}`);
+
+    if (!response || typeof response !== 'object' || !response._id || !response.pitchDeckContent) {
+      throw new ApiError({
+        message: 'Received an incomplete or malformed pitch deck response from server.',
         status: 502,
       });
     }
