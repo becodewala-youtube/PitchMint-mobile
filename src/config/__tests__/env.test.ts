@@ -57,6 +57,19 @@ describe('Environment Configuration (env.ts)', () => {
       // Should be localhost or emulator address
       expect(url.startsWith('http://localhost:4000') || url.startsWith('http://10.0.2.2:4000')).toBe(true);
     });
+
+    it('dynamically adapts localhost to Metro host when running on native device', () => {
+      const { NativeModules } = require('react-native');
+      const originalScriptUrl = NativeModules.SourceCode?.scriptURL;
+      NativeModules.SourceCode = { scriptURL: 'http://192.168.1.99:8081/index.bundle?platform=android' };
+
+      try {
+        expect(getDefaultApiUrl('http://localhost:4000')).toBe('http://192.168.1.99:4000');
+        expect(getDefaultApiUrl('http://127.0.0.1:4000')).toBe('http://192.168.1.99:4000');
+      } finally {
+        NativeModules.SourceCode = { scriptURL: originalScriptUrl };
+      }
+    });
   });
 
   describe('config and getAppConfig', () => {

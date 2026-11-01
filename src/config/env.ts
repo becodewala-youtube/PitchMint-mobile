@@ -50,26 +50,42 @@ export const sanitizeApiUrl = (rawUrl: string): string => {
  */
 export const getDefaultApiUrl = (overrideUrl?: string): string => {
   const envApiUrl = overrideUrl ?? (process.env['EXPO_PUBLIC_API_URL'] || process.env.EXPO_PUBLIC_API_URL);
-  if (envApiUrl) {
-    return sanitizeApiUrl(envApiUrl);
-  }
-
   const backendPort = 4000;
 
+  let metroHost: string | null = null;
   if (__DEV__) {
     try {
       const scriptURL: string | undefined = NativeModules.SourceCode?.scriptURL;
       if (scriptURL) {
         const match = scriptURL.match(/^https?:\/\/([^:/]+)/);
-        const host = match ? match[1] : null;
-        if (host) {
-          // If running in development client or emulator, dynamically adapt to Metro host
-          return `http://${host}:${backendPort}`;
+        if (match && match[1]) {
+          metroHost = match[1];
         }
       }
     } catch {
       // Fall through to platform-based defaults
     }
+  }
+
+  if (envApiUrl) {
+    const cleaned = sanitizeApiUrl(envApiUrl);
+
+    // On native mobile (Android/iOS), 'localhost' or '127.0.0.1' points to the device itself.
+    // Dynamically map localhost to the Metro host IP (physical phone on Wi-Fi) or emulator loopback.
+    if (Platform.OS !== 'web' && (cleaned.includes('localhost') || cleaned.includes('127.0.0.1'))) {
+      if (metroHost && metroHost !== 'localhost' && metroHost !== '127.0.0.1') {
+        return cleaned.replace(/localhost|127\.0\.0\.1/, metroHost);
+      }
+      if (Platform.OS === 'android') {
+        return cleaned.replace(/localhost|127\.0\.0\.1/, '10.0.2.2');
+      }
+    }
+
+    return cleaned;
+  }
+
+  if (metroHost) {
+    return `http://${metroHost}:${backendPort}`;
   }
 
   // Standard emulator / simulator loopbacks

@@ -26,7 +26,8 @@
     },
     "plugins": [
       "expo-secure-store",
-      "./plugins/withCleartextTraffic"
+      "./plugins/withCleartextTraffic",
+      "expo-status-bar"
     ],
     "extra": {
       "eas": {

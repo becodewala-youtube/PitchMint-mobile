@@ -311,7 +311,7 @@ export const OnboardingScreen: React.FC = () => {
   const { width: screenWidth } = useWindowDimensions();
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<React.ElementRef<typeof ScrollView>>(null);
   const isLast = currentIndex === SLIDES.length - 1;
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {

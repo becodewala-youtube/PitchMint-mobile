@@ -5,23 +5,24 @@ This document captures the verified facts, versions, scripts, and status of `Pit
 ---
 
 ## 1. Stack & Dependency Versions
-- **Expo SDK:** `~57.0.31`
-- **React Native:** `0.86.3`
-- **React:** `19.2.3`
+- **Expo SDK:** `^58.0.22`
+- **React Native:** `0.88.1`
+- **React:** `19.3.0`
 - **TypeScript:** `~6.0.3` (Strict mode)
 - **React Navigation:**
   - `@react-navigation/native`: `^7.5.0`
   - `@react-navigation/native-stack`: `^7.20.0`
   - `@react-navigation/bottom-tabs`: `^7.20.0`
 - **Native Primitives:**
-  - `react-native-screens`: `~4.26.0`
-  - `react-native-safe-area-context`: `~5.7.0`
-  - `expo-secure-store`: `~57.0.4`
-  - `expo-status-bar`: `~57.0.1`
+  - `react-native-screens`: `~4.30.1`
+  - `react-native-safe-area-context`: `~5.10.1`
+  - `expo-secure-store`: `~58.0.2`
+  - `expo-status-bar`: `~58.0.4`
 - **Testing:**
-  - `jest`: `^29.7.0`
-  - `jest-expo`: `^57.0.6`
+  - `jest`: `~30.5.2`
+  - `jest-expo`: `~58.0.13`
   - `@testing-library/react-native`: `^14.1.0`
+  - `react-test-renderer`: `^19.3.0`
 
 ---
 
@@ -41,7 +42,7 @@ PitchMint-mobile/
 │   ├── app/                 # App root component and AppProviders
 │   ├── navigation/          # React Navigation stacks, tabs, and types
 │   ├── context/             # AuthContext and OnboardingContext
-│   ├── features/            # Feature screens (home, ideas, validate, activity, profile, auth, onboarding)
+│   ├── features/            # Feature screens (home, ideas, validate, activity, profile, auth, onboarding, pitch-deck)
 │   ├── components/          # Reusable dark Arena presentation components
 │   ├── theme/               # Dark theme tokens (colors, spacing, typography)
 │   ├── services/            # API client, auth API, token/onboarding storage
@@ -90,10 +91,11 @@ PitchMint-mobile/
 
 ## 6. Current Testing & CI Status
 - **Test Suites:** 24 passed, 24 total.
-- **Tests:** 188 passed, 188 total.
+- **Tests:** 189 passed, 189 total.
 - **TypeScript:** Clean pass (`tsc --noEmit` exits 0).
-- **Android JS Export:** Passes (`npx expo export --platform android` bundles 891 modules into Hermes bytecode in ~5.9s).
-- **Expo Doctor:** 21/21 checks passed cleanly on Expo SDK 57.0.31.
+- **Android JS Export:** Passes (`npx expo export --platform android` bundles 929 modules into Hermes bytecode in ~27.7s).
+- **Expo Doctor:** 20/20 checks passed cleanly on Expo SDK 58.0.22.
+- **Node.js Compatibility:** Verified on Node.js v22.22.2 (satisfies Expo SDK 58 prerequisite: Node 22.13+ or Node 24.3+).
 
 ---
 
