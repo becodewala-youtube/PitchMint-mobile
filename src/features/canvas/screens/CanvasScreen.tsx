@@ -9,8 +9,8 @@ import {
   Alert,
   Modal,
   RefreshControl,
-  Clipboard,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { RootStackParamList, RootStackNavigationProp } from '../../../navigation/types';
 import {
@@ -275,37 +275,51 @@ export const CanvasScreen: React.FC = () => {
   };
 
   // Copy individual section to clipboard
-  const handleCopyCurrentSection = () => {
+  const handleCopyCurrentSection = async () => {
     const currentDef = CANVAS_BLOCK_DEFINITIONS[currentBlockIndex];
     const text = idea?.canvasContent?.[currentDef.key] || '';
     if (!text) return;
 
     try {
-      Clipboard.setString(`${currentDef.title} (${currentDef.category})\n\n${text}`);
-      setCopiedSection(true);
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-      copyTimeoutRef.current = setTimeout(() => {
+      const success = await Clipboard.setStringAsync(
+        `${currentDef.title} (${currentDef.category})\n\n${text}`
+      );
+      if (success) {
+        if (isMountedRef.current) setCopiedSection(true);
+        if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+        copyTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) setCopiedSection(false);
+        }, 2000);
+      } else {
         if (isMountedRef.current) setCopiedSection(false);
-      }, 2000);
+        Alert.alert('Copy Failed', `Could not copy ${currentDef.title} to clipboard. Please try again.`);
+      }
     } catch {
-      Alert.alert('Copied', `${currentDef.title} copied to clipboard.`);
+      if (isMountedRef.current) setCopiedSection(false);
+      Alert.alert('Copy Failed', `Could not copy ${currentDef.title} to clipboard. Please try again.`);
     }
   };
 
   // Copy entire canvas as formatted Markdown to clipboard
-  const handleCopyEntireCanvas = () => {
+  const handleCopyEntireCanvas = async () => {
     const title = ideaTitle || parseIdeaTitleAndDesc(idea?.ideaText || '').title;
     const md = formatCanvasAsMarkdown(title, idea?.canvasContent);
 
     try {
-      Clipboard.setString(md);
-      setCopiedAll(true);
-      if (copyAllTimeoutRef.current) clearTimeout(copyAllTimeoutRef.current);
-      copyAllTimeoutRef.current = setTimeout(() => {
+      const success = await Clipboard.setStringAsync(md);
+      if (success) {
+        if (isMountedRef.current) setCopiedAll(true);
+        if (copyAllTimeoutRef.current) clearTimeout(copyAllTimeoutRef.current);
+        copyAllTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) setCopiedAll(false);
+        }, 2000);
+      } else {
         if (isMountedRef.current) setCopiedAll(false);
-      }, 2000);
+        Alert.alert('Copy Failed', 'Could not copy Business Model Canvas to clipboard. Please try again.');
+      }
     } catch {
-      Alert.alert('Copied', 'Entire Business Model Canvas copied as Markdown.');
+      if (isMountedRef.current) setCopiedAll(false);
+      Alert.alert('Copy Failed', 'Could not copy Business Model Canvas to clipboard. Please try again.');
     }
   };
 
