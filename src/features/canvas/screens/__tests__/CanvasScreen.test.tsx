@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { Text, Pressable, Alert, Clipboard } from 'react-native';
+import { Text, Pressable, Alert } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { CanvasScreen, CANVAS_BLOCK_DEFINITIONS, formatCanvasAsMarkdown } from '../CanvasScreen';
 import { ideasApi, BackendIdea } from '../../../../services/api/ideasApi';
 import { ApiError } from '../../../../services/api/apiClient';
@@ -29,6 +30,10 @@ jest.mock('@react-navigation/native', () => ({
   }),
 }));
 
+jest.mock('expo-clipboard', () => ({
+  setStringAsync: jest.fn().mockResolvedValue(true),
+}));
+
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 44, bottom: 34, left: 0, right: 0 }),
 }));
@@ -52,7 +57,7 @@ describe('CanvasScreen Component (Phase 4B)', () => {
     mockRouteParams = { ideaId: 'idea-canvas-123', ideaTitle: 'AI Dental Recall' };
     mockUserCredits = 5;
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    jest.spyOn(Clipboard, 'setString').mockImplementation(() => {});
+    jest.spyOn(Clipboard, 'setStringAsync').mockResolvedValue(true);
   });
 
   const sampleIdeaWithCanvas: BackendIdea = {
@@ -365,12 +370,70 @@ describe('CanvasScreen Component (Phase 4B)', () => {
     const copySectionBtn = root.findByProps({ testID: 'canvas-copy-section-button' });
 
     await act(async () => {
-      copySectionBtn.props.onPress();
+      await copySectionBtn.props.onPress();
     });
 
-    expect(Clipboard.setString).toHaveBeenCalledWith(
+    expect(Clipboard.setStringAsync).toHaveBeenCalledWith(
       expect.stringContaining('Problem (Customer Pain Points)')
     );
+    const sectionBtnText = copySectionBtn.findByType(Text);
+    expect(sectionBtnText.props.children).toBe('Copied');
+
+    await act(async () => {
+      renderer.unmount();
+    });
+  });
+
+  it('displays error alert and does not show copied state when copying section fails with error', async () => {
+    jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(sampleIdeaWithCanvas);
+    jest.spyOn(Clipboard, 'setStringAsync').mockRejectedValueOnce(new Error('Permission denied'));
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<CanvasScreen />);
+    });
+
+    const root = renderer!.root;
+    const copySectionBtn = root.findByProps({ testID: 'canvas-copy-section-button' });
+
+    await act(async () => {
+      await copySectionBtn.props.onPress();
+    });
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Copy Failed',
+      expect.stringContaining('Could not copy Problem to clipboard')
+    );
+    const sectionBtnText = copySectionBtn.findByType(Text);
+    expect(sectionBtnText.props.children).toBe('Copy');
+
+    await act(async () => {
+      renderer.unmount();
+    });
+  });
+
+  it('displays error alert and does not show copied state when copying section returns false', async () => {
+    jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(sampleIdeaWithCanvas);
+    jest.spyOn(Clipboard, 'setStringAsync').mockResolvedValueOnce(false);
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<CanvasScreen />);
+    });
+
+    const root = renderer!.root;
+    const copySectionBtn = root.findByProps({ testID: 'canvas-copy-section-button' });
+
+    await act(async () => {
+      await copySectionBtn.props.onPress();
+    });
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Copy Failed',
+      expect.stringContaining('Could not copy Problem to clipboard')
+    );
+    const sectionBtnText = copySectionBtn.findByType(Text);
+    expect(sectionBtnText.props.children).toBe('Copy');
 
     await act(async () => {
       renderer.unmount();
@@ -389,18 +452,73 @@ describe('CanvasScreen Component (Phase 4B)', () => {
     const copyAllBtn = root.findByProps({ testID: 'canvas-copy-all-button' });
 
     await act(async () => {
-      copyAllBtn.props.onPress();
+      await copyAllBtn.props.onPress();
     });
 
-    expect(Clipboard.setString).toHaveBeenCalledWith(
+    expect(Clipboard.setStringAsync).toHaveBeenCalledWith(
       expect.stringContaining('# AI Dental Recall — Business Model Canvas')
     );
-    expect(Clipboard.setString).toHaveBeenCalledWith(
+    expect(Clipboard.setStringAsync).toHaveBeenCalledWith(
       expect.stringContaining('## 1. Problem (Customer Pain Points)')
     );
-    expect(Clipboard.setString).toHaveBeenCalledWith(
+    expect(Clipboard.setStringAsync).toHaveBeenCalledWith(
       expect.stringContaining('## 9. Revenue Streams (Monetization)')
     );
+    expect(copyAllBtn.props.title).toBe('Canvas Copied to Clipboard!');
+
+    await act(async () => {
+      renderer.unmount();
+    });
+  });
+
+  it('displays error alert and does not show copied state when copying entire canvas fails with error', async () => {
+    jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(sampleIdeaWithCanvas);
+    jest.spyOn(Clipboard, 'setStringAsync').mockRejectedValueOnce(new Error('Clipboard write error'));
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<CanvasScreen />);
+    });
+
+    const root = renderer!.root;
+    const copyAllBtn = root.findByProps({ testID: 'canvas-copy-all-button' });
+
+    await act(async () => {
+      await copyAllBtn.props.onPress();
+    });
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Copy Failed',
+      expect.stringContaining('Could not copy Business Model Canvas to clipboard')
+    );
+    expect(copyAllBtn.props.title).toBe('Copy Entire Canvas (Markdown)');
+
+    await act(async () => {
+      renderer.unmount();
+    });
+  });
+
+  it('displays error alert and does not show copied state when copying entire canvas returns false', async () => {
+    jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(sampleIdeaWithCanvas);
+    jest.spyOn(Clipboard, 'setStringAsync').mockResolvedValueOnce(false);
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<CanvasScreen />);
+    });
+
+    const root = renderer!.root;
+    const copyAllBtn = root.findByProps({ testID: 'canvas-copy-all-button' });
+
+    await act(async () => {
+      await copyAllBtn.props.onPress();
+    });
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Copy Failed',
+      expect.stringContaining('Could not copy Business Model Canvas to clipboard')
+    );
+    expect(copyAllBtn.props.title).toBe('Copy Entire Canvas (Markdown)');
 
     await act(async () => {
       renderer.unmount();
