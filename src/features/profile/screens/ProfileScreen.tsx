@@ -22,6 +22,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { ideasApi } from '../../../services/api/ideasApi';
 import { creditsApi } from '../../../services/api/creditsApi';
 import { ApiError } from '../../../services/api/apiClient';
+import { TokenStorageError } from '../../../services/storage/tokenStorage';
 import { config } from '../../../config/env';
 
 /**
@@ -114,8 +115,11 @@ export const ProfileScreen: React.FC = () => {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   const isPurchasingRef = useRef<boolean>(false);
+  const isSigningOutRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
 
   useEffect(() => {
@@ -136,8 +140,16 @@ export const ProfileScreen: React.FC = () => {
       await refreshUser();
       const response = await ideasApi.getSavedIdeas({ page: 1, limit: 1 });
       setTotalIdeasCount(response.total ?? 0);
-    } catch (err) {
-      console.warn('[ProfileScreen] Error loading account metrics:', err);
+    } catch (err: unknown) {
+      if (__DEV__) {
+        const summary =
+          err instanceof TokenStorageError
+            ? err.code
+            : err instanceof ApiError
+            ? `HTTP_${err.status}`
+            : 'UnknownError';
+        console.warn(`[ProfileScreen] Error loading account metrics (${summary})`);
+      }
     } finally {
       setIsRefreshing(false);
     }
@@ -207,7 +219,48 @@ export const ProfileScreen: React.FC = () => {
     }
   };
 
+  const executeSignOut = useCallback(async () => {
+    if (isSigningOutRef.current) {
+      return;
+    }
+    isSigningOutRef.current = true;
+    setIsSigningOut(true);
+
+    try {
+      await signOut();
+      if (isMountedRef.current) {
+        setSignOutError(null);
+      }
+    } catch (err: unknown) {
+      const msg =
+        err instanceof TokenStorageError
+          ? err.message
+          : 'Unable to complete sign out because stored session credentials could not be cleared. Please try again.';
+
+      if (isMountedRef.current) {
+        setSignOutError(msg);
+        Alert.alert('Sign Out Incomplete', msg, [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Retry',
+            onPress: () => {
+              void executeSignOut();
+            },
+          },
+        ]);
+      }
+    } finally {
+      isSigningOutRef.current = false;
+      if (isMountedRef.current) {
+        setIsSigningOut(false);
+      }
+    }
+  }, [signOut]);
+
   const handleSignOut = () => {
+    if (isSigningOutRef.current) {
+      return;
+    }
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out of PitchMint?',
@@ -216,8 +269,8 @@ export const ProfileScreen: React.FC = () => {
         {
           text: 'Sign Out',
           style: 'destructive',
-          onPress: async () => {
-            await signOut();
+          onPress: () => {
+            void executeSignOut();
           },
         },
       ]
@@ -482,10 +535,31 @@ export const ProfileScreen: React.FC = () => {
       </Card>
 
       {/* 6. Sign Out Danger Card */}
+      {signOutError && (
+        <View style={styles.signOutErrorContainer} testID="profile-signout-error-banner">
+          <View style={[styles.statusBanner, styles.statusError, styles.signOutBanner]}>
+            <Icon name="alertCircle" size={16} color={colors.tones.red.text} />
+            <Text style={[styles.statusBannerText, { color: colors.tones.red.text }]}>
+              {signOutError}
+            </Text>
+          </View>
+          <Button
+            testID="profile-signout-retry-btn"
+            title={isSigningOut ? 'Retrying sign out...' : 'Retry sign out'}
+            variant="danger"
+            size="md"
+            loading={isSigningOut}
+            disabled={isSigningOut}
+            onPress={() => {
+              void executeSignOut();
+            }}
+          />
+        </View>
+      )}
       <Card style={styles.dangerCard}>
         <SettingRow
           icon="logOut"
-          label="Sign out"
+          label={isSigningOut ? 'Signing out...' : 'Sign out'}
           danger
           onPress={handleSignOut}
         />
@@ -775,6 +849,13 @@ const styles = StyleSheet.create({
   dangerCard: {
     padding: 0,
     marginBottom: spacing.md,
+  },
+  signOutErrorContainer: {
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  signOutBanner: {
+    marginBottom: 0,
   },
   versionFooter: {
     textAlign: 'center',

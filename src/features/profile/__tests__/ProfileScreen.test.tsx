@@ -5,6 +5,7 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { ideasApi } from '../../../services/api/ideasApi';
 import { creditsApi } from '../../../services/api/creditsApi';
 import { ApiError } from '../../../services/api/apiClient';
+import { TokenStorageError } from '../../../services/storage/tokenStorage';
 import { config } from '../../../config/env';
 
 (global as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -248,5 +249,79 @@ describe('ProfileScreen Integration (Phase 3B.1)', () => {
     });
 
     expect(simulateSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('displays explicit error feedback and allows retry when signOut fails', async () => {
+    let resolveRetry!: () => void;
+    const retryPromise = new Promise<void>((resolve) => {
+      resolveRetry = resolve;
+    });
+
+    mockSignOut
+      .mockRejectedValueOnce(
+        new TokenStorageError(
+          'DELETE_FAILED',
+          'Unable to clear stored session credentials from secure storage.'
+        )
+      )
+      .mockReturnValueOnce(retryPromise);
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<ProfileScreen />);
+    });
+
+    const root = renderer!.root;
+    const signOutRow = root.findByProps({ accessibilityLabel: 'Sign out' });
+
+    await act(async () => {
+      signOutRow.props.onPress();
+    });
+
+    const confirmCall = (Alert.alert as jest.Mock).mock.calls.find(
+      (call) => call[0] === 'Sign Out'
+    );
+    expect(confirmCall).toBeDefined();
+    const confirmButtons = confirmCall[2] as Array<{ text: string; onPress?: () => void }>;
+    const confirmSignOutBtn = confirmButtons.find((b) => b.text === 'Sign Out');
+
+    await act(async () => {
+      confirmSignOutBtn?.onPress?.();
+      await Promise.resolve();
+    });
+
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Sign Out Incomplete',
+      expect.stringContaining('clear stored session credentials'),
+      expect.any(Array)
+    );
+
+    const errorBanner = root.findByProps({ testID: 'profile-signout-error-banner' });
+    expect(errorBanner).toBeDefined();
+
+    const retryBtn = root.findByProps({ testID: 'profile-signout-retry-btn' });
+    await act(async () => {
+      retryBtn.props.onPress();
+    });
+
+    // While retry is pending, banner remains visible, button shows loading/disabled, and duplicate presses are ignored
+    expect(root.findByProps({ testID: 'profile-signout-error-banner' })).toBeDefined();
+    const pendingRetryBtn = root.findByProps({ testID: 'profile-signout-retry-btn' });
+    expect(pendingRetryBtn.props.disabled).toBe(true);
+    expect(pendingRetryBtn.props.loading).toBe(true);
+
+    await act(async () => {
+      pendingRetryBtn.props.onPress();
+    });
+    expect(mockSignOut).toHaveBeenCalledTimes(2);
+
+    // Resolve retry and verify banner disappears
+    await act(async () => {
+      resolveRetry();
+      await Promise.resolve();
+    });
+
+    expect(root.findAllByProps({ testID: 'profile-signout-error-banner' })).toHaveLength(0);
   });
 });

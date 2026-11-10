@@ -3,6 +3,7 @@ import ReactTestRenderer, { act } from 'react-test-renderer';
 import { Text, TextInput } from 'react-native';
 import { SignInScreen } from '../screens/SignInScreen';
 import { ApiError } from '../../../services/api/apiClient';
+import { TokenStorageError } from '../../../services/storage/tokenStorage';
 
 (global as any).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -217,5 +218,34 @@ describe('SignInScreen (Arena Design)', () => {
     });
 
     expect(mockNavigate).toHaveBeenCalledWith('SignUp');
+  });
+
+  it('displays storage error message when token persistence fails during signIn', async () => {
+    mockSignIn.mockRejectedValueOnce(
+      new TokenStorageError('SET_FAILED', 'Unable to store session credentials securely on this device.')
+    );
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<SignInScreen />);
+    });
+
+    const root = renderer!.root;
+    const emailInput = root.findByProps({ testID: 'signin-email-input' }).findByType(TextInput);
+    const passwordInput = root.findByProps({ testID: 'signin-password-input' }).findByType(TextInput);
+
+    await act(async () => {
+      emailInput.props.onChangeText('founder@pitchmint.app');
+      passwordInput.props.onChangeText('SecretPassword123!');
+    });
+
+    const submitBtn = root.findByProps({ testID: 'signin-submit-btn' });
+    await act(async () => {
+      await submitBtn.props.onPress();
+    });
+
+    const errorBox = root.findByProps({ testID: 'signin-error-box' });
+    const errorTexts = errorBox.findAllByType(Text).map((t) => t.props.children).flat(Infinity);
+    expect(errorTexts.join(' ')).toContain('Unable to store session credentials securely on this device.');
   });
 });

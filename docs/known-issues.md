@@ -61,12 +61,14 @@ This document tracks verified limitations, technical debt, release prerequisites
 - **Assessment:** Mobile UI is prepared to link account deletion, but the required endpoint (`DELETE /api/auth/account`) is not yet documented as live on the backend.
 - **Required Action:** Verify backend deletion endpoint status and store review prerequisites prior to public store binary submission.
 
-### AUTH-02: Hardware Keystore Fallback Behavior
-- **Category:** Local Data Storage
-- **Status:** Requires Investigation
-- **Evidence:** [`src/services/storage/tokenStorage.ts`](../src/services/storage/tokenStorage.ts) and [`onboardingStorage.ts`](../src/services/storage/onboardingStorage.ts) catch exceptions from `expo-secure-store` and fallback to an in-memory dictionary.
-- **Assessment:** In testing environments (Node.js/Jest), the memory store is essential. In production native builds, a persistent keystore failure leaves the session in volatile memory for the duration of the app run.
-- **Required Action:** Investigate production keystore failure scenarios to ensure production builds handle hardware lockouts safely without unintended fallback retention.
+### AUTH-02: Hardware Keystore Failure & Native Android Persistence Limitation
+- **Category:** Local Data Storage & Session Integrity
+- **Status:** Partially Remediated (JavaScript Fail-Closed Hardening Implemented; Native Android Fix Pending Upstream SDK 58 Release)
+- **Evidence:**
+  - **JavaScript Remediation (Implemented):** [`src/services/storage/tokenStorage.ts`](../src/services/storage/tokenStorage.ts) no longer mirrors native iOS/Android JWTs into `memoryStore` or falls back to JS memory on native `expo-secure-store` failures, instead throwing sanitized [`TokenStorageError`](../src/services/storage/tokenStorage.ts) codes (`GET_FAILED`, `SET_FAILED`, `DELETE_FAILED`). [`src/context/AuthContext.tsx`](../src/context/AuthContext.tsx), [`src/services/api/apiClient.ts`](../src/services/api/apiClient.ts), [`src/navigation/RootNavigator.tsx`](../src/navigation/RootNavigator.tsx), [`src/features/auth/screens/AuthLoadingScreen.tsx`](../src/features/auth/screens/AuthLoadingScreen.tsx), and [`src/features/profile/screens/ProfileScreen.tsx`](../src/features/profile/screens/ProfileScreen.tsx) now enforce fail-closed persistence on sign-in/verification, distinguish storage/network errors from `401` rejections on bootstrap with a recoverable retry flow, keep user-initiated logout errors explicit with retry UI, catch 401 cleanup failures without unhandled rejections, and gate sanitized error diagnostics behind `__DEV__`. *(Note: [`onboardingStorage.ts`](../src/services/storage/onboardingStorage.ts) still retains an in-memory fallback for its non-sensitive onboarding boolean.)*
+  - **Remaining Native Limitation:** Installed `expo-secure-store@58.0.2` (and its precompiled `local-maven-repo` Android AAR) still calls `SharedPreferences.Editor.commit()` without checking the `Boolean` result during encrypted writes (`saveEncryptedItem`), and does not roll back Android's in-memory `SharedPreferences` map when a disk commit returns `false`.
+- **Assessment:** JavaScript fail-closed handling now prevents silent JS memory fallback, false-success logout on `deleteItemAsync` errors, and premature token deletion on offline/5xx launches. However, on Android `expo-secure-store@58.0.2`, if `commit()` returns `false` (e.g., disk full or unwritable `shared_prefs`), `setItemAsync` still resolves cleanly and same-process `getItemAsync` read-back reads Android's in-memory `SharedPreferences` map rather than disk. Upstream Expo PR `#52131` (fixing `commit()` verification and memory rollback) is merged on Expo `main` but has not yet shipped in an SDK-58-compatible `expo-secure-store` release.
+- **Required Action:** Keep the native Android persistence defect tracked as open until an official SDK-58-compatible `expo-secure-store` patch release containing PR `#52131` is published and adopted.
 
 ### AUTH-03: Google Sign-In Status
 - **Category:** Feature Completeness & Authentication Architecture

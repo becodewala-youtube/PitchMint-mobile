@@ -15,6 +15,7 @@ import { Button, Input, Icon, AuthCard } from '../../../components';
 import { useAuth } from '../../../context/AuthContext';
 import { validateVerificationCode } from '../../../utils/validation';
 import { ApiError } from '../../../services/api/apiClient';
+import { TokenStorageError } from '../../../services/storage/tokenStorage';
 import { AuthStackParamList } from '../../../navigation/types';
 
 type EmailVerificationNavigationProp = NativeStackNavigationProp<
@@ -68,7 +69,7 @@ export const EmailVerificationScreen: React.FC = () => {
       // Context hydrates token and user; RootNavigator shifts to MainTabs
     } catch (err: any) {
       setSubmitError(
-        err instanceof ApiError
+        err instanceof ApiError || err instanceof TokenStorageError
           ? err.message
           : 'Invalid or expired verification code. Please request a new code.'
       );

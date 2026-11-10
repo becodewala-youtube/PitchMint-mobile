@@ -16,10 +16,11 @@ import { useOnboarding } from '../context/OnboardingContext';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const RootNavigator: React.FC = () => {
-  const { isAuthenticated, isBootstrapping } = useAuth();
+  const { isAuthenticated, isBootstrapping, bootstrapError } = useAuth();
   const { hasCompletedOnboarding, isLoadingOnboarding } = useOnboarding();
 
   const isInitializing = isBootstrapping || isLoadingOnboarding;
+  const isBootstrapBlocked = !isAuthenticated && !!bootstrapError;
 
   return (
     <Stack.Navigator
@@ -28,8 +29,8 @@ export const RootNavigator: React.FC = () => {
         contentStyle: { backgroundColor: colors.background.primary },
       }}
     >
-      {isInitializing ? (
-        // Session bootstrap state - prevents flash of auth or unauth screens
+      {isInitializing || isBootstrapBlocked ? (
+        // Session bootstrap or recoverable storage/verification state - prevents flash of auth or protected screens
         <Stack.Screen
           name="AuthLoading"
           component={AuthLoadingScreen}
