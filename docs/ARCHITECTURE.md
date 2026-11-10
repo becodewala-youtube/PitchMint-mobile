@@ -2,8 +2,8 @@
 
 ## 1. Project Identity & Repository Boundaries
 - **Project Name:** `PitchMint-mobile`
-- **Platform:** React Native (Expo SDK 57, TypeScript 6)
-- **Design Philosophy:** Native-first, Android-focused initially, iOS-ready via EAS Build.
+- **Platform:** React Native (Expo SDK 58, React Native 0.88.1, React 19.3.0, TypeScript ~6.0.3)
+- **Design Philosophy:** Native-first, Android-focused initially, iOS-ready via EAS Build. Dark-only theme inspired by the PitchMint Arena prototype (`https://01a12dcd-2c11-7ac0-9fe0-162a7be0ac4b.arena.site/`).
 - **Repository Isolation:**
   - `PitchMint-mobile` is a strictly decoupled, independent repository alongside `PitchMint-Backend` and `PitchMint-frontend`.
   - No monorepos, shared package roots, or symlinked workspaces.
@@ -18,60 +18,46 @@ PitchMint-mobile/
 ├── .agents/                 # AI engineering rules and SDLC workflows
 │   └── rules/               # project.md, architecture.md, coding.md, workflow.md
 ├── .github/                 # GitHub workflows and automation
-│   ├── workflows/ci.yml     # Automated PR & push CI pipeline
+│   ├── workflows/ci.yml     # Automated PR & push CI pipeline (Node.js 22)
+│   ├── workflows/graphify-update.yml # Knowledge graph automation
 │   └── dependabot.yml       # Weekly dependency and security scanning
 ├── assets/                  # App launcher icons, splash screen, adaptive icons
 ├── docs/                    # Architecture, workflow, and known-issues documentation
 │   ├── ARCHITECTURE.md      # This document
 │   ├── SETUP.md             # Local environment and execution guide
-│   ├── development-workflow.md # SDLC and CI instructions
-│   └── known-issues.md      # Tracked public-release blockers and security notes
+│   ├── development-workflow.md # SDLC, Graphify, and CI instructions
+│   ├── known-issues.md      # Tracked technical debt and release considerations
+│   └── personal-demo-apk-build.md # Standalone APK EAS build instructions
+├── plugins/                 # Custom Expo config plugins (withCleartextTraffic.js)
 ├── src/
 │   ├── app/                 # Root application wrapper & runtime providers
 │   │   ├── App.tsx          # Root container: NavigationContainer & StatusBar
-│   │   └── AppProviders.tsx # SafeAreaProvider, AuthProvider, OnboardingProvider
-│   ├── context/             # Global application contexts
-│   │   ├── AuthContext.tsx  # User session, JWT state, login/logout actions
-│   │   └── OnboardingContext.tsx # Onboarding status and completion actions
-│   ├── navigation/          # React Navigation configuration
-│   │   ├── types.ts         # Strictly typed ParamLists (RootStack, MainTab, AuthStack)
-│   │   ├── RootNavigator.tsx# Root Stack Navigator (AuthLoading, Onboarding, Auth, MainTabs)
-│   │   ├── BottomTabNavigator.tsx # 5-position bottom tab bar + raised Validate CTA
-│   │   └── AuthNavigator.tsx# Authentication stack (SignIn, SignUp, Forgot, Reset, Verify)
-│   ├── theme/               # Dark theme tokens inspired by Arena prototype
-│   │   ├── colors.ts        # Palette: #000000 base, card surfaces, #7C3AED violet
-│   │   ├── spacing.ts       # Layout grid, border radiuses, 48dp touch targets, shadows
-│   │   ├── typography.ts    # Scaled type sizes and font weights
-│   │   └── index.ts         # Consolidated export and navigationDarkTheme
-│   ├── components/          # Reusable atomic presentation components
-│   │   ├── ScreenContainer.tsx # Safe-area & scroll wrapper
-│   │   ├── Card.tsx         # Dark elevated card surface
-│   │   ├── AuthCard.tsx     # Form wrapper card for authentication screens
-│   │   ├── Badge.tsx        # Status & score pill chips
-│   │   ├── Pill.tsx         # Multi-state filter chips
-│   │   ├── ScoreBar.tsx     # Visual validation score indicator
-│   │   ├── Button.tsx       # 48dp minimum accessible button with feedback
-│   │   ├── GoogleSignInButton.tsx # Branded Google OAuth button
-│   │   ├── Input.tsx        # Accessible styled text input with error display
-│   │   ├── Icon.tsx         # Zero-dependency native vector primitives
-│   │   └── index.ts
-│   ├── features/            # Feature modules and screens
-│   │   ├── home/screens/HomeScreen.tsx       # Welcome, credits card, recent validations
-│   │   ├── ideas/screens/IdeasScreen.tsx     # Saved ideas catalog with score filters
-│   │   ├── validate/screens/ValidateModalScreen.tsx # Center (+) modal validation launcher
-│   │   ├── activity/screens/ActivityScreen.tsx # Chronological log (replaces Toolkit)
-│   │   ├── profile/screens/ProfileScreen.tsx # Founder profile & compliance notices
-│   │   ├── onboarding/screens/               # WelcomeScreen.tsx & OnboardingScreen.tsx
-│   │   └── auth/screens/                     # SignIn, SignUp, Forgot, Reset, Verify, Loading
+│   │   └── AppProviders.tsx # SafeAreaProvider, AuthProvider, OnboardingProvider, ErrorBoundary
+│   ├── context/             # Global application contexts (AuthContext, OnboardingContext)
+│   ├── navigation/          # React Navigation configuration (types.ts, RootNavigator, BottomTabNavigator, AuthNavigator)
+│   ├── theme/               # Dark theme tokens (colors.ts, spacing.ts, typography.ts, index.ts)
+│   ├── components/          # 13 Reusable atomic presentation components
+│   ├── features/            # Feature modules:
+│   │   ├── activity/        # ActivityScreen (audit log of validations and credit events)
+│   │   ├── auth/            # SignIn, SignUp, Forgot, Reset, Verify, Loading
+│   │   ├── canvas/          # CanvasScreen (9-block Lean Business Model Canvas viewer)
+│   │   ├── home/            # HomeScreen (Dashboard, stats, recent ideas)
+│   │   ├── ideas/           # IdeasScreen (Catalog) & IdeaDetailsScreen (Deep-dive)
+│   │   ├── onboarding/      # WelcomeScreen & OnboardingScreen
+│   │   ├── pitch-deck/      # PitchDeckScreen (10-slide investor deck viewer)
+│   │   ├── profile/         # ProfileScreen (Founder profile, settings, demo credit top-up)
+│   │   └── validate/        # ValidateModalScreen (5-step validation launcher)
 │   ├── services/            # API client, auth API, and storage services
 │   │   ├── api/apiClient.ts # Native fetch wrapper with token injection and 401 handler
-│   │   ├── api/authApi.ts   # Backend auth endpoints
-│   │   ├── auth/googleAuthService.ts # Google OAuth native integration
+│   │   ├── api/authApi.ts   # Authentication endpoints
+│   │   ├── api/ideasApi.ts  # Idea validation, deck, and canvas endpoints
+│   │   ├── api/creditsApi.ts# Balance, plans, and demo top-up endpoints
+│   │   ├── api/activityApi.ts # Audit history endpoint
+│   │   ├── auth/googleAuthService.ts # Google OAuth stub
 │   │   └── storage/         # Hardware-backed SecureStore (tokenStorage, onboardingStorage)
-│   ├── config/              # Safe client runtime configuration
-│   │   └── env.ts           # Environment variables without server secrets
-│   └── utils/               # Validation helpers (email, password strength)
-├── app.json                 # Expo project manifest (dark theme, portrait orientation)
+│   ├── config/              # Safe client runtime configuration (env.ts)
+│   └── utils/               # date.ts, ideaParser.ts, validation.ts
+├── app.json                 # Expo project manifest (Package: com.pitchmint.app)
 ├── index.ts                 # Expo entrypoint (registerRootComponent)
 ├── App.tsx                  # Root re-export pointing to src/app/App
 ├── package.json             # Dependencies and diagnostics scripts
@@ -82,13 +68,30 @@ PitchMint-mobile/
 
 ## 3. Navigation Architecture
 
-The visual shell implements a **5-position bottom navigation hierarchy** inspired by the PitchMint Arena prototype (`https://01a12dcd-2c11-7ac0-9fe0-162a7be0ac4b.arena.site/`):
+Navigation is implemented using **React Navigation 7** (`@react-navigation/native`, `@react-navigation/native-stack`, `@react-navigation/bottom-tabs`).
 
-1. **Home (`HomeScreen`):** Dashboard overview, current monthly credit quota (3/3 free), quick validation launcher, and recent validation cards.
-2. **Ideas (`IdeasScreen`):** Searchable/filterable catalog of saved startup evaluations with multi-metric score breakdown (Demand, Competition, Feasibility).
-3. **Center Action (+ Validate):** A prominent raised 52x52dp purple button (`#7C3AED`) with purple glow that intercepts tab switching and presents `ValidateModalScreen` as a native modal.
-4. **Activity (`ActivityScreen`):** Chronological audit log of idea validation runs, credit deductions, and renewals. Replaces the deferred web "Toolkit" destination.
-5. **Profile (`ProfileScreen`):** User identity, plan badge, security preferences, and release compliance tracking.
+1. **Top-Level Root Navigator (`src/navigation/RootNavigator.tsx`):**
+   - Native stack evaluating session state (`isBootstrapping`, `isAuthenticated`, `hasCompletedOnboarding`).
+   - Prevents unauthenticated screen flashing during session bootstrap (`AuthLoadingScreen`).
+   - Routes unauthenticated first-time users to `WelcomeScreen` and `OnboardingScreen`.
+   - Routes subsequent unauthenticated launches to `AuthNavigator`.
+   - Mounts `BottomTabNavigator`, modal validation launcher (`ValidateModalScreen`), and detail screens once authenticated.
+
+2. **Bottom Tab Navigator (`src/navigation/BottomTabNavigator.tsx`):**
+   - 5-position bottom navigation bar matching the Arena prototype:
+     1. **Home (`HomeScreen`):** Dashboard overview, credit balance summary (cached/optimistic), quick actions, recent ideas.
+     2. **Ideas (`IdeasScreen`):** Searchable/filterable catalog of saved startup evaluations.
+     3. **Center Action (+ Validate):** Prominent raised 54x54dp squircle button (`#5E17EB` with `#3904A6` edge) that intercepts tab presses to launch `ValidateModalScreen` as a modal overlay.
+     4. **Activity (`ActivityScreen`):** Chronological audit log of idea evaluation runs and credit events.
+     5. **Profile (`ProfileScreen`):** User identity, plan badge, security toggles, and gated demo credit top-up controls.
+
+3. **Authentication Stack (`src/navigation/AuthNavigator.tsx`):**
+   - Native stack encapsulating `SignInScreen`, `SignUpScreen`, `EmailVerificationScreen`, `ForgotPasswordScreen`, and `ResetPasswordScreen`.
+
+4. **Dedicated Phase 4 Detail Screens:**
+   - **`IdeaDetailsScreen`:** Authoritative idea view with score rings, breakdown bars, and stored module cards.
+   - **`PitchDeckScreen`:** 10-slide investor deck viewer with progress tracker and 1-credit regeneration confirmation modal.
+   - **`CanvasScreen`:** 9-block Lean Business Model Canvas viewer with Markdown clipboard export and 1-credit confirmation modal.
 
 ---
 
@@ -103,48 +106,108 @@ The visual shell implements a **5-position bottom navigation hierarchy** inspire
   - `Brand Accent`: `#7C3AED` (Violet brand color)
   - `Brand Soft`: `#A78BFA` (Soft violet text & active states)
   - `Signature 3D Button`: `#5E17EB` with `#3904A6` 4px bottom edge (presses 2px down)
-  - `Center Validate Button`: 54x54dp squircle (`rounded-[18px]`) with purple ambient glow
+  - `Center Validate Button`: 54x54dp squircle (`borderRadius: 18`) with violet ambient glow (`elevation: 12`)
 - **Semantic Tones:**
-  - Violet, Blue, Emerald, Orange, Pink, Amber, Cyan, Red, Gray (each with paired bg, border, and text values)
-- **Touch Targets:** Minimum 48dp on all interactive elements. Center action button is 54dp.
+  - Violet, Blue, Emerald, Orange, Pink, Amber, Cyan, Red, Gray (each paired with matching bg, border, and text tokens).
+- **Touch Targets:** Minimum 48dp on all interactive elements (`touchTargets.minTouchSize = 48`). Center action button is 54dp (`touchTargets.fabSize = 54`).
 
 ---
 
-## 5. Security & Mobile Compliance Blockers
+## 5. State Management & API Integration
 
-### Zero-Secret Rule
+### State Management Architecture
+- **Zero Heavyweight External Stores:** The application uses pure React Context without Redux, Zustand, or MobX.
+- **`AuthContext` (`src/context/AuthContext.tsx`):**
+  - Manages reactive session state (`user`, `token`, `isAuthenticated`, `isBootstrapping`, `error`).
+  - Hydrates token on startup from `tokenStorage`.
+  - Exposes authentication actions (`signIn`, `signUp`, `verifyEmail`, `resendVerification`, `forgotPassword`, `resetPassword`, `signOut`, `refreshUser`, `clearError`).
+  - Hooks into global 401 interception callback with `apiClient` to purge expired sessions.
+- **`OnboardingContext` (`src/context/OnboardingContext.tsx`):**
+  - Tracks whether first-run walkthrough has been completed (`hasCompletedOnboarding`, `isLoadingOnboarding`).
+  - Exposes `completeOnboarding()` and `resetOnboarding()`.
+
+### Hardware-Backed Persistent Storage
+- **`tokenStorage.ts`:** Encrypted storage via `expo-secure-store` under key `pitchmint_auth_token` (`keychainAccessible: AFTER_FIRST_UNLOCK` on iOS; Keystore EncryptedSharedPreferences on Android).
+- **`onboardingStorage.ts`:** Hardware-backed flag under key `pitchmint_onboarding_completed`.
+- **Test / Dev Fallback:** In-memory dictionary fallback prevents crashes in test runners (Jest / Node.js) where native hardware modules are unavailable.
+
+### API Client Architecture (`src/services/api/apiClient.ts`)
+- Native `fetch` wrapper with automatic JSON serialization, `X-Request-ID` UUID tracing, Bearer token injection, and structured `ApiError` exceptions.
+- Global 401 Unauthorized handler to purge expired sessions without infinite redirects.
+- *Tracked Limitation (API-01):* Currently lacks timeout and cancellation signals.
+
+### Mobile API Service Endpoints
+- **Authentication (`src/services/api/authApi.ts`):**
+  - `POST /api/auth/register` (Account creation)
+  - `POST /api/auth/verify-email` (6-digit OTP verification)
+  - `POST /api/auth/resend-verification` (OTP resend)
+  - `POST /api/auth/signin` (Password login)
+  - `POST /api/auth/google` (Google credential exchange)
+  - `POST /api/auth/forgot-password` (Password reset request)
+  - `POST /api/auth/reset-password` (Token-based password reset)
+  - `GET /api/auth/user` (Current profile & credit balance)
+- **Ideas & Generation (`src/services/api/ideasApi.ts`):**
+  - `GET /api/idea/saved` (Paginated saved startup evaluations)
+  - `GET /api/idea/:id` (Authoritative idea record)
+  - `POST /api/idea/submit` (AI idea evaluation — costs 1 credit)
+  - `POST /api/pitchdeck/:id` / `PUT /api/pitchdeck/:id` (Generate/regenerate 10-slide deck — costs 1 credit)
+  - `POST /api/canvas/:id` / `PUT /api/canvas/:id` (Generate/regenerate 9-block Lean Canvas — costs 1 credit)
+- **Credits & Billing (`src/services/api/creditsApi.ts`):**
+  - `GET /api/credits/balance` (Credit quota and plan tier)
+  - `GET /api/credits/plans` (Credit pricing packages)
+  - `POST /api/credits/simulate-payment-success` (Development-only demo credit purchase)
+- **Audit Feed (`src/services/api/activityApi.ts`):**
+  - `GET /api/history` (Audit log feed)
+
+---
+
+## 6. Credit Operations & Balance Authority
+
+### Credit Confirmation UX Safeguard
+- Before any credit-consuming user action (idea validation, pitch deck generation/regeneration, canvas generation/regeneration), the application presents an explicit confirmation modal detailing the action and its credit cost.
+- Where available, the modal displays the current credit balance and estimated remaining balance after the operation.
+- The confirmation dialog is strictly a **client-side UX safeguard** designed to prevent accidental deductions from unintended button presses; it is not a replacement for backend verification.
+
+### Balance Authority & Server Responsibility
+- **Non-Guaranteed Client Balance:** Any credit balance displayed on the mobile device may be cached, optimistic, or outdated. It is never guaranteed to represent the live server state.
+- **Authoritative Backend Responsibility:** The backend server is solely authoritative for:
+  1. Authentication and authorization verification.
+  2. Idea resource ownership and access rights.
+  3. Real-time credit balance verification.
+  4. Atomic credit deduction and transaction processing.
+  5. Transaction rollback and refund behavior upon processing failures.
+- *(Note on Scope: Backend behavior has not been independently audited in this mobile task. Server rollback and refund logic are documented as backend architectural responsibilities without claiming that every live backend route has been verified to implement them).*
+
+---
+
+## 7. Security & Mobile Architectural Controls
+
+### Zero-Secret Guarantee
 Mobile application binaries are publicly distributable packages and can be decompiled.
-- **Never embed server secrets** (`JWT_SECRET`, `GEMINI_API_KEY`, `RAZORPAY_KEY_SECRET`, MongoDB URIs) into mobile configuration files or source code.
-- Phase 1 connects to no external networks or backend servers.
+- **Never embed server secrets** (`JWT_SECRET`, `GEMINI_API_KEY`, `RAZORPAY_KEY_SECRET`, MongoDB connection strings) in mobile configuration files or source code.
+- Only public `EXPO_PUBLIC_*` configuration values may be bundled into client binaries.
 
-### Tracked Release Blockers (Before Public Store Release)
-1. **In-App Account Deletion:**
-   - Apple App Store Guideline 5.1.1(v) and Google Play Data Safety policies strictly require an in-app account deletion flow.
-   - Requires adding `DELETE /api/auth/account` to `PitchMint-Backend` prior to public store release.
-2. **Google Play Digital Goods Billing:**
-   - Both Google Play and Apple prohibit third-party web checkouts (such as Razorpay) for digital credits consumed inside store-distributed binaries.
-   - Public release must utilize native Google Play Billing (or User Choice Billing). Razorpay checkout is not embedded in the mobile client.
-3. **Google Account Linking with Local Password Accounts:**
-   - Backend issue where Google OAuth accounts without passwords collide with password logins. Tracked in backend backlog; mobile client prevents account collision and directs users accordingly.
+### Secure Session Management
+- **Hardware-Backed Storage:** Authentication tokens are encrypted in device hardware via `expo-secure-store` (`pitchmint_auth_token` key). Plaintext storage is prohibited.
+- **Session Bootstrap:** On app launch, `AuthContext` retrieves the stored token and calls `GET /api/auth/user`. If invalid or expired, the session is purged cleanly.
+- **401 Interception:** A global unauthorized interceptor triggers automatic logout and purges token storage without recursive loops.
+- **Unverified Email Redirection:** When `POST /api/auth/signin` returns HTTP 401 with `emailNotVerified: true`, the app redirects to `EmailVerificationScreen` with the email pre-populated.
+
+### Network Cleartext Traffic Policy
+- `plugins/withCleartextTraffic.js` config plugin strictly disables cleartext HTTP (`android:usesCleartextTraffic="false"`) in production and preview builds. Cleartext HTTP is permitted only in local development when connecting to emulator loopbacks (`10.0.2.2`).
 
 ---
 
-## 6. Phase 2: Authentication & Secure Session Storage
+## 8. External Integrations & Configuration
 
-### Security Architecture
-- **Secure Storage:** Tokens are encrypted in hardware-backed storage via `expo-secure-store` (iOS Keychain / Android Keystore EncryptedSharedPreferences). Plaintext `localStorage` or `AsyncStorage` is prohibited.
-- **Bootstrap Lifecycle:** Initial launch reads the stored token and calls `GET /api/auth/user`. While bootstrapping, `AuthLoadingScreen` is mounted. Authenticated tabs are never flashed prematurely.
-- **401 Interception:** An unauthorized interceptor triggers automatic logout and purges token storage without recursive loops.
-- **Unverified Email Routing:** When `POST /api/auth/signin` returns HTTP 401 with `emailNotVerified: true`, the app routes directly to `EmailVerificationScreen` with the email pre-populated.
+### Android Package Identifier
+- Configured as **`com.pitchmint.app`** in `app.json` (`android.package`).
 
-### Required External Google OAuth Configuration (Post-EAS Build)
-1. **Google Cloud Console Web Client ID:**
-   - Matches backend `GOOGLE_CLIENT_ID` (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`).
-2. **Google Cloud Console Android Client ID:**
-   - Package name: `com.pitchmint.mobile`.
-   - SHA-1 Certificate Fingerprint: generated from local debug keystore or EAS Build credentials.
-3. **Google Services File:**
-   - `google-services.json` placed in root and declared in `app.json` (`android.googleServicesFile`).
-4. **Native Library:**
-   - `@react-native-google-signin/google-signin` configured via config plugin for custom development build (`npx expo run:android` / EAS Build).
+### Google OAuth Architecture & Integration Strategy (Future Milestone)
+Native Google authentication is not currently implemented; the existing codebase provides an informational placeholder stub (`src/services/auth/googleAuthService.ts`) per the Stage 1 audit.
 
+Before implementing Google Sign-In:
+1. **Approach Investigation:** Evaluate supported authentication approaches for the current Expo SDK (SDK 58) and backend contract, comparing browser-based OAuth (e.g. `expo-auth-session`) and native SDK integration.
+2. **Native Build Modality:** A native SDK approach (such as `@react-native-google-signin/google-signin` or similar) may require a custom EAS development build (`expo-dev-client`).
+3. **Credentials & Artifacts:** If a native SDK is chosen, configuration will require a Google Cloud Console Web Client ID (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`), Android Client ID matching package `com.pitchmint.app` with SHA-1 fingerprint, and `google-services.json`.
+4. **Decision Criteria:** The authentication strategy must be selected based on a comprehensive evaluation of compatibility with Expo SDK 58, mobile security requirements, user experience, and backend session exchange.

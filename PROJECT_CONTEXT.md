@@ -1,189 +1,102 @@
 # PitchMint Mobile — Verified Project Context
 
-This document captures the verified facts, versions, scripts, and status of `PitchMint-mobile` as of October 2026.
+This document captures the verified technical facts, architecture, dependencies, and operational conventions for `PitchMint-mobile`.
 
 ---
 
-## 1. Stack & Dependency Versions
-- **Expo SDK:** `^58.0.22`
-- **React Native:** `0.88.1`
-- **React:** `19.3.0`
-- **TypeScript:** `~6.0.3` (Strict mode)
-- **React Navigation:**
-  - `@react-navigation/native`: `^7.5.0`
-  - `@react-navigation/native-stack`: `^7.20.0`
-  - `@react-navigation/bottom-tabs`: `^7.20.0`
-- **Native Primitives:**
-  - `react-native-screens`: `~4.30.1`
-  - `react-native-safe-area-context`: `~5.10.1`
-  - `expo-secure-store`: `~58.0.2`
-  - `expo-status-bar`: `~58.0.4`
-- **Testing:**
-  - `jest`: `~30.5.2`
-  - `jest-expo`: `~58.0.13`
-  - `@testing-library/react-native`: `^14.1.0`
-  - `react-test-renderer`: `^19.3.0`
+## 1. Verified Technology Stack
+
+| Component | Specified Version | Lockfile Version | Notes |
+| :--- | :--- | :--- | :--- |
+| **Expo SDK** | `~58.0.23` | `58.0.23` | Continuous Native Generation (CNG), EAS ready |
+| **React Native** | `0.88.1` | `0.88.1` | Native runtime |
+| **React** | `19.3.0` | `19.3.0` | Core UI library |
+| **TypeScript** | `~6.0.3` | `6.0.3` | Strict mode enabled (`noEmit: true`) |
+| **Navigation** | `^7.5.0` / `^7.20.0` | `7.5.0` / `7.20.0` | React Navigation 7 (`@react-navigation/native`, `native-stack`, `bottom-tabs`) |
+| **Hardware Storage** | `~58.0.2` | `58.0.2` | `expo-secure-store` (Keychain / Keystore) |
+| **Native Primitives** | `~4.30.1` / `~5.11.1` | `4.30.1` / `5.11.1` | `react-native-screens`, `react-native-safe-area-context` |
+| **System Integrations**| `~58.0.4` / `~58.0.4` | `58.0.4` / `58.0.4` | `expo-status-bar`, `expo-clipboard` |
+| **Testing** | `~30.5.2` / `~58.0.14` | `30.5.2` / `58.0.14` | `jest`, `jest-expo`, `@testing-library/react-native` (`^14.1.0`) |
 
 ---
 
-## 2. Repository Structure
-```
-PitchMint-mobile/
-├── .agents/rules/           # SDLC, architecture, coding, and project rules
-├── .github/
-│   ├── workflows/
-│   │   ├── ci.yml           # Automated CI verification workflow
-│   │   └── graphify-update.yml # Auto-updates knowledge graph when PR merges to main
-│   └── dependabot.yml       # Dependency update schedule and group policy
-├── assets/                  # Launcher icon, splash screen, adaptive icons
-├── docs/                    # Architecture, known issues, and workflow docs
-├── graphify-out/            # Generated knowledge graph (graph.json, GRAPH_REPORT.md, graph.html)
-├── src/
-│   ├── app/                 # App root component and AppProviders
-│   ├── navigation/          # React Navigation stacks, tabs, and types
-│   ├── context/             # AuthContext and OnboardingContext
-│   ├── features/            # Feature screens (home, ideas, validate, activity, profile, auth, onboarding, pitch-deck)
-│   ├── components/          # Reusable dark Arena presentation components
-│   ├── theme/               # Dark theme tokens (colors, spacing, typography)
-│   ├── services/            # API client, auth API, token/onboarding storage
-│   ├── config/              # env.ts with safe EXPO_PUBLIC_* resolution
-│   └── utils/               # Form and string validators
-├── app.json                 # Expo application manifest
-├── index.ts                 # Application root entrypoint
-├── package.json             # Scripts and dependencies
-└── tsconfig.json            # TypeScript configuration
-```
+## 2. High-Level Architecture Summary
+
+`PitchMint-mobile` is an independent, feature-first React Native mobile client. Detailed architectural specifications are maintained authoritatively in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+- **Navigation Model:** Built with React Navigation 7 (`RootNavigator`) managing session bootstrap (`AuthLoadingScreen`), first-run onboarding (`WelcomeScreen`, `OnboardingScreen`), native auth stack (`AuthNavigator`), and an authenticated tab shell (`BottomTabNavigator`). A center 54dp squircle action button intercepts tab presses to present `ValidateModalScreen` as a modal overlay. Detail views (`IdeaDetails`, `PitchDeck`, `Canvas`) open via native slide transitions. *(Details: [`docs/ARCHITECTURE.md#3-navigation-architecture`](docs/ARCHITECTURE.md#3-navigation-architecture))*.
+- **State & Session Persistence:** Pure React Context (`AuthContext`, `OnboardingContext`) with zero external state libraries. Access tokens (`pitchmint_auth_token`) and onboarding status are persisted in device hardware via `expo-secure-store` with an in-memory fallback for test runners. *(Details: [`docs/ARCHITECTURE.md#5-state-management--api-integration`](docs/ARCHITECTURE.md#5-state-management--api-integration))*.
+- **HTTP & Backend Contract:** Centralized `apiClient.ts` wrapper with Bearer token injection, `X-Request-ID` tracing, and global 401 interception. Communicates with external backend services across authentication (`authApi`), startup evaluation and generation (`ideasApi`), balance management (`creditsApi`), and audit logging (`activityApi`). Base URL resolved via `env.ts`. *(Details: [`docs/ARCHITECTURE.md#5-state-management--api-integration`](docs/ARCHITECTURE.md#5-state-management--api-integration))*.
+- **Credit Operations & Balance Authority:** Pre-flight credit confirmation modals are client UX safeguards to prevent accidental clicks. Displayed mobile balances may be cached or outdated and are **not guaranteed**. The backend server is strictly authoritative for balance verification, resource ownership, atomic deduction, and rollback/refund behavior upon processing failure. *(Details: [`docs/ARCHITECTURE.md#6-credit-operations--balance-authority`](docs/ARCHITECTURE.md#6-credit-operations--balance-authority))*.
+- **Design System:** Strict dark-only Arena design system (`#000000` canvas, `#0A0A0A` cards, `#7C3AED` brand violet, 48dp minimum touch targets, 54dp CTA). Powered by 13 reusable primitives in `src/components/` and design tokens in `src/theme/`. *(Details: [`docs/ARCHITECTURE.md#4-design-system-tokens-arena-design-fidelity`](docs/ARCHITECTURE.md#4-design-system-tokens-arena-design-fidelity))*.
+- **Security & Privacy Mandates:** Zero client-side private secrets; only public `EXPO_PUBLIC_*` values may be bundled. Cleartext HTTP is disabled in production builds via `plugins/withCleartextTraffic.js`. Sensitive auth data is never logged. *(Details: [`docs/ARCHITECTURE.md#7-security--mobile-architectural-controls`](docs/ARCHITECTURE.md#7-security--mobile-architectural-controls))*.
 
 ---
 
-## 3. Available npm Scripts
-- `npm run start`: Launch the Expo development server.
-- `npm run android`: Start Expo with Android target.
-- `npm run ios`: Start Expo with iOS target.
-- `npm run web`: Start Expo web preview.
-- `npm run typecheck`: Run TypeScript compiler (`tsc --noEmit`).
-- `npm run doctor`: Run `npx expo-doctor` diagnostic checks.
-- `npm test`: Run Jest unit and component test suites.
-- `npm run export:android`: Run `npx expo export --platform android` bundle verification.
-- `npm run graphify:update`: Run AST extraction, clustering, and HTML graph export.
-- `npm run graphify:extract`: Run code-only AST extraction to `graphify-out/graph.json`.
-- `npm run graphify:html`: Generate standalone interactive `graphify-out/graph.html`.
+## 3. Application Readiness Terminology & Feature Inventory
+
+### Terminology Definitions
+- **Implemented:** Feature code exists in the application.
+- **Unit-tested:** Relevant automated unit/component tests exist and pass.
+- **Integration-verified:** Communication with the live backend contract has been verified.
+- **Device-verified:** Tested on actual physical or emulated devices.
+- **Release-ready:** Full functional, security, operational, and store distribution requirements have been validated.
+
+### Feature Readiness Matrix
+
+| Feature Module | Implementation Status | Test Coverage | Readiness Classification | Notes & Gaps |
+| :--- | :--- | :--- | :--- | :--- |
+| **Email Auth Flow** | Implemented | Unit-tested (Jest) | Unit-tested | Live registration, verification, sign-in, reset. Backend lacks account deletion. |
+| **Google Auth Flow** | Implemented (Stub) | Unit-tested (Jest) | Implemented | Informational dialog placeholder only per Stage 1 audit. Requires evaluating supported Expo SDK 58 approaches (browser-based vs. native SDK) and backend contract. |
+| **Idea Validation** | Implemented | Unit-tested (Jest) | Unit-tested | 5-step heuristic screen. Lacks pre-flight confirmation modal. UI balance is not guaranteed; backend is authoritative for deduction and refunds. |
+| **Saved Ideas Catalog**| Implemented | Unit-tested (Jest) | Unit-tested | Paginated fetching with client-side filter chips. |
+| **Idea Details** | Implemented | Unit-tested (Jest) | Unit-tested | Multi-score rings, breakdown bars, accordion explanations. |
+| **Pitch Deck Viewer** | Implemented | Unit-tested (Jest) | Unit-tested | 10 slides, progress tracker, 1-credit confirmation modal. PDF export deferred. |
+| **Business Canvas** | Implemented | Unit-tested (Jest) | Unit-tested | 9 blocks, Markdown export via Clipboard, 1-credit confirmation modal. |
+| **Activity Feed** | Implemented | Unit-tested (Jest) | Unit-tested | Chronological log of evaluations and credit events. |
+| **Demo Credit Top-Up** | Implemented | Unit-tested (Jest) | Unit-tested | Development-only top-up. Production store billing not implemented. |
 
 ---
 
-## 4. API & Environment Conventions
-- **Base URL:** Defined via `EXPO_PUBLIC_API_URL` in `.env` (fallback: `http://localhost:4000`).
-- **HTTP Client:** `src/services/api/apiClient.ts` handles:
-  - 15-second default request timeouts.
-  - Automatic injection of `Authorization: Bearer <token>`.
-  - Global 401 interception callback that resets session state cleanly.
-- **Security Rule:** Zero server credentials in mobile code.
+## 4. Verification & CI Configuration
+
+- **TypeScript Verification:** `npm run typecheck` (`tsc --noEmit`)
+- **Automated Tests:** `npm test` (`jest`)
+- **Expo Diagnostics:** `npm run doctor` (`npx expo-doctor`)
+- **Bundle Export Verification:** `npm run export:android` (`npx expo export --platform android`)
+- **CI Pipeline (`.github/workflows/ci.yml`):**
+  - Runner: `ubuntu-latest`
+  - Node.js runtime: `22` (cached npm dependencies)
+  - Triggered on push to `main` and pull requests targeting `main`.
+- **Test Snapshot (Dated Audit Snapshot: November 2026):**
+  - 25 test suites, 232 tests passing cleanly (0 failures, 29.2s execution time).
+  *(Note: Dynamic test numbers will change over time as new tests are added).*
 
 ---
 
-## 5. Authentication & Onboarding Behavior
-- **Hardware-Backed Session:** Access tokens are stored in `expo-secure-store` via `tokenStorage.ts`. In test environments or when keystore is unavailable, it falls back to an in-memory map.
-- **Onboarding Gate:** `OnboardingContext` checks `pitchmint_onboarding_completed` flag before allowing navigation to `AuthNavigator`.
-- **Session Hydration:** `RootNavigator` mounts `AuthLoadingScreen` while checking credentials, preventing flash of unauthenticated screens.
-- **Email Verification Redirection:** When backend returns 401 with `emailNotVerified: true`, app directs to `EmailVerificationScreen` with email pre-populated.
+## 5. Tracked Technical Debt & Open Findings Summary
+
+The following items are tracked in [`docs/known-issues.md`](docs/known-issues.md) for future implementation:
+1. **ENV-01:** `.env` is tracked in Git. Requires untracking and adding to `.gitignore`.
+2. **API-01:** `apiClient.ts` lacks request timeout/abort handling. Requires route-specific timeout investigation.
+3. **UX-01:** `ValidateModalScreen.tsx` lacks pre-flight credit confirmation modal. Confirmation is a client UX safeguard; displayed balances are not guaranteed, and the backend is authoritative for credit checks, atomic deduction, and rollback/refund behavior.
+4. **API-02:** Backend idempotency handling on `POST /api/idea/submit` requires backend verification.
+5. **AUTH-01:** In-app account deletion (`DELETE /api/auth/account`) required for App Store and Google Play compliance.
+6. **AUTH-02:** SecureStore in-memory fallback behavior during hardware lock requires production investigation.
+7. **AUTH-03:** Google Sign-In is an informational placeholder stub. Implementation requires evaluating supported Expo SDK 58 authentication approaches (browser-based vs. native SDK) and backend integration.
+8. **BILLING-01:** Production in-app billing (Google Play Billing / Apple StoreKit) required for public store release.
 
 ---
 
-## 6. Current Testing & CI Status
-- **Test Suites:** 24 passed, 24 total.
-- **Tests:** 189 passed, 189 total.
-- **TypeScript:** Clean pass (`tsc --noEmit` exits 0).
-- **Android JS Export:** Passes (`npx expo export --platform android` bundles 929 modules into Hermes bytecode in ~27.7s).
-- **Expo Doctor:** 20/20 checks passed cleanly on Expo SDK 58.0.22.
-- **Node.js Compatibility:** Verified on Node.js v22.22.2 (satisfies Expo SDK 58 prerequisite: Node 22.13+ or Node 24.3+).
+## 6. Detailed Documentation Index
 
----
-
-## 7. Saved Idea Deep-Dive & Action Hub (Phase 3C)
-- **Detail Route:** `IdeaDetails` in `RootStackParamList` taking `{ ideaId: string }`.
-- **Authoritative Data Fetch:** Directly queries `GET /api/idea/:id` through `ideasApi.getIdeaById(id)`.
-- **Validation Presentation:** Real overall score (`ScoreRing`), Phase 3B verdict thresholds (80+ Strong Potential, 60-79 Moderate Potential, <60 Needs Iteration), and breakdown ScoreBars for Market Demand, Competition, and Monetization Feasibility.
-- **AI Evidence Accordions:** Collapsible explanation text for demand, competition, monetization, and overall strategic recommendation.
-- **Stored Action Modules:** Inspects and conditionally renders stored modules when generated:
-  - `competitorAnalysis`: Summary, competitor descriptions, and 4-quadrant SWOT matrix.
-  - `pitchDeckContent`: 10-slide outline.
-  - `canvasContent`: 9-block Lean Business Model Canvas.
-  - `pitchSimulation`: Investor questions, founder answers, and feedback ratings.
-  - If a module has not been generated for the idea, renders an honest neutral "Not generated yet" empty state.
-- **Action Hub:** Navigates back to Saved Ideas and launches `ValidateModalScreen` to validate new ideas.
-
----
-
-## 8. Development & Demo Top-Up Configuration (Phase 3B.1)
-- **Feature Flag:** `config.features.enableDemoTopUp` in `src/config/env.ts`.
-- **Default Resolution:** Enabled in `__DEV__` (local development); disabled in production (`NODE_ENV === 'production'`).
-- **Standalone Demo APK Configuration:** To include the demo top-up controls in a standalone preview/personal-demo release APK, compile with `EXPO_PUBLIC_ENABLE_DEMO_TOPUP=true`.
-- **Server-Side Security Enforcement:** The backend doubly restricts `POST /api/credits/simulate-payment-success`:
-  1. Route-level guard: Only mounted if `NODE_ENV === 'development' || NODE_ENV === 'test'`.
-  2. Controller guard: Returns HTTP 403 `DEVELOPMENT_ONLY` if not in development or test.
-- **Authoritative Balance Sync:** After a simulated purchase, the mobile app calls `refreshUser()` to fetch the updated MongoDB balance from `/api/auth/me`. The mobile app never calculates or fabricates credits locally.
-
----
-
-## 9. Known Limitations & Tracked Backlog
-- Store-mandated in-app account deletion (`DELETE /api/auth/account`) pending backend deployment before public release.
-- Native In-App Billing (Google Play / Apple StoreKit) required for production store credit purchases; web Razorpay checkout is not embedded to maintain store compliance.
-- Backend request idempotency on `POST /api/idea/submit` recommended for high-volume commercial launch.
-1. **In-App Account Deletion:** Apple Guideline 5.1.1(v) & Google Play policy mandate in-app deletion. Blocked on backend endpoint `DELETE /api/auth/account`.
-2. **Native Digital Store Billing:** Google Play and Apple prohibit third-party checkouts (Razorpay) for in-app consumed digital credits. Native store billing needed before store launch.
-3. **Backend Password/OAuth Collision:** Backend requires account linking logic when a Google OAuth user attempts local password login.
-4. **Backend Request Idempotency:** `POST /api/idea/submit` lacks backend idempotency key support. Mobile mitigates by disabling automated retries and directing users to Saved Ideas on ambiguous network timeouts.
-
----
-
-## 10. EAS Preview APK & Personal Demo Build Setup
-- **Android Package Identifier:** `com.pitchmint.app` in `app.json`.
-- **User-Facing App Name:** `PitchMint` (under Android launcher icon).
-- **EAS Profile:** `eas.json` defines `preview` profile with `android.buildType: "apk"` and `distribution: "internal"`.
-- **EAS Project ID:** Not hardcoded or invented; linked via interactive `npx eas-cli init`.
-- **Target Live Backend:** `https://pitch-mint-backend.vercel.app` in `eas.json` (shares live MongoDB database with web application).
-- **Demo Top-Up Flag:** Configured via `EXPO_PUBLIC_ENABLE_DEMO_TOPUP=false` in preview and production profiles.
-- **Cleartext HTTP Handling:** `plugins/withCleartextTraffic.js` only sets `android:usesCleartextTraffic="true"` when `EXPO_PUBLIC_ALLOW_CLEARTEXT === 'true'` is explicitly requested. Preview profile disables cleartext (`false`), strictly enforcing HTTPS.
-- **Base URL Sanitization:** `sanitizeApiUrl()` strips trailing `/` and redundant `/api` suffixes to guarantee robust connectivity against `PitchMint-Backend`.
-- **No Committed Secrets or IPs:** Generic default in `.env` for local development; live backend configured directly in `eas.json` for APK builds.
-- **Build Guide:** Detailed step-by-step PowerShell commands located in [`docs/personal-demo-apk-build.md`](docs/personal-demo-apk-build.md).
-
----
-
-## 11. Pitch Deck Generator (Phase 4A)
-- **Detail Route:** `PitchDeck` in `RootStackParamList` taking `{ ideaId: string; ideaTitle?: string; initialSlideIndex?: number }`.
-- **Endpoints:**
-  - `POST /api/pitchdeck/:id`: Generate new 10-slide deck (costs 1 credit, deducted atomically on backend).
-  - `PUT /api/pitchdeck/:id`: Regenerate existing 10-slide deck (costs 1 credit, deducted atomically on backend).
-  - Reopening saved deck costs 0 credits (reads directly from `pitchDeckContent` on MongoDB Idea via `GET /api/idea/:id`).
-- **10 Standard Slide Definitions:**
-  1. Problem (`problem`) — Pain point and market friction.
-  2. Solution (`solution`) — Core value proposition.
-  3. Market Size (`marketSize`) — TAM, SAM, SOM calculations.
-  4. Business Model (`businessModel`) — Revenue streams and pricing.
-  5. Competition (`competitors`) — Competitive matrix & defensibility.
-  6. Go-To-Market (`goToMarket`) — Customer acquisition & channel strategy.
-  7. Team (`team`) — Founding team competencies.
-  8. Financials (`financials`) — Unit economics & projections.
-  9. Milestones (`milestones`) — Roadmap & key deliverables.
-  10. Ask & Use of Funds (`askAndUse`) — Funding requirement & capital allocation.
-- **Dedicated Slide Viewer (`PitchDeckScreen`):**
-  - Dark Arena styling (`#000000` background, `#0A0A0A` cards, `#7C3AED` accent).
-  - Header with title, current slide count (`Slide X of 10`), and animated progress bar.
-  - Previous/Next navigation controls with bounds checking.
-  - 10-slide horizontal thumbnail/chip selector with active slide indicator and dynamic badge styling.
-  - Scrollable slide body for comprehensive AI copy.
-  - In-screen regeneration modal with 1-credit confirmation.
-- **Credit Gating & Synchronous Balance Updates:**
-  - Balance displayed upfront before generation/regeneration.
-  - Pre-flight check blocks requests when credit balance < 1 without touching the network.
-  - Explicit confirmation modal warns of 1-credit deduction before POST/PUT submission.
-  - Prevents duplicate submissions via submission lock refs.
-  - Updates credit balance immediately using backend `userCredits` response field and calls `useAuth().refreshUser()`.
-- **Honest Error & Ambiguous Outcome Handling:**
-  - HTTP 402: Insufficient credits prompt.
-  - HTTP 429: Rate limit warning (2 requests per minute limit).
-  - HTTP 500 / 502: Actionable backend failure message.
-  - Network timeout / socket disconnect: Never automatically resubmits paid requests; queries `GET /api/idea/:id` to check whether MongoDB persisted the deck before prompting the user.
-
-
+For deep architectural, operational, and SDLC specifications, consult:
+- **Comprehensive System Architecture:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- **Technical Debt & Known Issues Register:** [`docs/known-issues.md`](docs/known-issues.md)
+- **Local Setup & Developer Guide:** [`docs/SETUP.md`](docs/SETUP.md)
+- **SDLC & CI/CD Tooling Guide:** [`docs/development-workflow.md`](docs/development-workflow.md)
+- **Agent Rules Directory:** [`.agents/rules/`](.agents/rules/)
+  - Project Scope & Boundaries: [`.agents/rules/project.md`](.agents/rules/project.md)
+  - Codebase Architecture Guidelines: [`.agents/rules/architecture.md`](.agents/rules/architecture.md)
+  - Coding Conventions: [`.agents/rules/coding.md`](.agents/rules/coding.md)
+  - Engineering Lifecycle & Review Model: [`.agents/rules/workflow.md`](.agents/rules/workflow.md)
