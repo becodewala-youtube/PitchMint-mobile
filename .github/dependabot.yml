@@ -23,3 +23,14 @@ updates:
     # MUST be reviewed against Expo SDK compatibility guidelines.
     # Always run `npx expo-doctor` and `npx expo install --check` before merging
     # any Expo-related dependency bump.
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"
