@@ -1,5 +1,5 @@
 import { config } from '../../config/env';
-import { tokenStorage } from '../storage/tokenStorage';
+import { tokenStorage, TokenStorageError } from '../storage/tokenStorage';
 
 /**
  * Normalized API error representing structured backend failures.
@@ -73,7 +73,24 @@ export const apiClient = {
 
     // Attach Bearer token from secure storage unless explicitly skipped
     if (!options.skipAuth) {
-      const token = await tokenStorage.getToken();
+      let token: string | null = null;
+      try {
+        token = await tokenStorage.getToken();
+      } catch (storageError: unknown) {
+        if (__DEV__) {
+          const code =
+            storageError instanceof TokenStorageError ? storageError.code : 'UNKNOWN';
+          console.warn(`[apiClient] Token storage read failed (${code})`);
+        }
+        if (storageError instanceof TokenStorageError) {
+          throw storageError;
+        }
+        throw new TokenStorageError(
+          'GET_FAILED',
+          'Unable to read session credentials from secure storage.'
+        );
+      }
+
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }

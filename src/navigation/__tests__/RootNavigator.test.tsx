@@ -232,4 +232,29 @@ describe('RootNavigator Integration Flow', () => {
     const textNodes = renderer.root.findAllByType(Text).map((t) => t.props.children).flat(Infinity);
     expect(textNodes).toContain('Your startup journey');
   });
+
+  it('keeps user outside protected screens and renders recoverable retry UI on bootstrap storage error', async () => {
+    const mockRetry = jest.fn().mockResolvedValue(undefined);
+    const renderer = await renderNavigator(
+      {
+        isAuthenticated: false,
+        isBootstrapping: false,
+        bootstrapError: 'Unable to access secure session storage on this device. Unlock your device and try again.',
+        retryBootstrap: mockRetry,
+      },
+      { hasCompletedOnboarding: true, isLoadingOnboarding: false }
+    );
+
+    const root = renderer.root;
+    expect(root.findByProps({ testID: 'auth-bootstrap-error' })).toBeTruthy();
+    expect(root.findAll((n) => n.props.testID === 'mock-main-tabs')).toHaveLength(0);
+    expect(root.findAll((n) => n.props.testID === 'mock-signin-screen')).toHaveLength(0);
+
+    const retryBtn = root.findByProps({ testID: 'auth-bootstrap-retry-btn' });
+    await act(async () => {
+      retryBtn.props.onPress();
+    });
+
+    expect(mockRetry).toHaveBeenCalledTimes(1);
+  });
 });

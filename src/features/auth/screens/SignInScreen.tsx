@@ -15,6 +15,7 @@ import { Button, Input, GoogleSignInButton, Icon, AuthCard } from '../../../comp
 import { useAuth } from '../../../context/AuthContext';
 import { validateEmail } from '../../../utils/validation';
 import { ApiError } from '../../../services/api/apiClient';
+import { TokenStorageError } from '../../../services/storage/tokenStorage';
 import { AuthStackParamList } from '../../../navigation/types';
 
 type SignInNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'SignIn'>;
@@ -93,7 +94,7 @@ export const SignInScreen: React.FC = () => {
       }
 
       setSubmitError(
-        err instanceof ApiError
+        err instanceof ApiError || err instanceof TokenStorageError
           ? err.message
           : 'Unable to sign in. Please verify your credentials and try again.'
       );

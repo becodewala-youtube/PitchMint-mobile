@@ -1,5 +1,5 @@
 import { apiClient, ApiError, setUnauthorizedHandler, generateRequestId } from '../apiClient';
-import { tokenStorage } from '../../storage/tokenStorage';
+import { tokenStorage, TokenStorageError } from '../../storage/tokenStorage';
 
 describe('ApiClient', () => {
   const originalFetch = global.fetch;
@@ -143,5 +143,48 @@ describe('ApiClient', () => {
     await expect(apiClient.get('/api/any')).rejects.toThrow(
       'Unable to connect to PitchMint server. Please check your network connection.'
     );
+  });
+
+  it('should abort authenticated requests without invoking fetch or unauthorizedHandler when token storage fails', async () => {
+    const unauthorizedSpy = jest.fn();
+    setUnauthorizedHandler(unauthorizedSpy);
+    const getTokenSpy = jest
+      .spyOn(tokenStorage, 'getToken')
+      .mockRejectedValueOnce(
+        new TokenStorageError('GET_FAILED', 'Unable to read session credentials from secure storage.')
+      );
+
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock;
+
+    try {
+      await expect(apiClient.get('/api/idea/saved')).rejects.toBeInstanceOf(TokenStorageError);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(unauthorizedSpy).not.toHaveBeenCalled();
+    } finally {
+      getTokenSpy.mockRestore();
+      setUnauthorizedHandler(null);
+    }
+  });
+
+  it('should still send skipAuth requests without reading token storage', async () => {
+    const getTokenSpy = jest.spyOn(tokenStorage, 'getToken');
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      text: () => Promise.resolve(JSON.stringify({ ok: true })),
+    });
+
+    try {
+      await expect(
+        apiClient.post('/api/auth/signin', { email: 'a@b.com' }, { skipAuth: true })
+      ).resolves.toEqual({ ok: true });
+      expect(getTokenSpy).not.toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      getTokenSpy.mockRestore();
+    }
   });
 });
