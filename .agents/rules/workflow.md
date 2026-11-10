@@ -1,73 +1,132 @@
-# PitchMint Mobile — Agentic SDLC & Development Lifecycle
+# PitchMint Mobile — Agentic SDLC & Engineering Lifecycle
 
 This workflow governs every code modification, dependency update, and bug fix in `PitchMint-mobile`.
 
 ---
 
-## The 10-Step Development Lifecycle
+## 1. The 12-Step Development Lifecycle
 
 ```mermaid
 flowchart TD
-    S1[1. Inspect Git & Code] --> S2[2. Read Rules & Context]
-    S2 --> S3[3. Define Problem & Acceptance Criteria]
-    S3 --> S4[4. Produce Short Implementation Plan]
-    S4 --> S5[5. Create Isolated Branch & Implement]
-    S5 --> S6[6. Add or Update Tests]
-    S6 --> S7[7. Run Automated Checks]
-    S7 --> S8[8. Review Git Diff & Security]
-    S8 --> S9[9. Open Pull Request with Evidence]
-    S9 --> S10[10. Await Owner Review & Approval]
+    S1[1. Understand Requirements] --> S2[2. Inspect Implementation]
+    S2 --> S3[3. Identify Risks & Modules]
+    S3 --> S4[4. Prepare Implementation Plan]
+    S4 --> S5[5. Obtain Plan Approval]
+    S5 --> S6[6. Git Sync & Branch Creation]
+    S6 --> S7[7. Smallest Implementation]
+    S7 --> S8[8. Add or Update Tests]
+    S8 --> S9[9. Execute Verification]
+    S9 --> S10[10. Independent Reviews]
+    S10 --> S11[11. Prepare PR Documentation]
+    S11 --> S12[12. Owner Review & Approval]
 ```
 
-### Step 1: Inspect Git Status & Relevant Code
-- Always run `git status`, `git branch -a`, and inspect recent commits before modifying any code.
-- Check whether any uncommitted user work exists. Never overwrite, discard, or stash the owner's uncommitted work.
+### Step 1: Understand Requirements
+- Read user instructions thoroughly. Identify exact acceptance criteria and explicit constraints.
 
-### Step 2: Read Applicable Repository Rules
-- Review `.agents/rules/project.md`, `.agents/rules/architecture.md`, and `.agents/rules/coding.md`.
-- Read `PROJECT_CONTEXT.md` for current versions, known limitations, and environment conventions.
+### Step 2: Inspect Existing Implementation
+- Verify how the feature, screen, or utility is currently implemented. Avoid assumptions based on memory or past conversations.
 
-### Step 3: Describe the Problem & Acceptance Criteria
-- Formulate the exact problem, the affected components, and the clear, measurable acceptance criteria before editing code.
+### Step 3: Identify Risks & Affected Modules
+- Trace side effects across navigation stacks, API clients, authentication lifecycle, or shared theme tokens.
 
-### Step 4: Produce a Short Implementation Plan
-- Document the planned file edits, component touchpoints, and expected test additions.
-- Ensure the scope remains minimal and strictly bounded.
+### Step 4: Prepare an Implementation Plan
+- Document target files, specific changes, and test strategies in a concise, structured plan.
 
-### Step 5: Implement on an Isolated Branch
-- Branch off the primary branch (`main`) using standard prefixes:
-  - `feat/` for new features or user capabilities.
-  - `fix/` for bug fixes or regressions.
-  - `chore/` for tooling, CI, dependencies, or maintenance.
-- Keep commits atomic with conventional commit messages (e.g. `chore(ci): configure github actions workflow`).
+### Step 5: Obtain Approval for Significant Decisions
+- Seek explicit owner approval before architectural changes, payment/billing adjustments, security changes, or dependency additions.
 
-### Step 6: Add or Update Tests
-- Write co-located Jest test cases verifying the new functionality or reproducing and fixing the reported bug.
+### Step 6: Synchronize Main & Create Feature Branch
+- Execute the **Mandatory Git Safety Procedure** (detailed in Section 2 below). Never branch from an outdated feature branch.
 
-### Step 7: Run Automated Verification Checks
-Execute the standard local verification suite:
+### Step 7: Implement the Smallest Appropriate Change
+- Write focused, clean code adhering to [`.agents/rules/coding.md`](coding.md). Preserve existing architecture and conventions.
+
+### Step 8: Add or Update Tests
+- Write co-located Jest tests covering new behavior, edge cases, and regression prevention.
+
+### Step 9: Execute Relevant Verification
+- Run static checks and automated tests locally:
+  ```bash
+  npm run typecheck
+  npm test
+  ```
+
+### Step 10: Obtain Independent Reviews Where Useful
+- Utilize specialist reviews (Lead Engineer, QA, Security, UI/UX) according to the agent review guidelines in Section 3.
+
+### Step 11: Prepare PR Documentation
+- Document summary of changes, exact verification command outputs with exit codes, and technical debt notes.
+
+### Step 12: Wait for Owner Approval Before Merging or Deployment
+- **Never merge, deploy, or publish autonomously.** The project owner must review the complete diff and approve.
+
+---
+
+## 2. Mandatory Git Safety Procedure
+
+For every feature branch, execute this exact sequence before making edits:
+
+### Step 1 — Inspect Working Tree
 ```bash
-npm run typecheck
-npm test
-npm run doctor
-npx expo export --platform android
+git status --short --branch
+git status --porcelain=v1
 ```
-All checks must pass before proceeding to pull request creation.
+- If any tracked or untracked changes exist, **STOP immediately and report them**.
+- Never stash, reset, overwrite, or delete uncommitted user work.
 
-### Step 8: Review the Diff
-- Run `git diff` and audit every line of modified code:
-  - Verify no accidental secret leaks or machine-specific network IPs were committed.
-  - Confirm no unnecessary third-party libraries were added.
-  - Verify no scope creep or unrelated refactors.
+### Step 2 — Synchronize Main
+```bash
+git switch main
+git pull --ff-only origin main
+git status --short --branch
+git status --porcelain=v1
+```
+- If the fast-forward pull fails, `main` cannot be checked out, or the working tree is not clean, **STOP**.
 
-### Step 9: Open a Pull Request with Evidence
-- Push the branch to `origin` and open a pull request via `gh pr create` or the GitHub interface.
-- Provide a structured description including:
-  - Summary of changes and rationale.
-  - Exact command outputs and test execution evidence.
-  - Security audit and rollback considerations.
-  - Relevant limitations or future follow-ups.
+### Step 3 — Check Conflicts & Create Feature Branch
+- Check whether the target branch exists locally or remotely:
+  ```bash
+  git branch -a | grep "<branch-name>"
+  ```
+- If it already exists, **STOP** and report the conflict.
+- Otherwise, create the branch directly from synchronized `main`:
+  ```bash
+  git switch -c <type>/<descriptive-name>
+  ```
+- Verify the active branch:
+  ```bash
+  git branch --show-current
+  ```
+- Standard branch prefixes:
+  - `feat/`: New capabilities.
+  - `fix/`: Bug fixes or regressions.
+  - `docs/`: Documentation and rule updates.
+  - `chore/`: Tooling, CI, dependencies, or maintenance.
+- **Never commit directly to `main`.**
 
-### Step 10: Await Owner Review & Explicit Approval
-- **NEVER merge autonomously.**
-- The project owner must review, evaluate the diff, and approve the PR before merging into `main`.
+---
+
+## 3. Agentic Engineering & Review Model
+
+### Specialist Roles
+- **Primary Agent: Lead Engineer**
+  - Responsible for investigation, planning, implementation, test writing, and PR preparation.
+- **Optional Specialist Reviewers (Independent & Read-Only):**
+  - **QA Reviewer:** Audits test coverage, test isolation, mock hygiene, and edge case assertions.
+  - **Mobile Security Reviewer:** Audits OWASP MASVS compliance, token lifecycle, secrets leakage, and network cleartext rules.
+  - **UI/UX Reviewer:** Audits Arena design fidelity, touch target minimums (48dp/54dp), dark theme tokens, and accessibility labels.
+
+### Subagent Review Safety & Permission Rules
+1. **Tool & Sandbox Permission Verification:**
+   - **Name and Role Non-Equivalence:** An agent's name, role, prompt, or operating mode does not automatically establish its actual permissions.
+   - **No Presumed Read-Only Status:** Never assume a research agent or review subagent is automatically filesystem read-only. The primary agent must explicitly verify actual tool configurations and workspace permissions before delegating any review task.
+   - **Least Privilege:** Do not grant broad write or command permissions when review-only access is sufficient.
+   - **Fallback on Ambiguity:** If subagent permissions cannot be verified with certainty, the primary agent must conduct the review directly without delegating it.
+2. **Concurrence & File Locking:**
+   - Never allow multiple agents to modify the same files concurrently.
+   - Launch parallel reviews only when tasks are strictly independent, read-only, and staged on a clean commit or established diff.
+3. **No Autonomous Agent Creation:**
+   - Do not define, register, or invoke persistent custom agent types without explicit user approval.
+4. **Mandatory Human Gate:**
+   - Human approval remains strictly mandatory for architectural changes, payment/billing adjustments, security decisions, PR merging, and deployment. Never merge or deploy autonomously.

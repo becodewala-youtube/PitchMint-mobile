@@ -1,115 +1,51 @@
-# PitchMint Mobile — Source Architecture & Responsibilities
+# PitchMint Mobile — Architecture & Implementation Constraints
 
-This document maps the **actual verified codebase structure** of `PitchMint-mobile`. All paths exist and are verified against the active source tree.
-
----
-
-## 1. App Bootstrap & Providers
-- **`index.ts`:** Application entrypoint; invokes `registerRootComponent(App)` from `expo`.
-- **`App.tsx`:** Thin re-export bridging the root directory to `src/app/App.tsx`.
-- **`src/app/App.tsx`:** Root application component configuring `NavigationContainer` (with custom dark theme), `StatusBar`, and embedding `AppProviders`.
-- **`src/app/AppProviders.tsx`:** Composes `SafeAreaProvider`, `OnboardingProvider`, `AuthProvider`, and `AppErrorBoundary` for crash isolation.
+This document governs architectural boundaries, component reuse, and implementation constraints for engineers and AI agents working on `PitchMint-mobile`. For comprehensive system diagrams and deep-dive specifications, consult [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
 
 ---
 
-## 2. Navigation Architecture & Route Types
-- **`src/navigation/types.ts`:**
-  - `RootStackParamList`: Defines top-level routes (`AuthLoading`, `OnboardingStack`, `AuthStack`, `MainTabs`, `ValidateModal`).
-  - `MainTabParamList`: Defines the 5-tab structure (`HomeTab`, `IdeasTab`, `ValidateTab`, `ActivityTab`, `ProfileTab`).
-  - `AuthStackParamList`: Defines auth subroutes (`SignIn`, `SignUp`, `ForgotPassword`, `ResetPassword`, `EmailVerification`).
-- **`src/navigation/RootNavigator.tsx`:**
-  - Evaluates `useAuth()` (`isLoading`, `isAuthenticated`) and `useOnboarding()` (`hasCompletedOnboarding`).
-  - Renders `AuthLoadingScreen` during initial token hydration.
-  - Renders onboarding screens if onboarding is incomplete.
-  - Renders `AuthNavigator` if user is unauthenticated.
-  - Renders `BottomTabNavigator` with modal overlay support once authenticated.
-- **`src/navigation/BottomTabNavigator.tsx`:**
-  - Implements the 5-position bottom navigation bar.
-  - Center position intercepts tab switching to launch `ValidateModalScreen` as a full modal screen.
-- **`src/navigation/AuthNavigator.tsx`:**
-  - Native stack navigator encapsulating authentication screens with dark-themed screen options.
+## 1. Feature-First Architecture & Code Organization
+- **Feature-First Layout:** All application features reside under `src/features/<feature-name>/` (e.g. `auth`, `home`, `ideas`, `pitch-deck`, `canvas`, `validate`, `activity`, `profile`, `onboarding`). Screens, localized components, hooks, and tests must remain co-located.
+- **No Speculative Layers:** Do not introduce additional architectural layers, service locator patterns, or state libraries (e.g. Redux, Zustand, MobX, React Query). Rely on existing React Context and modular service utilities.
+- **Clean Separation:** Pure presentation components reside in `src/components/`, design tokens in `src/theme/`, shared navigation in `src/navigation/`, and API/storage clients in `src/services/`.
 
 ---
 
-## 3. Authentication & Session Persistence
-- **`src/context/AuthContext.tsx`:**
-  - Manages reactive session state (`token`, `user`, `isLoading`, `isAuthenticated`).
-  - Hydrates token on startup from `tokenStorage`.
-  - Exposes `signIn`, `signUp`, `signOut`, `refreshUser`, and `setSession`.
-  - Configures 401 interception callback with `apiClient` to purge expired sessions.
-- **`src/services/storage/tokenStorage.ts`:**
-  - Encrypted storage via `expo-secure-store` with memory-store fallback for test runners.
-  - Stores access token under key `pitchmint_auth_token`.
-- **`src/services/auth/googleAuthService.ts`:**
-  - Manages Google OAuth token acquisition and native client handoff.
+## 2. Component Composition & UI Primitives
+- **Reuse Existing Primitives:** Always reuse `src/components/` primitives (`Button`, `Card`, `AuthCard`, `Input`, `ScreenContainer`, `Badge`, `Pill`, `ScoreRing`, `ScoreBar`, `IconBadge`, `SectionHeader`, `Icon`) before creating new UI controls.
+- **Design Tokens:** Strictly adhere to the Arena dark-only design system tokens in `src/theme/` (`colors.ts`, `spacing.ts`, `typography.ts`). Never hardcode ad-hoc hex values.
+- **Touch Targets:** Maintain the **minimum 48x48dp** interactive size requirement (`touchTargets.minTouchSize = 48`) on all touchable elements. Floating action buttons and the center CTA must meet 54dp (`touchTargets.fabSize = 54`).
 
 ---
 
-## 4. API Client & Backend Services
-- **`src/services/api/apiClient.ts`:**
-  - Native `fetch` wrapper supporting request timeout (15s default), automatic `Authorization: Bearer <token>` injection, JSON serialization, and structured `ApiError` exceptions.
-  - Registers an unauthorized (401) listener for clean session invalidation without loops.
-- **`src/services/api/authApi.ts`:**
-  - Typed API calls matching `PitchMint-Backend` routes:
-    - `POST /api/auth/signin`
-    - `POST /api/auth/signup`
-    - `GET /api/auth/user`
-    - `POST /api/auth/forgot-password`
-    - `POST /api/auth/reset-password`
-    - `POST /api/auth/verify-email`
-    - `POST /api/auth/resend-verification`
-    - `POST /api/auth/google`
+## 3. Navigation & Presentation Patterns
+- **React Navigation 7 Exclusivity:** Navigation is built strictly with React Navigation 7 native stacks and bottom tabs. Expo Router is not used.
+- **Routing Hierarchy:**
+  - `RootNavigator` (`src/navigation/RootNavigator.tsx`) evaluates `useAuth()` and `useOnboarding()` to route between `AuthLoading`, `Welcome`, `Onboarding`, `Auth`, and `MainTabs`.
+  - Center tab action button intercepts tab switching to launch `ValidateModalScreen` as a modal overlay (`presentation: 'modal'`).
+  - Feature deep-dives (`IdeaDetails`, `PitchDeck`, `Canvas`) mount on the root native stack with slide transitions (`slide_from_right`).
+- **Route Types:** All route parameters must be strongly typed in `src/navigation/types.ts` (`RootStackParamList`, `MainTabParamList`, `AuthStackParamList`).
 
 ---
 
-## 5. Onboarding Persistence & Lifecycle
-- **`src/context/OnboardingContext.tsx`:**
-  - Tracks whether the user has completed onboarding (`hasCompletedOnboarding`).
-  - Exposes `completeOnboarding()` and `resetOnboarding()`.
-- **`src/services/storage/onboardingStorage.ts`:**
-  - Persists flag under key `pitchmint_onboarding_completed` via `expo-secure-store` with fallback memory store.
+## 4. State Management & Persistent Storage
+- **Context-Driven State:** Pure React Context (`AuthContext`, `OnboardingContext`) manages session lifecycle without external stores.
+- **Hardware-Backed Credential Storage:** Store session JWTs exclusively in `expo-secure-store` via `src/services/storage/tokenStorage.ts` under key `pitchmint_auth_token`. Maintain the in-memory fallback for test runners. Plaintext token storage is strictly forbidden.
+- **Google Authentication Architecture:** Native Google authentication is not currently implemented; `src/services/auth/googleAuthService.ts` is an informational placeholder stub per the Stage 1 audit. Before implementing Google Sign-In, engineering must investigate supported authentication approaches for Expo SDK 58 (browser-based OAuth vs. native SDK) and the backend contract before selecting a library or build modality.
 
 ---
 
-## 6. Feature Screens & Locations
-- **`src/features/home/screens/HomeScreen.tsx`:** Dashboard overview, credits remaining, quick validation card, recent validations list.
-- **`src/features/ideas/screens/IdeasScreen.tsx`:** Saved startup ideas catalog with search and score pills.
-- **`src/features/validate/screens/ValidateModalScreen.tsx`:** Interactive validation launcher modal (target audience, problem statement, solution).
-- **`src/features/activity/screens/ActivityScreen.tsx`:** Chronological audit log of idea evaluation runs.
-- **`src/features/profile/screens/ProfileScreen.tsx`:** User profile, tier badge, security toggles, and compliance notices.
-- **`src/features/onboarding/screens/`:**
-  - `WelcomeScreen.tsx`: High-impact introductory screen with Arena branding.
-  - `OnboardingScreen.tsx`: 3-step value proposition carousel with progress indicator.
-- **`src/features/auth/screens/`:**
-  - `SignInScreen.tsx`: Email/password and Google OAuth login. Prepopulates email when redirected from unverified state.
-  - `SignUpScreen.tsx`: Account creation with password strength checks.
-  - `ForgotPasswordScreen.tsx`: Password recovery email request.
-  - `ResetPasswordScreen.tsx`: New password entry via token.
-  - `EmailVerificationScreen.tsx`: 6-digit OTP code entry with resend cooldown.
-  - `AuthLoadingScreen.tsx`: Splash/loader displayed during token validation.
+## 5. API Integration & Backend Authority
+- **Centralized Client:** Channel all HTTP requests through `src/services/api/apiClient.ts` to ensure automatic JSON parsing, Bearer token injection, `X-Request-ID` UUID tracing, and 401 Unauthorized handling.
+- **Zero Backend Logic Duplication:** Do not duplicate server-side validation or business logic on the client. Consume endpoints via dedicated services: `authApi`, `ideasApi`, `creditsApi`, and `activityApi`.
+- **Credit Confirmation & Server Authority:**
+  - Client confirmation modals (e.g. before validation, deck generation, or canvas generation) are **client UX safeguards** to prevent accidental clicks; they do not replace server-side checks.
+  - Any credit balance displayed in the mobile client may be cached or outdated and is **not guaranteed**.
+  - The backend server is strictly authoritative for authentication, resource ownership, credit availability verification, atomic deduction, and rollback/refund handling upon failure.
 
 ---
 
-## 7. Reusable UI Components & Theme Tokens
-- **`src/theme/`:**
-  - `colors.ts`: Base canvas `#000000`, card surfaces, semantic status tones, brand accents (`#7C3AED`, `#A78BFA`).
-  - `spacing.ts`: 8-point layout grid, border radiuses, touch targets (48dp min, 54dp CTA).
-  - `typography.ts`: Mobile type scales, font sizes, line heights, and weights.
-  - `index.ts`: Consolidated exports and `navigationDarkTheme`.
-- **`src/components/`:**
-  - `ScreenContainer.tsx`: Keyboard-aware and safe-area scroll view wrapper.
-  - `Card.tsx`: Dark elevated card surface with subtle border.
-  - `AuthCard.tsx`: Specialized container card for authentication forms.
-  - `Button.tsx`: Accessible interactive button with loading state and 3D press feedback.
-  - `GoogleSignInButton.tsx`: Branded Google OAuth button matching Google brand guidelines.
-  - `Input.tsx`: Dark-styled text input with label, error display, icon adornments, and password toggle.
-  - `Icon.tsx`: Zero-dependency native vector glyphs.
-  - `Badge.tsx`: Status chip and score tag.
-  - `Pill.tsx`: Filter chip for selection lists.
-  - `ScoreBar.tsx`: Visual multi-segment validation score indicator.
-
----
-
-## 8. Configuration & Utilities
-- **`src/config/env.ts`:** Environment variables safely parsed from `process.env.EXPO_PUBLIC_*`.
-- **`src/utils/validation.ts`:** Email format validation, password strength scoring, required field checks.
+## 6. Runtime Configuration & Security Mandates
+- **Sanitized Environment Variables:** Read environment values exclusively via `src/config/env.ts`, which enforces trailing slash removal and Android emulator loopback routing (`10.0.2.2`).
+- **Zero Private Secrets:** Client binaries are publicly distributed. Server secrets (`JWT_SECRET`, `GEMINI_API_KEY`, `RAZORPAY_KEY_SECRET`, database URIs) are strictly forbidden in client code. Only `EXPO_PUBLIC_*` variables may be bundled.
+- **Privacy & Logging:** Never log passwords, tokens, verification codes, or sensitive payloads. Sanitize error objects prior to logging.

@@ -19,17 +19,22 @@
    npm run typecheck
    ```
 
-3. Run Expo dependency diagnostics:
+3. Run automated tests:
+   ```bash
+   npm test
+   ```
+
+4. Run Expo dependency diagnostics:
    ```bash
    npm run doctor
    ```
 
-4. Launch the Expo development server:
+5. Launch the Expo development server:
    ```bash
    npm start
    ```
 
-5. Run on targets:
+6. Run on targets:
    - **Physical Android Device:** Install **Expo Go** from Google Play Store, ensure device is on the same Wi-Fi, and scan the QR code displayed in the terminal.
    - **Android Emulator:** Press `a` in the terminal while an Android emulator is running.
    - **Web Sandbox:** Run `npm run web` (requires `@expo/metro-runtime` if running on desktop browser).
@@ -42,6 +47,9 @@
 | :--- | :--- | :--- |
 | `npm start` | `expo start` | Starts the Metro development server with QR code |
 | `npm run typecheck` | `tsc --noEmit` | Validates TypeScript strict mode compliance |
+| `npm test` | `jest` | Executes complete Jest unit and component test suite |
 | `npm run doctor` | `npx expo-doctor` | Evaluates dependencies and Expo SDK configuration |
+| `npm run export:android` | `expo export --platform android` | Validates Android Hermes JS bundle compilation |
 | `npm run android` | `expo start --android` | Boots directly to connected Android device or emulator |
 | `npm run ios` | `expo start --ios` | Boots to iOS simulator (macOS required) |
+| `npm run web` | `expo start --web` | Starts web preview in browser |
