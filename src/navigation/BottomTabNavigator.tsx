@@ -61,6 +61,8 @@ const TabItem: React.FC<TabIconWithDotProps> = ({ name, focused, label }) => {
         color={focused ? colors.brand.soft : colors.text.muted}
       />
       <Text
+        numberOfLines={1}
+        ellipsizeMode="tail"
         style={[
           styles.tabLabel,
           { color: focused ? '#FFFFFF' : colors.text.muted },
@@ -169,12 +171,15 @@ const styles = StyleSheet.create({
   tabItemContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    minWidth: 52,
+    minHeight: 48,
     paddingTop: 2,
     gap: 3,
   },
   tabLabel: {
     fontSize: typography.sizes.micro,
     fontWeight: typography.weights.medium,
+    textAlign: 'center',
   },
   activeDot: {
     width: 4,

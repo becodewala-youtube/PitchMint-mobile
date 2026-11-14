@@ -12,6 +12,7 @@ export interface HomeHeaderProps {
   totalIdeasCount: number;
   planDisplay: string;
   onNavigateToProfile: () => void;
+  onNavigateToIdeas?: () => void;
 }
 
 export const HomeHeader: React.FC<HomeHeaderProps> = ({
@@ -21,85 +22,163 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   totalIdeasCount,
   planDisplay,
   onNavigateToProfile,
+  onNavigateToIdeas,
 }) => {
+  const handleTopUpPress = () => {
+    if (config.features.enableDemoTopUp) {
+      onNavigateToProfile();
+    } else {
+      Alert.alert(
+        'Credit Balance',
+        `You have ${availableCredits} validation credit${availableCredits === 1 ? '' : 's'} available.\nIn-app credit purchases will be available in the upcoming native store release.`
+      );
+    }
+  };
+
   return (
     <>
       {/* 1. Header Profile & Welcome Banner */}
       <View style={styles.headerRow}>
-        <View style={styles.avatarBox}>
-          <Text style={styles.avatarText}>{initialLetter}</Text>
-        </View>
+        <Pressable
+          testID="home-avatar-button"
+          onPress={onNavigateToProfile}
+          style={({ pressed }) => [
+            styles.avatarPressable,
+            pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="View profile settings"
+        >
+          <View style={styles.avatarBox}>
+            <Text style={styles.avatarText}>{initialLetter}</Text>
+          </View>
+        </Pressable>
+
         <View style={styles.headerTextCol}>
-          <Text style={styles.userNameTitle}>Welcome back, {displayName}!</Text>
+          <Text style={styles.userNameTitle} numberOfLines={1}>
+            Welcome back, {displayName}!
+          </Text>
           <View style={styles.subGreetingRow}>
-            <Icon name="zap" size={13} color={colors.brand.primary} />
+            <Icon name="sparkles" size={13} color={colors.brand.soft} />
             <Text style={styles.subGreetingText}>Your startup journey dashboard</Text>
           </View>
         </View>
+
+        <Pressable
+          testID="home-settings-button"
+          onPress={onNavigateToProfile}
+          style={({ pressed }) => [
+            styles.headerSettingsBtn,
+            pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Open settings and profile"
+        >
+          <Icon name="settings" size={18} color={colors.text.secondary} />
+        </Pressable>
       </View>
 
-      {/* 2. Credit Balance Strip */}
-      <Pressable
-        testID="home-credit-balance-strip"
-        onPress={() => {
-          if (config.features.enableDemoTopUp) {
-            onNavigateToProfile();
-          } else {
-            Alert.alert(
-              'Credit Balance',
-              `You have ${availableCredits} validation credit${availableCredits === 1 ? '' : 's'} available.\nIn-app credit purchases will be available in the upcoming native store release.`
-            );
-          }
-        }}
-        style={styles.creditStrip}
-        accessibilityRole="button"
-        accessibilityLabel={`Credit balance: ${availableCredits} credits`}
-      >
-        <IconBadge name="wallet" tone="violet" size={40} />
-        <View style={styles.creditTextCol}>
-          <Text style={styles.creditLabel}>Credit balance</Text>
-          <View style={styles.creditNumRow}>
-            <Text style={styles.creditNum}>{availableCredits}</Text>
-            <Text style={styles.creditUnit}> credits</Text>
+      {/* 2. Unified Non-Redundant Founder Status & Balance Card */}
+      <View style={styles.statusCard}>
+        {/* Upper: Available Credits & Top-Up CTA */}
+        <Pressable
+          testID="home-credit-balance-strip"
+          onPress={handleTopUpPress}
+          style={styles.statusCardTop}
+          accessibilityRole="button"
+          accessibilityLabel={`Credit balance: ${availableCredits} credits`}
+        >
+          <IconBadge name="wallet" tone="violet" size={42} />
+          <View style={styles.creditTextCol}>
+            <Text style={styles.creditLabel}>Available Balance</Text>
+            <View style={styles.creditNumRow}>
+              <Text style={styles.creditNum}>{availableCredits}</Text>
+              <Text style={styles.creditUnit}> credits</Text>
+            </View>
           </View>
-        </View>
-        <View style={styles.buyPill}>
-          <Text style={styles.buyPillText}>
-            {config.features.enableDemoTopUp ? 'Top Up' : '+ Buy'}
-          </Text>
-        </View>
-      </Pressable>
-
-      {/* 3. Verified Real Stat Tiles */}
-      <View style={styles.statsGrid}>
-        <View style={styles.statTile}>
-          <IconBadge name="lightbulb" tone="violet" size={36} />
-          <View style={styles.statTileContent}>
-            <Text style={styles.statTileValue}>{totalIdeasCount}</Text>
-            <Text style={styles.statTileName} numberOfLines={1}>
-              Saved Ideas
+          <Pressable
+            testID="home-topup-button"
+            onPress={handleTopUpPress}
+            style={({ pressed }) => [
+              styles.buyPill,
+              pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={config.features.enableDemoTopUp ? 'Top Up credits' : 'Buy credits'}
+          >
+            <Text style={styles.buyPillText}>
+              {config.features.enableDemoTopUp ? 'Top Up' : '+ Buy'}
             </Text>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
 
-        <View style={styles.statTile}>
-          <IconBadge name="wallet" tone="emerald" size={36} />
-          <View style={styles.statTileContent}>
-            <Text style={styles.statTileValue}>{availableCredits}</Text>
-            <Text style={styles.statTileName} numberOfLines={1}>
-              Available Credits
-            </Text>
-          </View>
-        </View>
+        {/* Subtle Horizontal Divider */}
+        <View style={styles.cardDivider} />
 
-        <View style={styles.statTileFullWidth}>
-          <IconBadge name="award" tone="amber" size={36} />
-          <View style={styles.statTileContent}>
-            <Text style={styles.statTileValue}>{planDisplay} TIER</Text>
-            <Text style={styles.statTileName} numberOfLines={1}>
-              Current Account Plan
-            </Text>
-          </View>
+        {/* Lower: Verified Founder Metrics Sub-Row (Zero Redundancy) */}
+        <View style={styles.statusMetricsRow}>
+          {/* Metric 1: Saved Ideas */}
+          <Pressable
+            testID="home-metric-saved-ideas"
+            onPress={onNavigateToIdeas}
+            style={({ pressed }) => [
+              styles.metricSubItem,
+              pressed && { opacity: 0.8 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={`View ${totalIdeasCount} saved ideas`}
+          >
+            <View style={styles.metricItemRow}>
+              <View
+                style={[
+                  styles.metricIconBadge,
+                  { backgroundColor: 'rgba(124, 58, 237, 0.12)' },
+                ]}
+              >
+                <Icon name="lightbulb" size={16} color={colors.brand.soft} />
+              </View>
+              <View style={styles.metricItemContent}>
+                <Text style={styles.metricItemValue}>{totalIdeasCount}</Text>
+                <Text style={styles.metricItemLabel} numberOfLines={1}>
+                  Saved Ideas
+                </Text>
+              </View>
+              <Icon name="chevronRight" size={13} color={colors.text.muted} />
+            </View>
+          </Pressable>
+
+          {/* Vertical Separator */}
+          <View style={styles.metricVerticalDivider} />
+
+          {/* Metric 2: Account Plan */}
+          <Pressable
+            testID="home-metric-account-tier"
+            onPress={onNavigateToProfile}
+            style={({ pressed }) => [
+              styles.metricSubItem,
+              pressed && { opacity: 0.8 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={`Account plan: ${planDisplay}`}
+          >
+            <View style={styles.metricItemRow}>
+              <View
+                style={[
+                  styles.metricIconBadge,
+                  { backgroundColor: 'rgba(245, 158, 11, 0.12)' },
+                ]}
+              >
+                <Icon name="award" size={16} color={colors.tones.amber.text} />
+              </View>
+              <View style={styles.metricItemContent}>
+                <Text style={styles.metricItemValue}>{planDisplay} TIER</Text>
+                <Text style={styles.metricItemLabel} numberOfLines={1}>
+                  Account Plan
+                </Text>
+              </View>
+              <Icon name="chevronRight" size={13} color={colors.text.muted} />
+            </View>
+          </Pressable>
         </View>
       </View>
     </>
