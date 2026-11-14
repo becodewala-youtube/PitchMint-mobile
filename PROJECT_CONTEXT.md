@@ -69,7 +69,8 @@ This document captures the verified technical facts, architecture, dependencies,
   - Node.js runtime: `22` (cached npm dependencies)
   - Triggered on push to `main` and pull requests targeting `main`.
 - **Test Snapshot (Dated Audit Snapshot: November 2026):**
-  - 25 test suites, 254 tests passing cleanly (0 failures).
+  - 32 test suites, 268 tests passing cleanly (0 failures).
+  - 100% adherence to strict architectural rule: zero production source or test files exceed 500 lines.
   *(Note: Dynamic test numbers will change over time as new tests are added).*
 
 ---

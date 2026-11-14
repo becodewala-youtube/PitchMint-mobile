@@ -1,133 +1,56 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  StyleSheet,
   Text,
   View,
   Switch,
-  Pressable,
-  Alert,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import {
   ScreenContainer,
   Card,
   IconBadge,
-  Icon,
-  IconName,
-  Badge,
   Button,
+  Icon,
 } from '../../../components';
-import { colors, Tone, spacing, typography, borderRadius, touchTargets } from '../../../theme';
+import { colors } from '../../../theme';
 import { useAuth } from '../../../context/AuthContext';
 import { ideasApi } from '../../../services/api/ideasApi';
 import { creditsApi } from '../../../services/api/creditsApi';
 import { ApiError } from '../../../services/api/apiClient';
 import { TokenStorageError } from '../../../services/storage/tokenStorage';
 import { config } from '../../../config/env';
-
-/**
- * Verified credit plans matching PitchMint Backend CREDIT_PLANS.
- */
-const DEMO_PLANS = [
-  {
-    id: 'starter',
-    name: 'Starter Pack',
-    credits: 25,
-    price: 99,
-    description: '25 idea validations',
-  },
-  {
-    id: 'pro',
-    name: 'Pro Pack',
-    credits: 100,
-    price: 499,
-    description: '100 idea validations + priority AI',
-  },
-  {
-    id: 'premium',
-    name: 'Founder Pack',
-    credits: 500,
-    price: 999,
-    description: '500 idea validations + full export',
-  },
-];
-
-interface SettingRowProps {
-  icon: IconName;
-  label: string;
-  value?: string;
-  tone?: Tone;
-  danger?: boolean;
-  right?: React.ReactNode;
-  onPress?: () => void;
-}
-
-const SettingRow: React.FC<SettingRowProps> = ({
-  icon,
-  label,
-  value,
-  tone = 'gray',
-  danger = false,
-  right,
-  onPress,
-}) => {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.rowContainer,
-        pressed && styles.rowPressed,
-      ]}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-    >
-      <IconBadge name={icon} tone={danger ? 'red' : tone} size={34} />
-      <Text
-        style={[
-          styles.rowLabel,
-          { color: danger ? colors.tones.red.text : colors.text.primary },
-        ]}
-      >
-        {label}
-      </Text>
-      {value && <Text style={styles.rowValue}>{value}</Text>}
-      {right ?? (!danger && <Icon name="chevronRight" size={14} color={colors.text.muted} />)}
-    </Pressable>
-  );
-};
+import { styles } from './ProfileScreen.styles';
+import { SettingRow } from '../components/SettingRow';
+import { ProfileHeader } from '../components/ProfileHeader';
+import { DemoCreditTopUp } from '../components/DemoCreditTopUp';
 
 /**
  * ProfileScreen - Settings & Account Management
  * Connects to live authenticated user session and verified account metrics.
- * Exact match to the Arena prototype specifications.
+ * Decomposed in Stage 4.4 into modular components, styles, and constants.
  */
 export const ProfileScreen: React.FC = () => {
   const { user, refreshUser, signOut } = useAuth();
+
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [founderTipsEnabled, setFounderTipsEnabled] = useState(true);
   const [totalIdeasCount, setTotalIdeasCount] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  // Demo credit top-up state
   const [isPurchasing, setIsPurchasing] = useState<boolean>(false);
   const [activePlanId, setActivePlanId] = useState<string | null>(null);
   const [topUpStatus, setTopUpStatus] = useState<{
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
 
   const isPurchasingRef = useRef<boolean>(false);
   const isSigningOutRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
   const displayName = user?.name || 'Founder';
   const displayEmail = user?.email || 'founder@pitchmint.app';
@@ -139,7 +62,9 @@ export const ProfileScreen: React.FC = () => {
     try {
       await refreshUser();
       const response = await ideasApi.getSavedIdeas({ page: 1, limit: 1 });
-      setTotalIdeasCount(response.total ?? 0);
+      if (isMountedRef.current) {
+        setTotalIdeasCount(response.total ?? 0);
+      }
     } catch (err: unknown) {
       if (__DEV__) {
         const summary =
@@ -151,27 +76,28 @@ export const ProfileScreen: React.FC = () => {
         console.warn(`[ProfileScreen] Error loading account metrics (${summary})`);
       }
     } finally {
-      setIsRefreshing(false);
+      if (isMountedRef.current) {
+        setIsRefreshing(false);
+      }
     }
   }, [refreshUser]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     loadProfileMetrics();
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [loadProfileMetrics]);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
+    setTopUpStatus(null);
     loadProfileMetrics();
   }, [loadProfileMetrics]);
 
-  /**
-   * Dispatches simulated payment against development backend and refreshes authoritative balance.
-   */
   const handleDemoTopUp = async (planId: string, planName: string, planCredits: number) => {
-    // Guard against duplicate taps / concurrent executions
-    if (isPurchasingRef.current || isPurchasing) {
-      return;
-    }
+    if (isPurchasingRef.current || isPurchasing) return;
     isPurchasingRef.current = true;
     setIsPurchasing(true);
     setActivePlanId(planId);
@@ -180,7 +106,6 @@ export const ProfileScreen: React.FC = () => {
     try {
       const res = await creditsApi.simulatePaymentSuccess({ planId });
 
-      // Synchronize authoritative state with backend in MongoDB
       await refreshUser();
       await loadProfileMetrics();
 
@@ -220,9 +145,7 @@ export const ProfileScreen: React.FC = () => {
   };
 
   const executeSignOut = useCallback(async () => {
-    if (isSigningOutRef.current) {
-      return;
-    }
+    if (isSigningOutRef.current) return;
     isSigningOutRef.current = true;
     setIsSigningOut(true);
 
@@ -258,9 +181,7 @@ export const ProfileScreen: React.FC = () => {
   }, [signOut]);
 
   const handleSignOut = () => {
-    if (isSigningOutRef.current) {
-      return;
-    }
+    if (isSigningOutRef.current) return;
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out of PitchMint?',
@@ -291,49 +212,15 @@ export const ProfileScreen: React.FC = () => {
       {/* Title */}
       <Text style={styles.screenTitle}>Settings</Text>
 
-      {/* 1. Profile Hero Card with Verified Live Data */}
-      <Card style={styles.profileCard}>
-        <View style={styles.profileHeroRow}>
-          <View style={styles.avatarLarge}>
-            <Text style={styles.avatarLetter}>{initialLetter}</Text>
-          </View>
-          <View style={styles.profileDetailsCol}>
-            <View style={styles.nameRow}>
-              <Text style={styles.userName}>{displayName}</Text>
-            </View>
-            <View style={styles.emailRow}>
-              <Icon name="mail" size={12} color={colors.text.muted} />
-              <Text style={styles.userEmail}>{displayEmail}</Text>
-            </View>
-          </View>
-          <Pressable
-            onPress={() =>
-              Alert.alert('User Profile', `Name: ${displayName}\nEmail: ${displayEmail}\nPlan: ${displayPlan}`)
-            }
-            style={styles.pencilBtn}
-            accessibilityRole="button"
-            accessibilityLabel="View profile info"
-          >
-            <Icon name="user" size={14} color={colors.text.secondary} />
-          </Pressable>
-        </View>
-
-        {/* 3-Column Stats Sub-bar */}
-        <View style={styles.profileStatsBar}>
-          <View style={styles.statCol}>
-            <Text style={styles.statColValue}>{totalIdeasCount}</Text>
-            <Text style={styles.statColLabel}>Ideas</Text>
-          </View>
-          <View style={[styles.statCol, styles.statColDivider]}>
-            <Text style={styles.statColValue}>{displayCredits}</Text>
-            <Text style={styles.statColLabel}>Credits</Text>
-          </View>
-          <View style={styles.statCol}>
-            <Text style={styles.statColValue}>{displayPlan}</Text>
-            <Text style={styles.statColLabel}>Plan</Text>
-          </View>
-        </View>
-      </Card>
+      {/* 1. Profile Hero Card */}
+      <ProfileHeader
+        initialLetter={initialLetter}
+        displayName={displayName}
+        displayEmail={displayEmail}
+        displayPlan={displayPlan}
+        displayCredits={displayCredits}
+        totalIdeasCount={totalIdeasCount}
+      />
 
       {/* 2. Unlock PitchMint Premium Banner */}
       <Card variant="highlight" style={styles.premiumBannerCard}>
@@ -349,98 +236,14 @@ export const ProfileScreen: React.FC = () => {
         </View>
       </Card>
 
-      {/* Dev / Demo Credit Top-Up Section (Gated by config.features.enableDemoTopUp) */}
+      {/* Dev / Demo Credit Top-Up Section */}
       {config.features.enableDemoTopUp && (
-        <View style={styles.demoTopUpSection}>
-          <View style={styles.demoCategoryHeader}>
-            <Text style={styles.sectionCategory}>DEV / DEMO CREDIT TOP-UP</Text>
-            <Badge label="DEV ONLY" variant="amber" />
-          </View>
-
-          <Card style={styles.demoCard}>
-            <View style={styles.demoCardHeader}>
-              <IconBadge name="zap" tone="amber" size={38} />
-              <View style={styles.demoCardHeaderTextCol}>
-                <Text style={styles.demoCardTitle}>Development Credit Top-Up</Text>
-                <Text style={styles.demoCardSubtitle}>
-                  Simulate purchasing credit packs against the development backend without real payments.
-                </Text>
-              </View>
-            </View>
-
-            {/* Status Feedback Banner */}
-            {topUpStatus && (
-              <View
-                testID="demo-topup-status-banner"
-                style={[
-                  styles.statusBanner,
-                  topUpStatus.type === 'success' ? styles.statusSuccess : styles.statusError,
-                ]}
-              >
-                <Icon
-                  name={topUpStatus.type === 'success' ? 'check' : 'alertCircle'}
-                  size={16}
-                  color={
-                    topUpStatus.type === 'success'
-                      ? colors.tones.emerald.text
-                      : colors.tones.red.text
-                  }
-                />
-                <Text
-                  style={[
-                    styles.statusBannerText,
-                    {
-                      color:
-                        topUpStatus.type === 'success'
-                          ? colors.tones.emerald.text
-                          : colors.tones.red.text,
-                    },
-                  ]}
-                >
-                  {topUpStatus.message}
-                </Text>
-              </View>
-            )}
-
-            {/* Plan Options */}
-            <View style={styles.plansContainer}>
-              {DEMO_PLANS.map((plan, index) => {
-                const isCurrentLoading = isPurchasing && activePlanId === plan.id;
-                return (
-                  <View key={plan.id}>
-                    {index > 0 && <View style={styles.demoDivider} />}
-                    <View style={styles.planRow}>
-                      <View style={styles.planInfoCol}>
-                        <View style={styles.planTitleRow}>
-                          <Text style={styles.planNameText}>{plan.name}</Text>
-                          <Badge label={`+${plan.credits}`} variant="emerald" />
-                        </View>
-                        <Text style={styles.planDescText}>
-                          {plan.description} · ₹{plan.price} (Simulated)
-                        </Text>
-                      </View>
-
-                      <Button
-                        testID={`demo-topup-${plan.id}`}
-                        title={isCurrentLoading ? 'Adding...' : `+${plan.credits}`}
-                        variant="primary"
-                        size="sm"
-                        loading={isCurrentLoading}
-                        disabled={isPurchasing}
-                        onPress={() => handleDemoTopUp(plan.id, plan.name, plan.credits)}
-                        style={styles.planAddButton}
-                      />
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-
-            <Text style={styles.demoSecurityDisclaimer}>
-              Backend enforces environment validation. Simulated payments are strictly prohibited in production.
-            </Text>
-          </Card>
-        </View>
+        <DemoCreditTopUp
+          topUpStatus={topUpStatus}
+          isPurchasing={isPurchasing}
+          activePlanId={activePlanId}
+          onTopUpPlan={handleDemoTopUp}
+        />
       )}
 
       {/* 3. Section: ACCOUNT */}
@@ -569,298 +372,3 @@ export const ProfileScreen: React.FC = () => {
     </ScreenContainer>
   );
 };
-
-const styles = StyleSheet.create({
-  screenTitle: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.medium,
-    letterSpacing: -0.5,
-    color: colors.text.primary,
-    marginBottom: spacing.lg,
-    paddingTop: spacing.xs,
-  },
-  profileCard: {
-    marginBottom: spacing.md,
-  },
-  profileHeroRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  avatarLarge: {
-    width: 60,
-    height: 60,
-    borderRadius: borderRadius.card,
-    backgroundColor: colors.brand.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarLetter: {
-    fontSize: 24,
-    fontWeight: typography.weights.bold,
-    color: '#FFFFFF',
-  },
-  profileDetailsCol: {
-    flex: 1,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  userName: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.semiBold,
-    color: colors.text.primary,
-    letterSpacing: -0.3,
-  },
-  emailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 2,
-  },
-  userEmail: {
-    fontSize: typography.sizes.xs,
-    color: colors.text.secondary,
-  },
-  pencilBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background.card2,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileStatsBar: {
-    flexDirection: 'row',
-    backgroundColor: colors.background.card2,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  statCol: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statColDivider: {
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  statColValue: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.semiBold,
-    color: colors.text.primary,
-  },
-  statColLabel: {
-    fontSize: typography.sizes.micro,
-    color: colors.text.muted,
-    marginTop: 2,
-  },
-  premiumBannerCard: {
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    borderColor: 'rgba(245, 158, 11, 0.25)',
-    marginBottom: spacing.lg,
-  },
-  premiumBannerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  premiumTextCol: {
-    flex: 1,
-  },
-  premiumTitle: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semiBold,
-    color: colors.text.primary,
-  },
-  premiumSubtitle: {
-    fontSize: typography.sizes.xs,
-    color: colors.text.secondary,
-    marginTop: 2,
-  },
-  sectionCategory: {
-    fontSize: typography.sizes.micro,
-    fontWeight: typography.weights.semiBold,
-    color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: spacing.xs,
-    paddingHorizontal: 2,
-  },
-  demoTopUpSection: {
-    marginBottom: spacing.lg,
-  },
-  demoCategoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
-    paddingHorizontal: 2,
-  },
-  demoCard: {
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-    backgroundColor: 'rgba(245, 158, 11, 0.04)',
-    marginBottom: 0,
-    padding: spacing.md,
-  },
-  demoCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  demoCardHeaderTextCol: {
-    flex: 1,
-  },
-  demoCardTitle: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semiBold,
-    color: colors.text.primary,
-  },
-  demoCardSubtitle: {
-    fontSize: typography.sizes.xs,
-    color: colors.text.secondary,
-    marginTop: 2,
-    lineHeight: 16,
-  },
-  statusBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.sm + 2,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-  },
-  statusSuccess: {
-    backgroundColor: colors.tones.emerald.bg,
-    borderColor: colors.tones.emerald.border,
-  },
-  statusError: {
-    backgroundColor: colors.tones.red.bg,
-    borderColor: colors.tones.red.border,
-  },
-  statusBannerText: {
-    flex: 1,
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.medium,
-    lineHeight: 16,
-  },
-  plansContainer: {
-    backgroundColor: colors.background.card2,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    overflow: 'hidden',
-  },
-  planRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: spacing.md,
-  },
-  planInfoCol: {
-    flex: 1,
-  },
-  planTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  planNameText: {
-    fontSize: typography.sizes.sm + 1,
-    fontWeight: typography.weights.semiBold,
-    color: colors.text.primary,
-  },
-  planDescText: {
-    fontSize: typography.sizes.micro,
-    color: colors.text.muted,
-    marginTop: 3,
-  },
-  planAddButton: {
-    minWidth: 84,
-    minHeight: touchTargets.minTouchSize,
-  },
-  demoDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  demoSecurityDisclaimer: {
-    fontSize: typography.sizes.micro,
-    color: colors.text.muted,
-    marginTop: spacing.md,
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-  settingsGroupCard: {
-    padding: 0,
-    marginBottom: spacing.lg,
-  },
-  rowContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  rowPressed: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-  },
-  rowLabel: {
-    flex: 1,
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.medium,
-  },
-  rowValue: {
-    fontSize: typography.sizes.xs,
-    color: colors.text.muted,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    marginHorizontal: spacing.md,
-  },
-  complianceNoteBox: {
-    padding: spacing.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-  },
-  complianceNoteTitle: {
-    fontSize: typography.sizes.micro,
-    fontWeight: typography.weights.bold,
-    color: colors.tones.amber.text,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  complianceNoteText: {
-    fontSize: typography.sizes.micro,
-    color: colors.text.muted,
-    lineHeight: 15,
-  },
-  dangerCard: {
-    padding: 0,
-    marginBottom: spacing.md,
-  },
-  signOutErrorContainer: {
-    marginBottom: spacing.md,
-    gap: spacing.sm,
-  },
-  signOutBanner: {
-    marginBottom: 0,
-  },
-  versionFooter: {
-    textAlign: 'center',
-    fontSize: typography.sizes.xs,
-    color: colors.text.muted,
-    marginBottom: spacing.xl,
-  },
-});
