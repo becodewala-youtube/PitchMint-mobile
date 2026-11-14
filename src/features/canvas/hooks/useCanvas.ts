@@ -212,11 +212,13 @@ export const useCanvas = ({
 
   const handleCopyCurrentSection = async () => {
     const currentDef = CANVAS_BLOCK_DEFINITIONS[currentBlockIndex];
-    const text = idea?.canvasContent?.[currentDef.key]?.trim() || 'Not specified';
-    const payload = `${currentDef.index}. ${currentDef.title} (${currentDef.category})\n\n${text}`;
+    const text = idea?.canvasContent?.[currentDef.key] || '';
+    if (!text) return;
 
     try {
-      const result = await Clipboard.setStringAsync(payload);
+      const result = await Clipboard.setStringAsync(
+        `${currentDef.title} (${currentDef.category})\n\n${text}`
+      );
       if (result === false) {
         if (copyTimeoutRef.current) {
           clearTimeout(copyTimeoutRef.current);
@@ -247,12 +249,7 @@ export const useCanvas = ({
   };
 
   const handleCopyEntireCanvas = async (displayTitle: string) => {
-    if (!idea?.canvasContent) {
-      Alert.alert('Cannot Copy', 'No canvas content is available to copy.');
-      return;
-    }
-
-    const markdown = formatCanvasAsMarkdown(displayTitle, idea.canvasContent);
+    const markdown = formatCanvasAsMarkdown(displayTitle, idea?.canvasContent);
 
     try {
       const result = await Clipboard.setStringAsync(markdown);
@@ -273,7 +270,7 @@ export const useCanvas = ({
         copyAllTimeoutRef.current = setTimeout(() => {
           if (isMountedRef.current) setCopiedAll(false);
           copyAllTimeoutRef.current = null;
-        }, 2500);
+        }, 2000);
       }
     } catch {
       if (copyAllTimeoutRef.current) {
