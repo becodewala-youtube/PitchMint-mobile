@@ -8,13 +8,22 @@ This document tracks verified limitations, technical debt, release prerequisites
 
 ### ENV-01: Tracked `.env` in Version Control
 - **Category:** Repository Hygiene & Configuration
-- **Status:** Open / Tracked for Future Cleanup
-- **Evidence:** `.env` is tracked in Git (`git ls-files .env` returns `.env`); `.gitignore` currently ignores only `.env*.local`.
+- **Status:** Resolved / Verified Safe Public Default Convention
+- **Evidence:**
+  - `.env` is tracked in Git (`git ls-files .env` returns `.env`) to provide verified default endpoint configuration for local execution and preview builds.
+  - `.gitignore` ignores developer overrides via `.env*.local`.
+  - [`.env.example`](../.env.example) documents standard override options, local emulator endpoints, and feature flags.
+  - Historical Git audit (Stage 3.1) of all four historical revisions of `.env` (`2eb9387`, `fbe9bc7`, `21f4d18`, `a2b5b98`) confirmed that only `EXPO_PUBLIC_*` variables were ever committed.
 - **Inspected Content:**
   - `EXPO_PUBLIC_API_URL=https://pitch-mint-backend.vercel.app`
   - `EXPO_PUBLIC_ALLOW_CLEARTEXT=false`
-- **Assessment:** No private secrets or credentials are exposed in the current `.env` file. However, tracking `.env` creates a maintenance risk that developer overrides or private values could inadvertently be committed.
-- **Required Action:** Untrack `.env` from Git index (`git rm --cached .env`), add `.env` to `.gitignore`, and document standard overrides in `.env.example`.
+- **Assessment & Policy Correction:**
+  - **Public Configuration vs. Private Secrets:** Variables prefixed with `EXPO_PUBLIC_` are embedded directly into client application bundles (JavaScript and Hermes bytecode) by Expo/Metro. These public URLs and client flags are not private server secrets.
+  - **Local Overrides in `.env.local`:** Machine-specific development overrides (e.g., custom LAN IPs, emulator URLs, or local testing flags) belong in `.env.local` (or `.env.*.local`), which are explicitly ignored by `.gitignore`.
+  - **Strict Secret Prohibition:** Private credentials (such as `JWT_SECRET`, database connection strings, or payment provider secret keys) must never be placed in `.env` or committed to version control.
+  - **No Credential Rotation or History Rewrite Required:** Based on the completed Stage 3.1 security audit of all four historical `.env` versions, no private credentials or secrets were ever committed to Git history. Therefore, no credential rotation, history scrubbing, or BFG/filter-repo rewrite is required.
+  - **Deliberate Repository Convention:** The earlier recommendation to untrack `.env` solely because it is tracked in Git was outdated. Keeping `.env` tracked with safe public defaults is a deliberate repository convention that ensures seamless developer onboarding and predictable CI/preview builds. It is not an active credential incident or security vulnerability.
+- **Required Action:** None. Maintain `.env` tracked with safe public defaults, preserve `.env*.local` in `.gitignore` for machine-specific overrides, and ensure private secrets are never introduced.
 
 ### API-01: Missing Request Timeout & Cancellation Handling
 - **Category:** Network Resilience & UX
