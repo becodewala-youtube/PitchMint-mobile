@@ -361,4 +361,66 @@ describe('useIdeaDetails Recovery & Status Verification (Finding 4)', () => {
       expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
+
+  describe('Idempotency Key Lifecycle in useIdeaDetails', () => {
+    it('generates idempotency key on deck generation and reuses it on retry after timeout', async () => {
+      const deckSpy = jest
+        .spyOn(ideasApi, 'generatePitchDeck')
+        .mockRejectedValueOnce(new ApiError({ message: 'Request Timed Out', status: 504, isTimeout: true }))
+        .mockResolvedValueOnce({
+          ...sampleIdeaEmptyModules,
+          pitchDeckContent: { problem: 'Resolved deck' },
+        } as any);
+
+      await renderIdeaDetailsHook();
+
+      // Attempt 1: Fails with timeout
+      await act(async () => {
+        await hookResult.handleConfirmGenerateDeck();
+      });
+
+      expect(deckSpy).toHaveBeenCalledTimes(1);
+      const key1 = deckSpy.mock.calls[0][1]?.idempotencyKey;
+      expect(key1).toBeDefined();
+
+      // Attempt 2: User retries
+      await act(async () => {
+        await hookResult.handleConfirmGenerateDeck();
+      });
+
+      expect(deckSpy).toHaveBeenCalledTimes(2);
+      const key2 = deckSpy.mock.calls[1][1]?.idempotencyKey;
+      expect(key2).toBe(key1);
+    });
+
+    it('generates idempotency key on canvas generation and reuses it on retry after timeout', async () => {
+      const canvasSpy = jest
+        .spyOn(ideasApi, 'generateCanvas')
+        .mockRejectedValueOnce(new ApiError({ message: 'Request Timed Out', status: 504, isTimeout: true }))
+        .mockResolvedValueOnce({
+          ...sampleIdeaEmptyModules,
+          canvasContent: { problem: 'Resolved canvas' },
+        } as any);
+
+      await renderIdeaDetailsHook();
+
+      // Attempt 1: Fails with timeout
+      await act(async () => {
+        await hookResult.handleConfirmGenerateCanvas();
+      });
+
+      expect(canvasSpy).toHaveBeenCalledTimes(1);
+      const key1 = canvasSpy.mock.calls[0][1]?.idempotencyKey;
+      expect(key1).toBeDefined();
+
+      // Attempt 2: User retries
+      await act(async () => {
+        await hookResult.handleConfirmGenerateCanvas();
+      });
+
+      expect(canvasSpy).toHaveBeenCalledTimes(2);
+      const key2 = canvasSpy.mock.calls[1][1]?.idempotencyKey;
+      expect(key2).toBe(key1);
+    });
+  });
 });

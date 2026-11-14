@@ -150,7 +150,11 @@ describe('CompetitorScreen Integration', () => {
       await modal.props.onConfirm();
     });
 
-    expect(ideasApi.analyzeCompetitors).toHaveBeenCalledWith('idea-123', true);
+    expect(ideasApi.analyzeCompetitors).toHaveBeenCalledWith(
+      'idea-123',
+      true,
+      expect.objectContaining({ idempotencyKey: expect.any(String) })
+    );
     expect(mockRefreshUser).toHaveBeenCalled();
   });
 

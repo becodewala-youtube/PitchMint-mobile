@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import {
   CreditConfirmationModal,
 } from '../../../components';
 import { colors } from '../../../theme';
-import { ideasApi, BackendIdea, CompetitorItem } from '../../../services/api/ideasApi';
+import { ideasApi, BackendIdea, CompetitorItem, generateIdempotencyKey } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { parseIdeaTitleAndDesc } from '../../../utils/ideaParser';
 import { CompetitorCard } from '../components/CompetitorCard';
@@ -43,6 +43,9 @@ export const CompetitorScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showRegenerateModal, setShowRegenerateModal] = useState<boolean>(false);
 
+  const initialAnalysisKeyRef = useRef<string | null>(null);
+  const regenerateKeyRef = useRef<string | null>(null);
+
   const loadData = useCallback(
     async (isPull = false) => {
       if (isPull) {
@@ -58,7 +61,13 @@ export const CompetitorScreen: React.FC = () => {
 
         // If no competitor analysis exists yet, auto-trigger first-time analysis if not already present
         if (!ideaData.competitorAnalysis?.competitors?.length) {
-          const result = await ideasApi.analyzeCompetitors(ideaId, false);
+          if (!initialAnalysisKeyRef.current) {
+            initialAnalysisKeyRef.current = generateIdempotencyKey();
+          }
+          const result = await ideasApi.analyzeCompetitors(ideaId, false, {
+            idempotencyKey: initialAnalysisKeyRef.current,
+          });
+          initialAnalysisKeyRef.current = null;
           setIdea((prev) => (prev ? { ...prev, competitorAnalysis: result.competitorAnalysis } : prev));
           await refreshUser().catch(() => {});
         }
@@ -81,8 +90,16 @@ export const CompetitorScreen: React.FC = () => {
     setShowRegenerateModal(false);
     setIsAnalyzing(true);
     setError(null);
+
+    if (!regenerateKeyRef.current) {
+      regenerateKeyRef.current = generateIdempotencyKey();
+    }
+
     try {
-      const response = await ideasApi.analyzeCompetitors(ideaId, true);
+      const response = await ideasApi.analyzeCompetitors(ideaId, true, {
+        idempotencyKey: regenerateKeyRef.current,
+      });
+      regenerateKeyRef.current = null;
       setIdea((prev) =>
         prev ? { ...prev, competitorAnalysis: response.competitorAnalysis } : prev
       );

@@ -241,7 +241,10 @@ describe('PitchDeckScreen Component (Phase 4A)', () => {
       confirmBtn.props.onPress();
     });
 
-    expect(regenerateSpy).toHaveBeenCalledWith('idea-123');
+    expect(regenerateSpy).toHaveBeenCalledWith(
+      'idea-123',
+      expect.objectContaining({ idempotencyKey: expect.any(String) })
+    );
     expect(mockRefreshUser).toHaveBeenCalledTimes(1);
 
     // Verify slide content updated

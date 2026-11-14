@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { ideasApi, BackendIdea, CanvasResponse, ApiError } from '../../../services/api';
+import { ideasApi, BackendIdea, CanvasResponse, ApiError, generateIdempotencyKey } from '../../../services/api';
 import { hasSubDocument } from '../../../utils/ideaParser';
 import { CANVAS_BLOCK_DEFINITIONS } from '../constants/blockDefinitions';
 import { formatCanvasAsMarkdown } from '../utils/canvasMarkdown';
@@ -35,6 +35,7 @@ export const useCanvas = ({
 
   const isSubmittingRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
+  const idempotencyKeyRef = useRef<string | null>(null);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copyAllTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -134,17 +135,22 @@ export const useCanvas = ({
     setIsSubmitting(true);
     setShowConfirmModal(false);
 
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = generateIdempotencyKey();
+    }
+
     const isRegeneration = hasCanvas;
     const previousCanvasString = JSON.stringify(idea?.canvasContent || {});
 
     try {
       const updatedIdea: CanvasResponse = isRegeneration
-        ? await ideasApi.regenerateCanvas(ideaId)
-        : await ideasApi.generateCanvas(ideaId);
+        ? await ideasApi.regenerateCanvas(ideaId, { idempotencyKey: idempotencyKeyRef.current })
+        : await ideasApi.generateCanvas(ideaId, { idempotencyKey: idempotencyKeyRef.current });
 
       if (isMountedRef.current) {
         setIdea(updatedIdea);
       }
+      idempotencyKeyRef.current = null;
       if (refreshUserData) {
         await refreshUserData().catch(() => {});
       }

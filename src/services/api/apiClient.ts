@@ -66,6 +66,17 @@ export const generateRequestId = (): string => {
   });
 };
 
+/**
+ * Generates an RFC4122-compliant v4 UUID for operation idempotency.
+ */
+export const generateIdempotencyKey = (): string => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
 type UnauthorizedHandler = () => void;
 let unauthorizedHandler: UnauthorizedHandler | null = null;
 
@@ -88,7 +99,13 @@ export interface RequestOptions extends RequestInit {
  */
 export const apiClient = {
   async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const { skipAuth, timeoutMs: callerTimeoutMs, signal: callerSignal, ...fetchInit } = options;
+    const {
+      skipAuth,
+      timeoutMs: callerTimeoutMs,
+      signal: callerSignal,
+      idempotencyKey,
+      ...fetchInit
+    } = options;
     const url = `${config.apiUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     const requestId = generateRequestId();
 
@@ -110,8 +127,8 @@ export const apiClient = {
       ...((fetchInit.headers as Record<string, string>) || {}),
     };
 
-    if (options.idempotencyKey) {
-      headers['Idempotency-Key'] = options.idempotencyKey;
+    if (idempotencyKey && typeof idempotencyKey === 'string' && idempotencyKey.trim().length > 0) {
+      headers['Idempotency-Key'] = idempotencyKey.trim();
     }
 
     // Attach Bearer token from secure storage unless explicitly skipped

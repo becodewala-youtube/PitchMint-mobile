@@ -119,7 +119,11 @@ describe('PitchSimulatorScreen Integration', () => {
       await modal.props.onConfirm();
     });
 
-    expect(ideasApi.simulatePitch).toHaveBeenCalledWith('idea-123', true);
+    expect(ideasApi.simulatePitch).toHaveBeenCalledWith(
+      'idea-123',
+      true,
+      expect.objectContaining({ idempotencyKey: expect.any(String) })
+    );
     expect(mockRefreshUser).toHaveBeenCalled();
 
     // Now in QA stage: renders Question 1

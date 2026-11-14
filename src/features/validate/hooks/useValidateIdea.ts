@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { ideasApi, SubmitIdeaResponse } from '../../../services/api/ideasApi';
-import { ApiError } from '../../../services/api/apiClient';
+import { ApiError, generateIdempotencyKey } from '../../../services/api/apiClient';
 import {
   ANALYZING_STEPS,
   MIN_IDEA_LENGTH,
@@ -32,6 +32,7 @@ export const useValidateIdea = ({
   const isSubmittingRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
   const stepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -49,10 +50,12 @@ export const useValidateIdea = ({
       'A marketplace that connects freelance designers with early-stage startups for fixed-price, 7-day design sprints. Founders get on-demand design capacity and designers get predictable income.'
     );
     setSubmitError(null);
+    idempotencyKeyRef.current = null;
   };
 
   const handleTextChange = (text: string) => {
     setIdeaText(text);
+    idempotencyKeyRef.current = null;
     if (submitError) {
       setSubmitError(null);
       setIsAmbiguousError(false);
@@ -94,6 +97,9 @@ export const useValidateIdea = ({
 
     setSubmitError(null);
     setIsAmbiguousError(false);
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = generateIdempotencyKey();
+    }
     setShowConfirmModal(true);
   };
 
@@ -104,6 +110,10 @@ export const useValidateIdea = ({
     setShowConfirmModal(false);
     setSubmitError(null);
     setIsAmbiguousError(false);
+
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = generateIdempotencyKey();
+    }
 
     setStage('analyzing');
     setActiveStep(0);
@@ -121,9 +131,15 @@ export const useValidateIdea = ({
 
     try {
       const trimmed = ideaText.trim();
-      const result = await ideasApi.submitIdea({ ideaText: trimmed });
+      const result = await ideasApi.submitIdea(
+        { ideaText: trimmed },
+        { idempotencyKey: idempotencyKeyRef.current }
+      );
 
       if (!isMountedRef.current) return;
+
+      // On successful validation, clear idempotency key for future operations
+      idempotencyKeyRef.current = null;
 
       if (stepTimerRef.current) {
         clearInterval(stepTimerRef.current);
@@ -202,6 +218,7 @@ export const useValidateIdea = ({
     setSubmitError(null);
     setIsAmbiguousError(false);
     setShowConfirmModal(false);
+    idempotencyKeyRef.current = null;
     setStage('form');
   };
 

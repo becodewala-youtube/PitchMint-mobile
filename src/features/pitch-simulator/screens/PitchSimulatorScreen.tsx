@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,7 +22,8 @@ import {
   ideasApi,
   BackendIdea,
   PitchSimulationQuestion,
-} from '../../../services/api/ideasApi';
+  generateIdempotencyKey,
+} from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { parseIdeaTitleAndDesc } from '../../../utils/ideaParser';
 import { SimulatorIntroStage } from '../components/SimulatorIntroStage';
@@ -50,6 +51,7 @@ export const PitchSimulatorScreen: React.FC = () => {
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreditModal, setShowCreditModal] = useState<boolean>(false);
+  const simIdempotencyKeyRef = useRef<string | null>(null);
 
   const loadIdea = useCallback(
     async (isPull = false) => {
@@ -104,8 +106,15 @@ export const PitchSimulatorScreen: React.FC = () => {
     setIsStarting(true);
     setError(null);
 
+    if (!simIdempotencyKeyRef.current) {
+      simIdempotencyKeyRef.current = generateIdempotencyKey();
+    }
+
     try {
-      const response = await ideasApi.simulatePitch(ideaId, true);
+      const response = await ideasApi.simulatePitch(ideaId, true, {
+        idempotencyKey: simIdempotencyKeyRef.current,
+      });
+      simIdempotencyKeyRef.current = null;
       const newQuestions = response.pitchSimulation?.questions || [];
       setQuestions(newQuestions);
       setCurrentQuestionIndex(0);
@@ -152,6 +161,7 @@ export const PitchSimulatorScreen: React.FC = () => {
   };
 
   const handleRestart = () => {
+    simIdempotencyKeyRef.current = null;
     setShowCreditModal(true);
   };
 

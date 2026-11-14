@@ -102,7 +102,10 @@ describe('CanvasScreen Generation & Credit Modals (Phase 4B)', () => {
       confirmBtn.props.onPress();
     });
 
-    expect(generateSpy).toHaveBeenCalledWith('idea-canvas-123');
+    expect(generateSpy).toHaveBeenCalledWith(
+      'idea-canvas-123',
+      expect.objectContaining({ idempotencyKey: expect.any(String) })
+    );
     expect(mockRefreshUser).toHaveBeenCalledTimes(1);
 
     // Canvas is now displayed
@@ -177,7 +180,10 @@ describe('CanvasScreen Generation & Credit Modals (Phase 4B)', () => {
       confirmBtn.props.onPress();
     });
 
-    expect(regenerateSpy).toHaveBeenCalledWith('idea-canvas-123');
+    expect(regenerateSpy).toHaveBeenCalledWith(
+      'idea-canvas-123',
+      expect.objectContaining({ idempotencyKey: expect.any(String) })
+    );
     expect(mockRefreshUser).toHaveBeenCalledTimes(1);
 
     text = root.findAllByType(Text).map((t) => t.props.children).flat(Infinity).filter(Boolean).join(' ');
