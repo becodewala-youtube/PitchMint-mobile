@@ -7,7 +7,6 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
-  Modal,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -19,6 +18,7 @@ import {
   Icon,
   ScoreRing,
   ScoreBar,
+  CreditConfirmationModal,
 } from '../../../components';
 import { colors, spacing, typography, borderRadius } from '../../../theme';
 import { useAuth } from '../../../context/AuthContext';
@@ -701,57 +701,19 @@ export const ValidateModalScreen: React.FC = () => {
       </View>
 
       {/* 1-Credit Pre-Flight Confirmation Modal */}
-      <Modal
+      <CreditConfirmationModal
         visible={showConfirmModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowConfirmModal(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <Card style={styles.confirmModalCard}>
-            <IconBadge name="sparkles" tone="violet" size={44} />
-            <Text style={styles.modalTitle}>Validate Startup Idea?</Text>
-            <Text style={styles.modalBody}>
-              PitchMint AI will analyze your startup idea across market demand, competition, and monetization feasibility.
-            </Text>
-
-            <View style={styles.modalCreditBox}>
-              <View style={styles.modalCreditRow}>
-                <Text style={styles.modalCreditLabel}>Cost:</Text>
-                <Text style={styles.modalCreditValue}>1 Credit</Text>
-              </View>
-              <View style={styles.modalCreditRow}>
-                <Text style={styles.modalCreditLabel}>Current Balance:</Text>
-                <Text style={styles.modalCreditValue}>{`${creditBalance} Credits`}</Text>
-              </View>
-              <View style={[styles.modalCreditRow, styles.modalCreditRowLast]}>
-                <Text style={styles.modalCreditLabel}>Remaining After:</Text>
-                <Text style={[styles.modalCreditValue, { color: colors.tones.emerald.text }]}>
-                  {`${Math.max(0, creditBalance - 1)} Credits`}
-                </Text>
-              </View>
-            </View>
-
-            <Button
-              testID="confirm-validation-button"
-              title="Confirm & Deduct 1 Credit"
-              variant="primary"
-              onPress={handleConfirmValidation}
-              style={styles.modalConfirmBtn}
-              loading={isSubmitting}
-              disabled={isSubmitting}
-            />
-            <Button
-              testID="cancel-validation-button"
-              title="Cancel"
-              variant="ghost"
-              onPress={() => setShowConfirmModal(false)}
-              style={styles.modalCancelBtn}
-              disabled={isSubmitting}
-            />
-          </Card>
-        </View>
-      </Modal>
+        title="Validate Startup Idea?"
+        description="PitchMint AI will analyze your startup idea across market demand, competition, and monetization feasibility."
+        costCredits={1}
+        currentCredits={creditBalance}
+        confirmTestID="confirm-validation-button"
+        cancelTestID="cancel-validation-button"
+        isLoading={isSubmitting}
+        isConfirmDisabled={isSubmitting}
+        onConfirm={handleConfirmValidation}
+        onCancel={() => setShowConfirmModal(false)}
+      />
     </ScreenContainer>
   );
 };
@@ -1168,70 +1130,5 @@ const styles = StyleSheet.create({
   },
   resultActions: {
     marginTop: spacing.md,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  confirmModalCard: {
-    width: '100%',
-    maxWidth: 380,
-    alignItems: 'center',
-    padding: spacing.xl,
-  },
-  modalTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
-    color: colors.text.primary,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
-    textAlign: 'center',
-  },
-  modalBody: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 19,
-    marginBottom: spacing.md,
-  },
-  modalCreditBox: {
-    width: '100%',
-    backgroundColor: colors.background.card2,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  modalCreditRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  modalCreditRowLast: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.05)',
-    marginTop: 4,
-    paddingTop: 8,
-  },
-  modalCreditLabel: {
-    fontSize: typography.sizes.xs,
-    color: colors.text.muted,
-  },
-  modalCreditValue: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.bold,
-    color: colors.text.primary,
-  },
-  modalConfirmBtn: {
-    width: '100%',
-    marginBottom: spacing.xs,
-  },
-  modalCancelBtn: {
-    width: '100%',
   },
 });
