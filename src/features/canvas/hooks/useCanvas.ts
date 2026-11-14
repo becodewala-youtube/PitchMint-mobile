@@ -24,7 +24,9 @@ export const useCanvas = ({
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentBlockIndex, setCurrentBlockIndex] = useState<number>(
-    Math.min(Math.max(0, initialBlockIndex), CANVAS_BLOCK_DEFINITIONS.length - 1)
+    initialBlockIndex >= 0 && initialBlockIndex < CANVAS_BLOCK_DEFINITIONS.length
+      ? initialBlockIndex
+      : 0
   );
   const [error, setError] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
@@ -33,6 +35,8 @@ export const useCanvas = ({
 
   const isSubmittingRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyAllTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchIdeaData = useCallback(
     async (refreshOnly: boolean = false) => {
@@ -76,6 +80,14 @@ export const useCanvas = ({
     fetchIdeaData(false);
     return () => {
       isMountedRef.current = false;
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+        copyTimeoutRef.current = null;
+      }
+      if (copyAllTimeoutRef.current) {
+        clearTimeout(copyAllTimeoutRef.current);
+        copyAllTimeoutRef.current = null;
+      }
     };
   }, [fetchIdeaData]);
 
@@ -109,6 +121,9 @@ export const useCanvas = ({
 
   const handleManualRefresh = async () => {
     await fetchIdeaData(true);
+    if (refreshUserData) {
+      await refreshUserData().catch(() => {});
+    }
   };
 
   const hasCanvas = hasSubDocument(idea?.canvasContent);
@@ -203,17 +218,29 @@ export const useCanvas = ({
     try {
       const result = await Clipboard.setStringAsync(payload);
       if (result === false) {
+        if (copyTimeoutRef.current) {
+          clearTimeout(copyTimeoutRef.current);
+          copyTimeoutRef.current = null;
+        }
         if (isMountedRef.current) setCopiedSection(false);
         Alert.alert('Copy Failed', `Could not copy ${currentDef.title} to clipboard. Please try again.`);
         return;
       }
       if (isMountedRef.current) {
         setCopiedSection(true);
-        setTimeout(() => {
+        if (copyTimeoutRef.current) {
+          clearTimeout(copyTimeoutRef.current);
+        }
+        copyTimeoutRef.current = setTimeout(() => {
           if (isMountedRef.current) setCopiedSection(false);
+          copyTimeoutRef.current = null;
         }, 2000);
       }
     } catch {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+        copyTimeoutRef.current = null;
+      }
       if (isMountedRef.current) setCopiedSection(false);
       Alert.alert('Copy Failed', `Could not copy ${currentDef.title} to clipboard. Please try again.`);
     }
@@ -230,17 +257,29 @@ export const useCanvas = ({
     try {
       const result = await Clipboard.setStringAsync(markdown);
       if (result === false) {
+        if (copyAllTimeoutRef.current) {
+          clearTimeout(copyAllTimeoutRef.current);
+          copyAllTimeoutRef.current = null;
+        }
         if (isMountedRef.current) setCopiedAll(false);
         Alert.alert('Copy Failed', 'Could not copy Business Model Canvas to clipboard. Please try again.');
         return;
       }
       if (isMountedRef.current) {
         setCopiedAll(true);
-        setTimeout(() => {
+        if (copyAllTimeoutRef.current) {
+          clearTimeout(copyAllTimeoutRef.current);
+        }
+        copyAllTimeoutRef.current = setTimeout(() => {
           if (isMountedRef.current) setCopiedAll(false);
+          copyAllTimeoutRef.current = null;
         }, 2500);
       }
     } catch {
+      if (copyAllTimeoutRef.current) {
+        clearTimeout(copyAllTimeoutRef.current);
+        copyAllTimeoutRef.current = null;
+      }
       if (isMountedRef.current) setCopiedAll(false);
       Alert.alert('Copy Failed', 'Could not copy Business Model Canvas to clipboard. Please try again.');
     }

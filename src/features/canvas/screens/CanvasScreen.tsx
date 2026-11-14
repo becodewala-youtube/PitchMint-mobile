@@ -40,7 +40,7 @@ export { CANVAS_BLOCK_DEFINITIONS, CanvasBlockDefinition, formatCanvasAsMarkdown
 export const CanvasScreen: React.FC = () => {
   const route = useRoute<RouteProp<RootStackParamList, 'Canvas'>>();
   const navigation = useNavigation();
-  const { user, refreshUser, refreshUserData } = useAuth() as any;
+  const { user, refreshUser } = useAuth();
 
   const { ideaId, ideaTitle, initialBlockIndex = 0 } = route.params;
 
@@ -69,7 +69,7 @@ export const CanvasScreen: React.FC = () => {
     ideaId,
     initialBlockIndex,
     userCredits: user?.credits ?? 0,
-    refreshUserData: refreshUser || refreshUserData,
+    refreshUserData: refreshUser,
   });
 
   const handleBack = () => {

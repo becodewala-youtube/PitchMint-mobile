@@ -28,7 +28,7 @@ type PitchDeckRouteProp = RouteProp<RootStackParamList, 'PitchDeck'>;
 export const PitchDeckScreen: React.FC = () => {
   const route = useRoute<PitchDeckRouteProp>();
   const navigation = useNavigation();
-  const { user, refreshUser, refreshUserData } = useAuth() as any;
+  const { user, refreshUser } = useAuth();
 
   const { ideaId, ideaTitle, initialSlideIndex = 0 } = route.params;
 
@@ -50,7 +50,7 @@ export const PitchDeckScreen: React.FC = () => {
     ideaId,
     initialSlideIndex,
     userCredits: user?.credits ?? 0,
-    refreshUserData: refreshUser || refreshUserData,
+    refreshUserData: refreshUser,
   });
 
   const handleBack = () => {

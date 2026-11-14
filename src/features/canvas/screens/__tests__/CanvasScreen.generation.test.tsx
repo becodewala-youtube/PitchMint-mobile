@@ -1,10 +1,11 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { Text, Pressable, Alert } from 'react-native';
+import { Text, Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { CanvasScreen, CANVAS_BLOCK_DEFINITIONS, formatCanvasAsMarkdown } from '../CanvasScreen';
-import { ideasApi, BackendIdea } from '../../../../services/api/ideasApi';
+import { CanvasScreen } from '../CanvasScreen';
+import { ideasApi } from '../../../../services/api/ideasApi';
 import { ApiError } from '../../../../services/api/apiClient';
+import { sampleIdeaWithCanvas, sampleIdeaWithoutCanvas } from './canvasFixtures';
 
 (global as any).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -59,40 +60,6 @@ describe('CanvasScreen Generation & Credit Modals (Phase 4B)', () => {
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     jest.spyOn(Clipboard, 'setStringAsync').mockResolvedValue(true);
   });
-
-  const sampleIdeaWithCanvas: BackendIdea = {
-    _id: 'idea-canvas-123',
-    userId: 'usr-1',
-    ideaText: 'AI Dental Recall\nAutomated patient recall software for dental practices.',
-    overallScore: 88,
-    marketDemandScore: 90,
-    competitionScore: 85,
-    monetizationFeasibilityScore: 89,
-    canvasContent: {
-      problem: '1. Dental clinics lose $80k annually to overdue hygiene visits.\n2. Manual front-desk phone calls have <15% answer rates.',
-      solution: '1. Autonomous AI voice agent connected to dental practice management systems.',
-      uniqueValueProposition: 'Zero-hardware AI agent that reactivates 35% of overdue dental patients in 14 days.',
-      unfairAdvantage: 'Direct bi-directional EHR integration with Dentrix and Eaglesoft.',
-      customerSegments: '1. Independent dental practices (1-3 chairs).\n2. Multi-location regional dental service organizations.',
-      keyMetrics: '1. Patient reactivation rate.\n2. Monthly recurring revenue.\n3. Net promoter score.',
-      channels: '1. Dental supply distributor partnerships.\n2. Regional dental association conferences.',
-      costStructure: '1. Cloud server infrastructure.\n2. Telephony SIP trunking per minute.\n3. EHR API integration licensing.',
-      revenueStreams: '1. $249/month flat SaaS subscription per clinic.\n2. $15 per successfully booked and attended appointment.',
-    },
-    createdAt: '2026-10-24T12:00:00Z',
-  };
-
-  const sampleIdeaWithoutCanvas: BackendIdea = {
-    _id: 'idea-canvas-123',
-    userId: 'usr-1',
-    ideaText: 'AI Dental Recall\nAutomated patient recall software for dental practices.',
-    overallScore: 88,
-    marketDemandScore: 90,
-    competitionScore: 85,
-    monetizationFeasibilityScore: 89,
-    canvasContent: undefined,
-    createdAt: '2026-10-24T12:00:00Z',
-  };
 
   it('handles initial generation with 1-credit confirmation modal from empty state', async () => {
     jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(sampleIdeaWithoutCanvas);
@@ -173,7 +140,6 @@ describe('CanvasScreen Generation & Credit Modals (Phase 4B)', () => {
     );
     expect(generateSpy).not.toHaveBeenCalled();
   });
-
 
   it('opens confirmation modal and successfully regenerates canvas with 1 credit deduction', async () => {
     jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(sampleIdeaWithCanvas);
@@ -305,5 +271,4 @@ describe('CanvasScreen Generation & Credit Modals (Phase 4B)', () => {
       expect.any(Array)
     );
   });
-
 });
