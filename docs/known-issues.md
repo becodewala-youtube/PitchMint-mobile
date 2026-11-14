@@ -34,14 +34,14 @@ This document tracks verified limitations, technical debt, release prerequisites
 
 ### UX-01: Inconsistent Credit Consumption Confirmation & Balance Authority
 - **Category:** UX Consistency & Accidental Deduction Prevention
-- **Status:** Open / Scheduled for UX Hardening
+- **Status:** Resolved / Implemented (Pre-Flight Confirmation Modal Added)
 - **Evidence:**
   - `PitchDeckScreen.tsx`: Displays an explicit confirmation modal before deducting 1 credit for regeneration.
   - `CanvasScreen.tsx`: Displays an explicit confirmation modal before deducting 1 credit for generation/regeneration.
   - `IdeaDetailsScreen.tsx`: Displays confirmation modals before generating decks or canvases.
-  - `ValidateModalScreen.tsx`: Tapping "Analyze Idea (1 Credit)" executes `POST /api/idea/submit` immediately without an explicit confirmation dialog.
+  - `ValidateModalScreen.tsx`: Displays an explicit pre-flight confirmation modal (`confirm-validation-button` / `cancel-validation-button`) presenting the 1-credit cost, current balance, remaining balance feedback, and duplicate tap protection before calling `POST /api/idea/submit`.
 - **Architectural Principles & Assessment:**
-  - **Confirmation as UX Safeguard:** Before a credit-consuming user action, the application should present an explicit confirmation showing the operation and its credit cost. Where available, it may display the current credit balance and an estimated post-operation balance. This modal is strictly a client UX safeguard against accidental button presses, not a substitute for server-side authorization.
+  - **Confirmation as UX Safeguard:** Before a credit-consuming user action, the application presents an explicit confirmation modal showing the operation and its credit cost. It displays the current credit balance and the estimated post-operation balance. This modal is strictly a client UX safeguard against accidental button presses, not a substitute for server-side authorization.
   - **Non-Guaranteed Client Balance:** Any credit balance displayed in the mobile client may be cached, optimistic, or outdated; it is not guaranteed to represent the server's latest authoritative balance.
   - **Authoritative Backend Responsibility:** The backend server is strictly authoritative for:
     - User authentication and authorization.
@@ -50,7 +50,7 @@ This document tracks verified limitations, technical debt, release prerequisites
     - Atomic credit deduction.
     - Transaction rollback and refund behavior upon processing failures.
     *(Note: Backend behavior has not been independently audited in this mobile task; refund and rollback mechanisms are documented as server responsibilities without claiming that every current backend route has been verified to implement them correctly).*
-- **Required Action:** Add a pre-flight confirmation modal to `ValidateModalScreen.tsx` matching the design and balance feedback of `PitchDeckScreen` and `CanvasScreen`.
+- **Resolution & Implemented Safeguards:** Implemented the pre-flight confirmation modal in `ValidateModalScreen.tsx` adhering to Arena design tokens. Cancellation dismisses the modal without network requests. Rapid repeated taps on confirm are guarded by `isSubmittingRef` to prevent duplicate concurrent submissions. If the authoritative backend returns HTTP 402, the error is displayed inline and client balance is updated accordingly.
 
 ### API-02: Validation Request Idempotency
 - **Category:** Backend Integration & Reliability
