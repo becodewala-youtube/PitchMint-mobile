@@ -166,6 +166,118 @@ describe('ValidateModalScreen Component (Phase 3B)', () => {
     expect(textInput.props.value).toContain('marketplace that connects freelance designers');
   });
 
+  it('opens pre-flight confirmation modal with credit balance details before submitting', async () => {
+    const submitSpy = jest.spyOn(ideasApi, 'submitIdea');
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<ValidateModalScreen />);
+    });
+
+    const root = renderer!.root;
+    const textInput = root.findByType(TextInput);
+
+    await act(async () => {
+      textInput.props.onChangeText('AI legal assistant for early stage companies');
+    });
+
+    const submitBtn = root.findByProps({ testID: 'submit-idea-button' });
+
+    // Open confirmation modal
+    await act(async () => {
+      submitBtn.props.onPress();
+    });
+
+    // Check modal contents
+    const textNodes = root.findAllByType(Text).map((t) => t.props.children);
+    expect(textNodes).toContain('Validate Startup Idea?');
+    expect(textNodes).toContain(
+      'PitchMint AI will analyze your startup idea across market demand, competition, and monetization feasibility.'
+    );
+    expect(textNodes).toContain('1 Credit');
+    expect(textNodes).toContain('5 Credits');
+    expect(textNodes).toContain('4 Credits');
+
+    // Confirm buttons exist
+    const confirmBtn = root.findByProps({ testID: 'confirm-validation-button' });
+    const cancelBtn = root.findByProps({ testID: 'cancel-validation-button' });
+    expect(confirmBtn).toBeDefined();
+    expect(cancelBtn).toBeDefined();
+
+    // Verify submitIdea has NOT been called
+    expect(submitSpy).not.toHaveBeenCalled();
+  });
+
+  it('cancels validation and closes confirmation modal without calling the API', async () => {
+    const submitSpy = jest.spyOn(ideasApi, 'submitIdea');
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<ValidateModalScreen />);
+    });
+
+    const root = renderer!.root;
+    const textInput = root.findByType(TextInput);
+
+    await act(async () => {
+      textInput.props.onChangeText('AI legal assistant for early stage companies');
+    });
+
+    const submitBtn = root.findByProps({ testID: 'submit-idea-button' });
+
+    await act(async () => {
+      submitBtn.props.onPress();
+    });
+
+    const cancelBtn = root.findByProps({ testID: 'cancel-validation-button' });
+
+    // Cancel modal
+    await act(async () => {
+      cancelBtn.props.onPress();
+    });
+
+    // Modal is closed, no API request
+    expect(submitSpy).not.toHaveBeenCalled();
+
+    // User remains on form with ideaText preserved
+    const currentInput = root.findByType(TextInput);
+    expect(currentInput.props.value).toBe('AI legal assistant for early stage companies');
+  });
+
+  it('prevents duplicate submissions from rapid repeated taps on the confirm button', async () => {
+    const submitSpy = jest.spyOn(ideasApi, 'submitIdea').mockResolvedValue(sampleValidResponse);
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<ValidateModalScreen />);
+    });
+
+    const root = renderer!.root;
+    const textInput = root.findByType(TextInput);
+
+    await act(async () => {
+      textInput.props.onChangeText('A specialized platform for carbon footprint accounting for logistics fleets');
+    });
+
+    const submitBtn = root.findByProps({ testID: 'submit-idea-button' });
+
+    await act(async () => {
+      submitBtn.props.onPress();
+    });
+
+    const confirmBtn = root.findByProps({ testID: 'confirm-validation-button' });
+
+    // Rapid repeated taps on confirm button
+    await act(async () => {
+      confirmBtn.props.onPress();
+      confirmBtn.props.onPress();
+      confirmBtn.props.onPress();
+    });
+
+    // Exactly one call should be made
+    expect(submitSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('submits exactly once and renders real backend validation results on success', async () => {
     const submitSpy = jest.spyOn(ideasApi, 'submitIdea').mockResolvedValue(sampleValidResponse);
 
@@ -183,9 +295,16 @@ describe('ValidateModalScreen Component (Phase 3B)', () => {
 
     const submitBtn = root.findByProps({ testID: 'submit-idea-button' });
 
-    // Tap submit once
+    // Tap submit once to open confirmation modal
     await act(async () => {
       submitBtn.props.onPress();
+    });
+
+    const confirmBtn = root.findByProps({ testID: 'confirm-validation-button' });
+
+    // Confirm validation
+    await act(async () => {
+      confirmBtn.props.onPress();
     });
 
     // Verify it transitioned to analyzing screen
@@ -244,6 +363,12 @@ describe('ValidateModalScreen Component (Phase 3B)', () => {
       submitBtn.props.onPress();
     });
 
+    const confirmBtn = root.findByProps({ testID: 'confirm-validation-button' });
+
+    await act(async () => {
+      confirmBtn.props.onPress();
+    });
+
     await act(async () => {
       jest.runAllTimers();
     });
@@ -279,6 +404,12 @@ describe('ValidateModalScreen Component (Phase 3B)', () => {
       submitBtn.props.onPress();
     });
 
+    const confirmBtn = root.findByProps({ testID: 'confirm-validation-button' });
+
+    await act(async () => {
+      confirmBtn.props.onPress();
+    });
+
     await act(async () => {
       jest.runAllTimers();
     });
@@ -310,6 +441,12 @@ describe('ValidateModalScreen Component (Phase 3B)', () => {
 
     await act(async () => {
       submitBtn.props.onPress();
+    });
+
+    const confirmBtn = root.findByProps({ testID: 'confirm-validation-button' });
+
+    await act(async () => {
+      confirmBtn.props.onPress();
     });
 
     await act(async () => {
@@ -359,6 +496,12 @@ describe('ValidateModalScreen Component (Phase 3B)', () => {
       submitBtn.props.onPress();
     });
 
+    const confirmBtn = root.findByProps({ testID: 'confirm-validation-button' });
+
+    await act(async () => {
+      confirmBtn.props.onPress();
+    });
+
     await act(async () => {
       jest.runAllTimers();
     });
@@ -387,6 +530,12 @@ describe('ValidateModalScreen Component (Phase 3B)', () => {
 
     await act(async () => {
       submitBtn.props.onPress();
+    });
+
+    const confirmBtn = root.findByProps({ testID: 'confirm-validation-button' });
+
+    await act(async () => {
+      confirmBtn.props.onPress();
     });
 
     await act(async () => {
@@ -433,6 +582,12 @@ describe('ValidateModalScreen Component (Phase 3B)', () => {
 
     await act(async () => {
       submitBtn.props.onPress();
+    });
+
+    const confirmBtn = root.findByProps({ testID: 'confirm-validation-button' });
+
+    await act(async () => {
+      confirmBtn.props.onPress();
     });
 
     // Unmount while analyzing

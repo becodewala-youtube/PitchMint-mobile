@@ -7,6 +7,7 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -67,6 +68,7 @@ export const ValidateModalScreen: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isAmbiguousError, setIsAmbiguousError] = useState<boolean>(false);
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
 
   const isSubmittingRef = useRef<boolean>(false);
   const stepTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -118,7 +120,7 @@ export const ValidateModalScreen: React.FC = () => {
     }
   };
 
-  const handleStartAnalysis = async () => {
+  const handleInitiateValidation = () => {
     const trimmed = ideaText.trim();
 
     // 1. Client-side input validation
@@ -147,10 +149,17 @@ export const ValidateModalScreen: React.FC = () => {
       return;
     }
 
+    setSubmitError(null);
+    setIsAmbiguousError(false);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmValidation = async () => {
     // 3. Prevent duplicate concurrent requests
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
     setIsSubmitting(true);
+    setShowConfirmModal(false);
     setSubmitError(null);
     setIsAmbiguousError(false);
 
@@ -172,6 +181,7 @@ export const ValidateModalScreen: React.FC = () => {
 
     // 6. Submit request to backend
     try {
+      const trimmed = ideaText.trim();
       const result = await ideasApi.submitIdea({ ideaText: trimmed });
 
       if (!isMountedRef.current) return;
@@ -260,6 +270,7 @@ export const ValidateModalScreen: React.FC = () => {
     setValidationResult(null);
     setSubmitError(null);
     setIsAmbiguousError(false);
+    setShowConfirmModal(false);
     setStage('form');
   };
 
@@ -680,7 +691,7 @@ export const ValidateModalScreen: React.FC = () => {
         <Button
           testID="submit-idea-button"
           title={isSubmitting ? 'Submitting to AI Engine…' : 'Analyze Idea (1 Credit)'}
-          onPress={handleStartAnalysis}
+          onPress={handleInitiateValidation}
           disabled={isSubmitDisabled}
           loading={isSubmitting}
           variant="primary"
@@ -688,6 +699,59 @@ export const ValidateModalScreen: React.FC = () => {
           rightIcon={!isSubmitting ? <Icon name="chevronRight" size={16} color="#FFFFFF" /> : undefined}
         />
       </View>
+
+      {/* 1-Credit Pre-Flight Confirmation Modal */}
+      <Modal
+        visible={showConfirmModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowConfirmModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Card style={styles.confirmModalCard}>
+            <IconBadge name="sparkles" tone="violet" size={44} />
+            <Text style={styles.modalTitle}>Validate Startup Idea?</Text>
+            <Text style={styles.modalBody}>
+              PitchMint AI will analyze your startup idea across market demand, competition, and monetization feasibility.
+            </Text>
+
+            <View style={styles.modalCreditBox}>
+              <View style={styles.modalCreditRow}>
+                <Text style={styles.modalCreditLabel}>Cost:</Text>
+                <Text style={styles.modalCreditValue}>1 Credit</Text>
+              </View>
+              <View style={styles.modalCreditRow}>
+                <Text style={styles.modalCreditLabel}>Current Balance:</Text>
+                <Text style={styles.modalCreditValue}>{`${creditBalance} Credits`}</Text>
+              </View>
+              <View style={[styles.modalCreditRow, styles.modalCreditRowLast]}>
+                <Text style={styles.modalCreditLabel}>Remaining After:</Text>
+                <Text style={[styles.modalCreditValue, { color: colors.tones.emerald.text }]}>
+                  {`${Math.max(0, creditBalance - 1)} Credits`}
+                </Text>
+              </View>
+            </View>
+
+            <Button
+              testID="confirm-validation-button"
+              title="Confirm & Deduct 1 Credit"
+              variant="primary"
+              onPress={handleConfirmValidation}
+              style={styles.modalConfirmBtn}
+              loading={isSubmitting}
+              disabled={isSubmitting}
+            />
+            <Button
+              testID="cancel-validation-button"
+              title="Cancel"
+              variant="ghost"
+              onPress={() => setShowConfirmModal(false)}
+              style={styles.modalCancelBtn}
+              disabled={isSubmitting}
+            />
+          </Card>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 };
@@ -1104,5 +1168,70 @@ const styles = StyleSheet.create({
   },
   resultActions: {
     marginTop: spacing.md,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  confirmModalCard: {
+    width: '100%',
+    maxWidth: 380,
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  modalTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  modalBody: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: spacing.md,
+  },
+  modalCreditBox: {
+    width: '100%',
+    backgroundColor: colors.background.card2,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  modalCreditRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  modalCreditRowLast: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    marginTop: 4,
+    paddingTop: 8,
+  },
+  modalCreditLabel: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.muted,
+  },
+  modalCreditValue: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+  },
+  modalConfirmBtn: {
+    width: '100%',
+    marginBottom: spacing.xs,
+  },
+  modalCancelBtn: {
+    width: '100%',
   },
 });

@@ -48,7 +48,7 @@ This document captures the verified technical facts, architecture, dependencies,
 | :--- | :--- | :--- | :--- | :--- |
 | **Email Auth Flow** | Implemented | Unit-tested (Jest) | Unit-tested | Live registration, verification, sign-in, reset. Backend lacks account deletion. |
 | **Google Auth Flow** | Implemented (Stub) | Unit-tested (Jest) | Implemented | Informational dialog placeholder only per Stage 1 audit. Requires evaluating supported Expo SDK 58 approaches (browser-based vs. native SDK) and backend contract. |
-| **Idea Validation** | Implemented | Unit-tested (Jest) | Unit-tested | 5-step heuristic screen. Lacks pre-flight confirmation modal. UI balance is not guaranteed; backend is authoritative for deduction and refunds. |
+| **Idea Validation** | Implemented | Unit-tested (Jest) | Unit-tested | 5-step heuristic screen with 1-credit pre-flight confirmation modal. UI balance is not guaranteed; backend is authoritative for deduction and refunds. |
 | **Saved Ideas Catalog**| Implemented | Unit-tested (Jest) | Unit-tested | Paginated fetching with client-side filter chips. |
 | **Idea Details** | Implemented | Unit-tested (Jest) | Unit-tested | Multi-score rings, breakdown bars, accordion explanations. |
 | **Pitch Deck Viewer** | Implemented | Unit-tested (Jest) | Unit-tested | 10 slides, progress tracker, 1-credit confirmation modal. PDF export deferred. |
@@ -69,7 +69,7 @@ This document captures the verified technical facts, architecture, dependencies,
   - Node.js runtime: `22` (cached npm dependencies)
   - Triggered on push to `main` and pull requests targeting `main`.
 - **Test Snapshot (Dated Audit Snapshot: November 2026):**
-  - 25 test suites, 251 tests passing cleanly (0 failures).
+  - 25 test suites, 254 tests passing cleanly (0 failures).
   *(Note: Dynamic test numbers will change over time as new tests are added).*
 
 ---
@@ -79,7 +79,7 @@ This document captures the verified technical facts, architecture, dependencies,
 The following items are tracked in [`docs/known-issues.md`](docs/known-issues.md):
 1. **ENV-01:** Resolved as a verified safe public-default convention. Tracked `.env` provides safe defaults (`EXPO_PUBLIC_*`); local overrides belong in ignored `.env.local`. No untracking or history rewrite is required.
 2. **API-01:** `apiClient.ts` lacks request timeout/abort handling. Requires route-specific timeout investigation.
-3. **UX-01:** `ValidateModalScreen.tsx` lacks pre-flight credit confirmation modal. Confirmation is a client UX safeguard; displayed balances are not guaranteed, and the backend is authoritative for credit checks, atomic deduction, and rollback/refund behavior.
+3. **UX-01:** Resolved. `ValidateModalScreen.tsx` includes pre-flight 1-credit confirmation modal matching Pitch Deck and Canvas patterns with duplicate-tap protection. Backend remains authoritative for credit checks, atomic deduction, and rollback/refund behavior.
 4. **API-02:** Backend idempotency handling on `POST /api/idea/submit` requires backend verification.
 5. **AUTH-01:** In-app account deletion (`DELETE /api/auth/account`) required for App Store and Google Play compliance.
 6. **AUTH-02:** JavaScript fail-closed hardening is implemented, but the Android SecureStore native persistence limitation (`SharedPreferences.Editor.commit()` Boolean result check and memory rollback in `expo-secure-store@58.0.3`) remains open pending upstream SDK release.
