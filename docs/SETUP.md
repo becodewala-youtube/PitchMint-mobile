@@ -1,7 +1,7 @@
 # PitchMint Mobile — Setup and Developer Guide
 
 ## Prerequisites
-- Node.js (v20+ recommended, current environment: Node v22.22.2)
+- Node.js (Node 22 line recommended: v22.13.0+, current environment: Node v22.22.2; Node 20 is no longer sufficient for this dependency stack)
 - npm (v10+, current environment: npm 11.3.0)
 - Android Studio / Android Emulator or Expo Go app on a physical Android device
 

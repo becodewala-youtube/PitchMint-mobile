@@ -37,7 +37,7 @@ flowchart TD
 - Seek explicit owner approval before architectural changes, payment/billing adjustments, security changes, or dependency additions.
 
 ### Step 6: Synchronize Main & Create Feature Branch
-- Execute the **Mandatory Git Safety Procedure** (detailed in Section 2 below). Never branch from an outdated feature branch.
+- Execute the **Mandatory Git Safety Procedure** (detailed in Section 2 below), including the Graphify freshness check whenever code paths on `main` have changed. Never branch from an outdated feature branch.
 
 ### Step 7: Implement the Smallest Appropriate Change
 - Write focused, clean code adhering to [`.agents/rules/coding.md`](coding.md). Preserve existing architecture and conventions.
@@ -84,7 +84,38 @@ git status --porcelain=v1
 ```
 - If the fast-forward pull fails, `main` cannot be checked out, or the working tree is not clean, **STOP**.
 
-### Step 3 — Check Conflicts & Create Feature Branch
+### Step 3 — Verify Graphify Freshness (When Main Code Changed)
+Before creating a feature branch, verify whether knowledge graph deliverables in `graphify-out/` are fresh with respect to the latest code changes merged to `main`:
+
+1. **Path Filter Evaluation:**
+   Check whether the latest code changes on `main` affect Graphify's configured path filters:
+   - `src/**`
+   - `package.json`
+   - `index.ts`
+   - `App.tsx`
+   - `tsconfig.json`
+   - *Exemptions:* Documentation-only changes (e.g. `*.md`, `docs/**`), CI configuration tweaks (`.github/**` without code path overlap), and unrelated files do not require a Graphify run.
+
+2. **Inspect GitHub Actions Run:**
+   If a Graphify run is expected for the source commit on `main`, inspect the latest `Update Graphify Code Graph` workflow run:
+   - Do **NOT** create the feature branch while that required Graphify run is queued, pending, or in progress.
+   - Confirm the run completed successfully, including both jobs:
+     - `extract-graph` ("Extract Knowledge Graph")
+     - `commit-graph` ("Commit Knowledge Graph")
+
+3. **Synchronize Graph Deliverables:**
+   - Confirm that the generated graph commit, if changes were produced, is present on `main`.
+   - Pull `main` again with `git pull --ff-only origin main` to obtain the latest generated graph files (`graphify-out/`).
+   - If no graph files changed (e.g. code changes had no AST or structural graph impact), a successful Graphify run will cleanly exit without creating a bot commit; this is normal and expected.
+   - Only create the feature branch after `main` has incorporated the latest graph state.
+
+4. **Operational Safeguards & Rules:**
+   - **Never Wait Indefinitely:** Never wait indefinitely for a workflow run or invent/presume its execution status.
+   - **Authentication / Visibility Fallback:** If GitHub CLI authentication or workflow visibility is unavailable, report the limitation explicitly and ask the repository owner before proceeding with implementation.
+   - **No Manual Dispatches:** Never manually dispatch the Graphify workflow (`workflow_dispatch`) for ordinary tasks; preserve the automatic push trigger on `main`.
+   - **Preserve Workflow Configurations:** Do not modify `.github/workflows/graphify-update.yml` or Graphify implementation files during feature tasks.
+
+### Step 4 — Check Conflicts & Create Feature Branch
 - Check whether the target branch exists locally or remotely:
   ```bash
   git branch -a | grep "<branch-name>"

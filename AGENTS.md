@@ -8,7 +8,7 @@ PitchMint Mobile is the independent React Native / Expo mobile application for t
 - **External HTTP Contract:** Treat the backend strictly as an external HTTP API reachable via `EXPO_PUBLIC_API_URL` (default: `https://pitch-mint-backend.vercel.app`).
 
 ## 2. Verified Technology Stack
-- **Framework:** Expo SDK 58 (`~58.0.23`, Continuous Native Generation / CNG, EAS ready)
+- **Framework:** Expo SDK 58 (`~58.0.25`, Continuous Native Generation / CNG, EAS ready)
 - **Runtime:** React Native 0.88.1, React 19.3.0, TypeScript `~6.0.3` (Strict mode)
 - **Navigation:** React Navigation 7 (`@react-navigation/native`, `@react-navigation/native-stack`, `@react-navigation/bottom-tabs`). Do NOT use Expo Router.
 - **Persistence:** Hardware-backed `expo-secure-store` with memory-store fallback for test environments.
@@ -18,8 +18,9 @@ PitchMint Mobile is the independent React Native / Expo mobile application for t
 Before creating or modifying any feature branch, always execute:
 1. **Inspect Working Tree:** Run `git status --short --branch` and `git status --porcelain=v1`. If untracked or uncommitted changes exist, STOP immediately.
 2. **Synchronize Main:** Switch to `main` and execute `git pull --ff-only origin main`.
-3. **Branch Conflict Check:** Verify the target branch does not already exist locally or remotely.
-4. **Isolated Branch Creation:** Create the feature branch directly from synchronized `main` (`git switch -c <type>/<name>`). Never branch from an outdated feature branch. Never commit directly to `main`.
+3. **Graphify Freshness Check:** If latest `main` changes affect Graphify path filters (`src/**`, `package.json`, `index.ts`, `App.tsx`, `tsconfig.json`), verify the `Update Graphify Code Graph` GitHub Actions run completed successfully (both extraction and commit jobs). If a graph update commit was produced on `main`, pull `main` again (`git pull --ff-only origin main`) before branching. Do not branch while the required run is in progress. (Documentation-only changes do not require a run; see [`.agents/rules/workflow.md`](.agents/rules/workflow.md) for full operational guidance).
+4. **Branch Conflict Check:** Verify the target branch does not already exist locally or remotely.
+5. **Isolated Branch Creation:** Create the feature branch directly from synchronized `main` (`git switch -c <type>/<name>`). Never branch from an outdated feature branch. Never commit directly to `main`.
 
 ## 4. Mandatory Engineering Rules
 - **Zero Secrets in Client Code:** Never place private server secrets (`JWT_SECRET`, `GEMINI_API_KEY`, `RAZORPAY_KEY_SECRET`, database URIs) in client code or configuration. Only public `EXPO_PUBLIC_*` variables may be bundled into client binaries.

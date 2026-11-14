@@ -8,13 +8,22 @@ This document tracks verified limitations, technical debt, release prerequisites
 
 ### ENV-01: Tracked `.env` in Version Control
 - **Category:** Repository Hygiene & Configuration
-- **Status:** Open / Tracked for Future Cleanup
-- **Evidence:** `.env` is tracked in Git (`git ls-files .env` returns `.env`); `.gitignore` currently ignores only `.env*.local`.
+- **Status:** Resolved / Verified Safe Public Default Convention
+- **Evidence:**
+  - `.env` is tracked in Git (`git ls-files .env` returns `.env`) to provide verified default endpoint configuration for local execution and preview builds.
+  - `.gitignore` ignores developer overrides via `.env*.local`.
+  - [`.env.example`](../.env.example) documents standard override options, local emulator endpoints, and feature flags.
+  - Historical Git audit (Stage 3.1) of all four historical revisions of `.env` (`2eb9387`, `fbe9bc7`, `21f4d18`, `a2b5b98`) confirmed that only `EXPO_PUBLIC_*` variables were ever committed.
 - **Inspected Content:**
   - `EXPO_PUBLIC_API_URL=https://pitch-mint-backend.vercel.app`
   - `EXPO_PUBLIC_ALLOW_CLEARTEXT=false`
-- **Assessment:** No private secrets or credentials are exposed in the current `.env` file. However, tracking `.env` creates a maintenance risk that developer overrides or private values could inadvertently be committed.
-- **Required Action:** Untrack `.env` from Git index (`git rm --cached .env`), add `.env` to `.gitignore`, and document standard overrides in `.env.example`.
+- **Assessment & Policy Correction:**
+  - **Public Configuration vs. Private Secrets:** Variables prefixed with `EXPO_PUBLIC_` are embedded directly into client application bundles (JavaScript and Hermes bytecode) by Expo/Metro. These public URLs and client flags are not private server secrets.
+  - **Local Overrides in `.env.local`:** Machine-specific development overrides (e.g., custom LAN IPs, emulator URLs, or local testing flags) belong in `.env.local` (or `.env.*.local`), which are explicitly ignored by `.gitignore`.
+  - **Strict Secret Prohibition:** Private credentials (such as `JWT_SECRET`, database connection strings, or payment provider secret keys) must never be placed in `.env` or committed to version control.
+  - **No Credential Rotation or History Rewrite Required:** Based on the completed Stage 3.1 security audit of all four historical `.env` versions, no private credentials or secrets were ever committed to Git history. Therefore, no credential rotation, history scrubbing, or BFG/filter-repo rewrite is required.
+  - **Deliberate Repository Convention:** The earlier recommendation to untrack `.env` solely because it is tracked in Git was outdated. Keeping `.env` tracked with safe public defaults is a deliberate repository convention that ensures seamless developer onboarding and predictable CI/preview builds. It is not an active credential incident or security vulnerability.
+- **Required Action:** None. Maintain `.env` tracked with safe public defaults, preserve `.env*.local` in `.gitignore` for machine-specific overrides, and ensure private secrets are never introduced.
 
 ### API-01: Missing Request Timeout & Cancellation Handling
 - **Category:** Network Resilience & UX
@@ -66,8 +75,8 @@ This document tracks verified limitations, technical debt, release prerequisites
 - **Status:** Partially Remediated (JavaScript Fail-Closed Hardening Implemented; Native Android Fix Pending Upstream SDK 58 Release)
 - **Evidence:**
   - **JavaScript Remediation (Implemented):** [`src/services/storage/tokenStorage.ts`](../src/services/storage/tokenStorage.ts) no longer mirrors native iOS/Android JWTs into `memoryStore` or falls back to JS memory on native `expo-secure-store` failures, instead throwing sanitized [`TokenStorageError`](../src/services/storage/tokenStorage.ts) codes (`GET_FAILED`, `SET_FAILED`, `DELETE_FAILED`). [`src/context/AuthContext.tsx`](../src/context/AuthContext.tsx), [`src/services/api/apiClient.ts`](../src/services/api/apiClient.ts), [`src/navigation/RootNavigator.tsx`](../src/navigation/RootNavigator.tsx), [`src/features/auth/screens/AuthLoadingScreen.tsx`](../src/features/auth/screens/AuthLoadingScreen.tsx), and [`src/features/profile/screens/ProfileScreen.tsx`](../src/features/profile/screens/ProfileScreen.tsx) now enforce fail-closed persistence on sign-in/verification, distinguish storage/network errors from `401` rejections on bootstrap with a recoverable retry flow, keep user-initiated logout errors explicit with retry UI, catch 401 cleanup failures without unhandled rejections, and gate sanitized error diagnostics behind `__DEV__`. *(Note: [`onboardingStorage.ts`](../src/services/storage/onboardingStorage.ts) still retains an in-memory fallback for its non-sensitive onboarding boolean.)*
-  - **Remaining Native Limitation:** Installed `expo-secure-store@58.0.2` (and its precompiled `local-maven-repo` Android AAR) still calls `SharedPreferences.Editor.commit()` without checking the `Boolean` result during encrypted writes (`saveEncryptedItem`), and does not roll back Android's in-memory `SharedPreferences` map when a disk commit returns `false`.
-- **Assessment:** JavaScript fail-closed handling now prevents silent JS memory fallback, false-success logout on `deleteItemAsync` errors, and premature token deletion on offline/5xx launches. However, on Android `expo-secure-store@58.0.2`, if `commit()` returns `false` (e.g., disk full or unwritable `shared_prefs`), `setItemAsync` still resolves cleanly and same-process `getItemAsync` read-back reads Android's in-memory `SharedPreferences` map rather than disk. Upstream Expo PR `#52131` (fixing `commit()` verification and memory rollback) is merged on Expo `main` but has not yet shipped in an SDK-58-compatible `expo-secure-store` release.
+  - **Remaining Native Limitation:** Installed `expo-secure-store@58.0.3` (and its precompiled `local-maven-repo` Android AAR) still calls `SharedPreferences.Editor.commit()` without checking the `Boolean` result during encrypted writes (`saveEncryptedItem`), and does not roll back Android's in-memory `SharedPreferences` map when a disk commit returns `false`.
+- **Assessment:** JavaScript fail-closed handling now prevents silent JS memory fallback, false-success logout on `deleteItemAsync` errors, and premature token deletion on offline/5xx launches. However, on Android `expo-secure-store@58.0.3`, if `commit()` returns `false` (e.g., disk full or unwritable `shared_prefs`), `setItemAsync` still resolves cleanly and same-process `getItemAsync` read-back reads Android's in-memory `SharedPreferences` map rather than disk. Upstream Expo PR `#52131` (fixing `commit()` verification and memory rollback) is merged on Expo `main` but has not yet shipped in an SDK-58-compatible `expo-secure-store` release.
 - **Required Action:** Keep the native Android persistence defect tracked as open until an official SDK-58-compatible `expo-secure-store` patch release containing PR `#52131` is published and adopted.
 
 ### AUTH-03: Google Sign-In Status
@@ -98,5 +107,5 @@ This document tracks verified limitations, technical debt, release prerequisites
 - **Policy:** Do not run `npm audit fix --force` as it attempts to downgrade Expo to an incompatible historical release. Upstream updates will be incorporated through standard Expo SDK maintenance releases.
 
 ### Expo SDK Version Alignment
-- **Current Version:** `expo@~58.0.23` (Expo SDK 58).
+- **Current Version:** `expo@~58.0.25` (Expo SDK 58).
 - **Core Dependencies:** Clean alignment across `react@19.3.0`, `react-native@0.88.1`, `react-native-screens@~4.30.1`, and `react-native-safe-area-context@~5.11.1`.

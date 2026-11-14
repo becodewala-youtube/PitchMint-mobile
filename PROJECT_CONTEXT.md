@@ -8,14 +8,14 @@ This document captures the verified technical facts, architecture, dependencies,
 
 | Component | Specified Version | Lockfile Version | Notes |
 | :--- | :--- | :--- | :--- |
-| **Expo SDK** | `~58.0.23` | `58.0.23` | Continuous Native Generation (CNG), EAS ready |
+| **Expo SDK** | `~58.0.25` | `58.0.25` | Continuous Native Generation (CNG), EAS ready |
 | **React Native** | `0.88.1` | `0.88.1` | Native runtime |
 | **React** | `19.3.0` | `19.3.0` | Core UI library |
 | **TypeScript** | `~6.0.3` | `6.0.3` | Strict mode enabled (`noEmit: true`) |
 | **Navigation** | `^7.5.0` / `^7.20.0` | `7.5.0` / `7.20.0` | React Navigation 7 (`@react-navigation/native`, `native-stack`, `bottom-tabs`) |
-| **Hardware Storage** | `~58.0.2` | `58.0.2` | `expo-secure-store` (Keychain / Keystore) |
+| **Hardware Storage** | `~58.0.3` | `58.0.3` | `expo-secure-store` (Keychain / Keystore) |
 | **Native Primitives** | `~4.30.1` / `~5.11.1` | `4.30.1` / `5.11.1` | `react-native-screens`, `react-native-safe-area-context` |
-| **System Integrations**| `~58.0.4` / `~58.0.4` | `58.0.4` / `58.0.4` | `expo-status-bar`, `expo-clipboard` |
+| **System Integrations**| `~58.0.5` / `~58.0.4` | `58.0.5` / `58.0.4` | `expo-status-bar`, `expo-clipboard` |
 | **Testing** | `~30.5.2` / `~58.0.14` | `30.5.2` / `58.0.14` | `jest`, `jest-expo`, `@testing-library/react-native` (`^14.1.0`) |
 
 ---
@@ -69,20 +69,20 @@ This document captures the verified technical facts, architecture, dependencies,
   - Node.js runtime: `22` (cached npm dependencies)
   - Triggered on push to `main` and pull requests targeting `main`.
 - **Test Snapshot (Dated Audit Snapshot: November 2026):**
-  - 25 test suites, 232 tests passing cleanly (0 failures, 29.2s execution time).
+  - 25 test suites, 251 tests passing cleanly (0 failures).
   *(Note: Dynamic test numbers will change over time as new tests are added).*
 
 ---
 
 ## 5. Tracked Technical Debt & Open Findings Summary
 
-The following items are tracked in [`docs/known-issues.md`](docs/known-issues.md) for future implementation:
-1. **ENV-01:** `.env` is tracked in Git. Requires untracking and adding to `.gitignore`.
+The following items are tracked in [`docs/known-issues.md`](docs/known-issues.md):
+1. **ENV-01:** Resolved as a verified safe public-default convention. Tracked `.env` provides safe defaults (`EXPO_PUBLIC_*`); local overrides belong in ignored `.env.local`. No untracking or history rewrite is required.
 2. **API-01:** `apiClient.ts` lacks request timeout/abort handling. Requires route-specific timeout investigation.
 3. **UX-01:** `ValidateModalScreen.tsx` lacks pre-flight credit confirmation modal. Confirmation is a client UX safeguard; displayed balances are not guaranteed, and the backend is authoritative for credit checks, atomic deduction, and rollback/refund behavior.
 4. **API-02:** Backend idempotency handling on `POST /api/idea/submit` requires backend verification.
 5. **AUTH-01:** In-app account deletion (`DELETE /api/auth/account`) required for App Store and Google Play compliance.
-6. **AUTH-02:** SecureStore in-memory fallback behavior during hardware lock requires production investigation.
+6. **AUTH-02:** JavaScript fail-closed hardening is implemented, but the Android SecureStore native persistence limitation (`SharedPreferences.Editor.commit()` Boolean result check and memory rollback in `expo-secure-store@58.0.3`) remains open pending upstream SDK release.
 7. **AUTH-03:** Google Sign-In is an informational placeholder stub. Implementation requires evaluating supported Expo SDK 58 authentication approaches (browser-based vs. native SDK) and backend integration.
 8. **BILLING-01:** Production in-app billing (Google Play Billing / Apple StoreKit) required for public store release.
 
