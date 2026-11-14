@@ -40,15 +40,18 @@ PitchMint-mobile/
 │   │   ├── icons/           # Categorized SVG icons (navigation, action, status, media)
 │   │   ├── IdeaCard.tsx     # Authoritative shared startup idea card presentation
 │   │   ├── CreditConfirmationModal.tsx # Shared credit confirmation modal
+│   │   ├── DeleteConfirmationModal.tsx # Accessible idea deletion confirmation modal
 │   │   └── ...              # Button, Card, Pill, Badge, ScoreRing, ScoreBar, Input, etc.
 │   ├── features/            # Feature modules (modular components, constants, hooks, screens):
 │   │   ├── activity/        # ActivityScreen (audit log of validations and credit events)
 │   │   ├── auth/            # SignIn, SignUp, Forgot, Reset, Verify, Loading
 │   │   ├── canvas/          # CanvasScreen, useCanvas, CanvasBlockViewer, blockDefinitions
+│   │   ├── competitors/     # CompetitorScreen, CompetitorCard, SwotMatrixView (Stage 5.4)
 │   │   ├── home/            # HomeScreen, HomeHeader, HomeQuickActions
 │   │   ├── ideas/           # IdeasScreen, IdeaDetailsScreen, useIdeaDetails, subcomponents
 │   │   ├── onboarding/      # WelcomeScreen, OnboardingScreen, StackVisual, DeckVisual
-│   │   ├── pitch-deck/      # PitchDeckScreen, usePitchDeck, PitchDeckSlideViewer, slideDefinitions
+│   │   ├── pitch-deck/      # PitchDeckScreen, usePitchDeck, PitchDeckSlideViewer, pdfExport (Stage 5.6)
+│   │   ├── pitch-simulator/ # PitchSimulatorScreen, SimulatorStages, Q&A, Scorecard (Stage 5.5)
 │   │   ├── profile/         # ProfileScreen, ProfileHeader, SettingRow, DemoCreditTopUp
 │   │   └── validate/        # ValidateModalScreen, useValidateIdea, stages, validateConstants
 │   ├── api/                 # Centralized API module re-exports (index.ts)
