@@ -363,4 +363,3 @@ export const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
 });
-

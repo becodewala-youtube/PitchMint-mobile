@@ -487,5 +487,3 @@ export const styles = StyleSheet.create({
     minHeight: touchTargets.minTouchSize,
   },
 });
-
-

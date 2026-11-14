@@ -411,4 +411,3 @@ export const styles = StyleSheet.create({
     fontWeight: typography.weights.semiBold,
   },
 });
-
