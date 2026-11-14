@@ -160,4 +160,78 @@ describe('HomeScreen Integration (Phase 3A)', () => {
 
     expect(ideasSpy).toHaveBeenCalledTimes(2);
   });
+
+  it('navigates to Profile when tapping the header avatar or settings button', async () => {
+    jest.spyOn(ideasApi, 'getSavedIdeas').mockResolvedValue({
+      success: true,
+      ideas: [],
+      total: 0,
+      totalPages: 1,
+      currentPage: 1,
+    });
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<HomeScreen />);
+    });
+
+    const root = renderer!.root;
+
+    // Avatar button
+    const avatarBtn = root.findByProps({ testID: 'home-avatar-button' });
+    expect(avatarBtn).toBeDefined();
+    await act(async () => {
+      avatarBtn.props.onPress();
+    });
+    expect(mockNavigate).toHaveBeenCalledWith('MainTabs', { screen: 'Profile' });
+
+    // Settings button
+    const settingsBtn = root.findByProps({ testID: 'home-settings-button' });
+    expect(settingsBtn).toBeDefined();
+    await act(async () => {
+      settingsBtn.props.onPress();
+    });
+    expect(mockNavigate).toHaveBeenCalledWith('MainTabs', { screen: 'Profile' });
+  });
+
+  it('navigates to Ideas when tapping Saved Ideas metric and ValidateModal when tapping Submit Idea', async () => {
+    jest.spyOn(ideasApi, 'getSavedIdeas').mockResolvedValue({
+      success: true,
+      ideas: [],
+      total: 5,
+      totalPages: 1,
+      currentPage: 1,
+    });
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<HomeScreen />);
+    });
+
+    const root = renderer!.root;
+
+    // Saved ideas metric
+    const savedIdeasMetric = root.findByProps({ testID: 'home-metric-saved-ideas' });
+    expect(savedIdeasMetric).toBeDefined();
+    await act(async () => {
+      savedIdeasMetric.props.onPress();
+    });
+    expect(mockNavigate).toHaveBeenCalledWith('MainTabs', { screen: 'Ideas' });
+
+    // Submit idea card
+    const submitIdeaCard = root.findByProps({ testID: 'home-submit-idea-card' });
+    expect(submitIdeaCard).toBeDefined();
+    await act(async () => {
+      submitIdeaCard.props.onPress();
+    });
+    expect(mockNavigate).toHaveBeenCalledWith('ValidateModal');
+
+    // Secondary view saved ideas card
+    const viewSavedIdeasCard = root.findByProps({ testID: 'home-view-saved-ideas-card' });
+    expect(viewSavedIdeasCard).toBeDefined();
+    await act(async () => {
+      viewSavedIdeasCard.props.onPress();
+    });
+    expect(mockNavigate).toHaveBeenCalledWith('MainTabs', { screen: 'Ideas' });
+  });
 });

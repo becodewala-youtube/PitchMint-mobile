@@ -105,7 +105,7 @@ export const HomeScreen: React.FC = () => {
         />
       }
     >
-      {/* 1. Header Profile, Balance Strip & Stat Tiles */}
+      {/* 1. Header Profile, Avatar & Unified Status Card */}
       <HomeHeader
         initialLetter={initialLetter}
         displayName={displayName}
@@ -114,6 +114,9 @@ export const HomeScreen: React.FC = () => {
         planDisplay={planDisplay}
         onNavigateToProfile={() =>
           navigation.navigate('MainTabs', { screen: 'Profile' } as any)
+        }
+        onNavigateToIdeas={() =>
+          navigation.navigate('MainTabs', { screen: 'Ideas' })
         }
       />
 
