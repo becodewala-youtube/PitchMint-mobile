@@ -36,17 +36,22 @@ PitchMint-mobile/
 │   ├── context/             # Global application contexts (AuthContext, OnboardingContext)
 │   ├── navigation/          # React Navigation configuration (types.ts, RootNavigator, BottomTabNavigator, AuthNavigator)
 │   ├── theme/               # Dark theme tokens (colors.ts, spacing.ts, typography.ts, index.ts)
-│   ├── components/          # 13 Reusable atomic presentation components
-│   ├── features/            # Feature modules:
+│   ├── components/          # Reusable atomic presentation components:
+│   │   ├── icons/           # Categorized SVG icons (navigation, action, status, media)
+│   │   ├── IdeaCard.tsx     # Authoritative shared startup idea card presentation
+│   │   ├── CreditConfirmationModal.tsx # Shared credit confirmation modal
+│   │   └── ...              # Button, Card, Pill, Badge, ScoreRing, ScoreBar, Input, etc.
+│   ├── features/            # Feature modules (modular components, constants, hooks, screens):
 │   │   ├── activity/        # ActivityScreen (audit log of validations and credit events)
 │   │   ├── auth/            # SignIn, SignUp, Forgot, Reset, Verify, Loading
-│   │   ├── canvas/          # CanvasScreen (9-block Lean Business Model Canvas viewer)
-│   │   ├── home/            # HomeScreen (Dashboard, stats, recent ideas)
-│   │   ├── ideas/           # IdeasScreen (Catalog) & IdeaDetailsScreen (Deep-dive)
-│   │   ├── onboarding/      # WelcomeScreen & OnboardingScreen
-│   │   ├── pitch-deck/      # PitchDeckScreen (10-slide investor deck viewer)
-│   │   ├── profile/         # ProfileScreen (Founder profile, settings, demo credit top-up)
-│   │   └── validate/        # ValidateModalScreen (5-step validation launcher)
+│   │   ├── canvas/          # CanvasScreen, useCanvas, CanvasBlockViewer, blockDefinitions
+│   │   ├── home/            # HomeScreen, HomeHeader, HomeQuickActions
+│   │   ├── ideas/           # IdeasScreen, IdeaDetailsScreen, useIdeaDetails, subcomponents
+│   │   ├── onboarding/      # WelcomeScreen, OnboardingScreen, StackVisual, DeckVisual
+│   │   ├── pitch-deck/      # PitchDeckScreen, usePitchDeck, PitchDeckSlideViewer, slideDefinitions
+│   │   ├── profile/         # ProfileScreen, ProfileHeader, SettingRow, DemoCreditTopUp
+│   │   └── validate/        # ValidateModalScreen, useValidateIdea, stages, validateConstants
+│   ├── api/                 # Centralized API module re-exports (index.ts)
 │   ├── services/            # API client, auth API, and storage services
 │   │   ├── api/apiClient.ts # Native fetch wrapper with token injection and 401 handler
 │   │   ├── api/authApi.ts   # Authentication endpoints

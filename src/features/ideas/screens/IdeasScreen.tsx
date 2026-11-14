@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  StyleSheet,
   Text,
   View,
-  TextInput,
-  ScrollView,
   Pressable,
   RefreshControl,
   ActivityIndicator,
@@ -15,23 +12,26 @@ import {
   ScreenContainer,
   Card,
   IconBadge,
-  Pill,
-  ScoreRing,
   Icon,
+  IdeaCard,
 } from '../../../components';
-import { colors, spacing, typography, borderRadius } from '../../../theme';
+import { colors } from '../../../theme';
 import { RootStackParamList } from '../../../navigation/types';
 import { ideasApi, mapBackendIdeaToCard } from '../../../services/api/ideasApi';
 import { ParsedIdeaCard } from '../../../utils/ideaParser';
 import { formatDisplayDate } from '../../../utils/date';
+import { styles } from './IdeasScreen.styles';
+import { IdeasSearchBar, FilterType } from '../components/IdeasSearchBar';
+import { IdeasPagination } from '../components/IdeasPagination';
+
+export type { FilterType };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-type FilterType = 'all' | 'top' | 'deck' | 'none';
 
 /**
  * IdeasScreen - Saved Ideas Catalog
  * Connects to live backend GET /api/idea/saved with pagination preservation.
- * Exact match to the Arena prototype specifications.
+ * Decomposed in Stage 4.4 into modular components, styles, and shared IdeaCard.
  */
 export const IdeasScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -98,7 +98,6 @@ export const IdeasScreen: React.FC = () => {
     }
   };
 
-  // Client-side filtering & search (backend GET /api/idea/saved only supports page & limit)
   const filteredIdeas = ideas.filter((i) => {
     const query = searchQuery.trim().toLowerCase();
     const matchesSearch =
@@ -139,7 +138,6 @@ export const IdeasScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* 3D mini action button matching Arena */}
         <Pressable
           onPress={() => navigation.navigate('ValidateModal')}
           style={({ pressed }) => [
@@ -153,56 +151,14 @@ export const IdeasScreen: React.FC = () => {
         </Pressable>
       </View>
 
-      {/* 2. Search Input */}
-      <View style={styles.searchContainer}>
-        <Icon name="search" size={16} color={colors.text.muted} style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search ideas, categories…"
-          placeholderTextColor={colors.text.muted}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      </View>
-
-      {/* 3. Horizontal Filter Chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterChipScroll}
-      >
-        {[
-          { key: 'all', label: `All (${ideas.length})` },
-          { key: 'top', label: 'Top scored (80+)' },
-          { key: 'deck', label: 'Has pitch deck' },
-          { key: 'none', label: 'Not explored' },
-        ].map((f) => {
-          const isActive = activeFilter === f.key;
-          return (
-            <Pressable
-              key={f.key}
-              onPress={() => setActiveFilter(f.key as FilterType)}
-              style={[
-                styles.chip,
-                isActive ? styles.chipActive : styles.chipInactive,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={f.label}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  isActive ? styles.chipTextActive : styles.chipTextInactive,
-                ]}
-              >
-                {f.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      {/* 2. Search & Filter Bar */}
+      <IdeasSearchBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        activeFilter={activeFilter}
+        onSelectFilter={setActiveFilter}
+        totalIdeas={ideas.length}
+      />
 
       {/* 4. Loading State */}
       {isLoading && (
@@ -270,367 +226,36 @@ export const IdeasScreen: React.FC = () => {
         </View>
       )}
 
-      {/* 8. Idea Cards List */}
+      {/* 8. Idea Cards List using Shared IdeaCard */}
       {!isLoading &&
         !error &&
         filteredIdeas.map((idea) => {
           const dateStr = formatDisplayDate(idea.createdAt);
 
           return (
-            <Card
+            <IdeaCard
               key={idea.id}
+              idea={idea}
               testID={`idea-card-${idea.id}`}
-              onPress={() => navigation.navigate('IdeaDetails', { ideaId: idea.id } as any)}
+              onPress={() =>
+                navigation.navigate('IdeaDetails', { ideaId: idea.id } as any)
+              }
               style={styles.ideaCard}
-            >
-              <View style={styles.ideaCardRow}>
-                <ScoreRing value={idea.overallScore} size={54} />
-                <View style={styles.ideaCardBody}>
-                  <Text style={styles.ideaCardTitle} numberOfLines={1}>
-                    {idea.title}
-                  </Text>
-                  <Text style={styles.ideaCardDesc} numberOfLines={2}>
-                    {idea.description}
-                  </Text>
-
-                  <View style={styles.ideaCardFooter}>
-                    <Pill label={idea.category} tone="violet" />
-                    {dateStr ? <Text style={styles.ideaCardDate}>{dateStr}</Text> : null}
-
-                    <View style={styles.ideaCardToolMarks}>
-                      <Icon
-                        name="fileText"
-                        size={12}
-                        color={idea.hasPitchDeck ? colors.tones.blue.text : '#374151'}
-                      />
-                      <Icon
-                        name="panelsTopLeft"
-                        size={12}
-                        color={idea.hasCanvas ? colors.tones.emerald.text : '#374151'}
-                      />
-                      <Icon
-                        name="users"
-                        size={12}
-                        color={idea.hasCompetitors ? colors.tones.orange.text : '#374151'}
-                      />
-                      <Icon
-                        name="messageSquare"
-                        size={12}
-                        color={idea.hasSimulation ? colors.tones.pink.text : '#374151'}
-                      />
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </Card>
+              ringSize={54}
+              descriptionLines={2}
+              dateText={dateStr}
+            />
           );
         })}
 
       {/* 9. Pagination Controls */}
       {!isLoading && !error && totalPages > 1 && (
-        <View style={styles.paginationBar}>
-          <Pressable
-            disabled={currentPage <= 1}
-            onPress={() => handlePageChange(currentPage - 1)}
-            style={[
-              styles.pageBtn,
-              currentPage <= 1 && styles.pageBtnDisabled,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Previous page"
-          >
-            <Icon
-              name="chevronLeft"
-              size={14}
-              color={currentPage <= 1 ? colors.text.muted : colors.text.primary}
-            />
-            <Text
-              style={[
-                styles.pageBtnText,
-                currentPage <= 1 && styles.pageBtnTextDisabled,
-              ]}
-            >
-              Prev
-            </Text>
-          </Pressable>
-
-          <Text style={styles.pageInfoText}>
-            Page {currentPage} of {totalPages}
-          </Text>
-
-          <Pressable
-            disabled={currentPage >= totalPages}
-            onPress={() => handlePageChange(currentPage + 1)}
-            style={[
-              styles.pageBtn,
-              currentPage >= totalPages && styles.pageBtnDisabled,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Next page"
-          >
-            <Text
-              style={[
-                styles.pageBtnText,
-                currentPage >= totalPages && styles.pageBtnTextDisabled,
-              ]}
-            >
-              Next
-            </Text>
-            <Icon
-              name="chevronRight"
-              size={14}
-              color={currentPage >= totalPages ? colors.text.muted : colors.text.primary}
-            />
-          </Pressable>
-        </View>
+        <IdeasPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       )}
     </ScreenContainer>
   );
 };
-
-const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-    paddingTop: spacing.xs,
-  },
-  titleWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  titleCol: {
-    justifyContent: 'center',
-  },
-  titleText: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.medium,
-    letterSpacing: -0.5,
-    color: colors.text.primary,
-  },
-  subtitleText: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.secondary,
-    marginTop: 2,
-  },
-  plus3DButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.brand.btn,
-    borderBottomWidth: 3,
-    borderBottomColor: colors.brand.btnEdge,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  plus3DPressed: {
-    transform: [{ translateY: 2 }],
-    borderBottomWidth: 1,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.card2,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-    paddingHorizontal: spacing.md,
-    height: 46,
-    marginBottom: spacing.md,
-  },
-  searchIcon: {
-    marginRight: spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    color: colors.text.primary,
-    fontSize: typography.sizes.base,
-  },
-  filterChipScroll: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-    paddingRight: spacing.lg,
-  },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 7,
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-  },
-  chipActive: {
-    backgroundColor: 'rgba(124, 58, 237, 0.2)',
-    borderColor: 'rgba(124, 58, 237, 0.6)',
-  },
-  chipInactive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderColor: colors.border.subtle,
-  },
-  chipText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
-  },
-  chipTextActive: {
-    color: colors.brand.light,
-    fontWeight: typography.weights.semiBold,
-  },
-  chipTextInactive: {
-    color: colors.text.secondary,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xxl,
-    gap: spacing.sm,
-  },
-  loadingText: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.secondary,
-  },
-  errorCard: {
-    alignItems: 'center',
-    padding: spacing.xl,
-    marginBottom: spacing.md,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-  },
-  errorTitle: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semiBold,
-    color: colors.text.primary,
-    marginTop: spacing.sm,
-  },
-  errorSubtitle: {
-    fontSize: typography.sizes.xs,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    marginTop: 4,
-    marginBottom: spacing.md,
-  },
-  retryButton: {
-    backgroundColor: colors.brand.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 8,
-    borderRadius: borderRadius.full,
-  },
-  retryButtonText: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.semiBold,
-    color: '#FFFFFF',
-  },
-  ideaCard: {
-    marginBottom: spacing.md,
-  },
-  ideaCardRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  ideaCardBody: {
-    flex: 1,
-  },
-  ideaCardTitle: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semiBold,
-    color: colors.text.primary,
-    letterSpacing: -0.2,
-  },
-  ideaCardDesc: {
-    fontSize: typography.sizes.xs,
-    color: colors.text.secondary,
-    lineHeight: 17,
-    marginTop: 4,
-  },
-  ideaCardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.sm + 2,
-  },
-  ideaCardDate: {
-    fontSize: typography.sizes.micro,
-    color: colors.text.muted,
-  },
-  ideaCardToolMarks: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginLeft: 'auto',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: spacing.xxxl,
-  },
-  emptyTitle: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semiBold,
-    color: colors.text.primary,
-    marginTop: spacing.md,
-  },
-  emptySubtitle: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    marginTop: spacing.xs,
-    maxWidth: 240,
-  },
-  emptyValidateBtn: {
-    backgroundColor: colors.brand.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    marginTop: spacing.lg,
-  },
-  emptyValidateBtnText: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.semiBold,
-    color: '#FFFFFF',
-  },
-  resetFilterBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: borderRadius.full,
-    marginTop: spacing.md,
-  },
-  resetFilterBtnText: {
-    fontSize: typography.sizes.xs,
-    color: colors.text.primary,
-    fontWeight: typography.weights.medium,
-  },
-  paginationBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xl,
-  },
-  pageBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.background.card,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-    borderRadius: borderRadius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-  },
-  pageBtnDisabled: {
-    opacity: 0.4,
-  },
-  pageBtnText: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.medium,
-    color: colors.text.primary,
-  },
-  pageBtnTextDisabled: {
-    color: colors.text.muted,
-  },
-  pageInfoText: {
-    fontSize: typography.sizes.xs,
-    color: colors.text.secondary,
-  },
-});
