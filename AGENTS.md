@@ -8,7 +8,7 @@ PitchMint Mobile is the independent React Native / Expo mobile application for t
 - **External HTTP Contract:** Treat the backend strictly as an external HTTP API reachable via `EXPO_PUBLIC_API_URL` (default: `https://pitch-mint-backend.vercel.app`).
 
 ## 2. Verified Technology Stack
-- **Framework:** Expo SDK 58 (`~58.0.23`, Continuous Native Generation / CNG, EAS ready)
+- **Framework:** Expo SDK 58 (`~58.0.25`, Continuous Native Generation / CNG, EAS ready)
 - **Runtime:** React Native 0.88.1, React 19.3.0, TypeScript `~6.0.3` (Strict mode)
 - **Navigation:** React Navigation 7 (`@react-navigation/native`, `@react-navigation/native-stack`, `@react-navigation/bottom-tabs`). Do NOT use Expo Router.
 - **Persistence:** Hardware-backed `expo-secure-store` with memory-store fallback for test environments.
