@@ -1,4 +1,4 @@
-# Graph Report - PitchMint-mobile  (2026-11-10)
+# Graph Report - PitchMint-mobile  (2026-11-14)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
@@ -9,7 +9,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c07f196c`
+- Built from commit: `d7f44881`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -58,8 +58,8 @@
   src/components/Pill.tsx → src/theme/colors.ts
 - `AuthNavigatorProps` --references--> `AuthStackParamList`  [EXTRACTED]
   src/navigation/AuthNavigator.tsx → src/navigation/types.ts
-- `HomeScreen()` --indirect_call--> `mapBackendIdeaToCard()`  [INFERRED]
-  src/features/home/screens/HomeScreen.tsx → src/services/api/ideasApi.ts
+- `GoogleSignInButton()` --calls--> `useAuth()`  [EXTRACTED]
+  src/components/GoogleSignInButton.tsx → src/context/AuthContext.tsx
 
 ## Import Cycles
 - None detected.
@@ -128,7 +128,7 @@ Nodes (13): Icon(), BARS, ChatVisual(), DeckVisual(), OnboardingScreen(), SlideD
 
 ### Community 15 - "dependencies"
 Cohesion: 0.15
-Nodes (13): dependencies, expo-clipboard@~58.0.4, expo-secure-store@~58.0.2, expo-status-bar@~58.0.4, react@19.3.0, react-native@0.88.1, react-native-safe-area-context@~5.11.1, react-native-screens@~4.30.1 (+5 more)
+Nodes (13): dependencies, expo-clipboard@~58.0.4, expo-secure-store@~58.0.3, expo-status-bar@~58.0.5, react@19.3.0, react-native@0.88.1, react-native-safe-area-context@~5.11.1, react-native-screens@~4.30.1 (+5 more)
 
 ### Community 16 - "SignInScreen.tsx"
 Cohesion: 0.17
@@ -148,7 +148,7 @@ Nodes (5): expo/tsconfig.base, compilerOptions, strict, types, extends
 
 ### Community 21 - "App.tsx"
 Cohesion: 0.50
-Nodes (3): expo@~58.0.23, expo, App()
+Nodes (3): expo@~58.0.25, expo, App()
 
 ## Knowledge Gaps
 - **2 isolated node(s):** `expo/tsconfig.base`, `RFC-4122`
