@@ -1,5 +1,5 @@
 import { ideasApi, mapBackendIdeaToCard, BackendIdea } from '../ideasApi';
-import { apiClient } from '../apiClient';
+import { apiClient, AI_GENERATION_TIMEOUT_MS, DEFAULT_TIMEOUT_MS } from '../apiClient';
 
 describe('IdeasApi Service - Core Retrieval & Submission', () => {
   beforeEach(() => {
@@ -145,12 +145,38 @@ describe('IdeasApi Service - Core Retrieval & Submission', () => {
       });
 
       expect(postSpy).toHaveBeenCalledTimes(1);
-      expect(postSpy).toHaveBeenCalledWith('/api/idea/submit', {
-        ideaText: 'Uber for dog walking with real-time GPS tracking',
-      });
+      expect(postSpy).toHaveBeenCalledWith(
+        '/api/idea/submit',
+        { ideaText: 'Uber for dog walking with real-time GPS tracking' },
+        { timeoutMs: AI_GENERATION_TIMEOUT_MS }
+      );
       expect(result.overallScore).toBe(82);
       expect(result.userCredits).toBe(7);
       expect(result.analysis?.marketDemand?.score).toBe(85);
+    });
+
+    it('respects caller-supplied timeout overrides on submitIdea', async () => {
+      const validBackendResponse = {
+        _id: 'idea-123',
+        userId: 'user-456',
+        ideaText: 'My idea',
+        overallScore: 80,
+        analysis: { overall: { score: 80, text: 'Good' } },
+        userCredits: 5,
+        createdAt: '2026-10-24T12:00:00Z',
+      };
+      const postSpy = jest.spyOn(apiClient, 'post').mockResolvedValue(validBackendResponse as any);
+
+      await ideasApi.submitIdea(
+        { ideaText: 'Custom timeout idea description' },
+        { timeoutMs: 25000 }
+      );
+
+      expect(postSpy).toHaveBeenCalledWith(
+        '/api/idea/submit',
+        { ideaText: 'Custom timeout idea description' },
+        { timeoutMs: 25000 }
+      );
     });
 
     it('throws 502 ApiError when backend returns incomplete or malformed response', async () => {
@@ -188,6 +214,25 @@ describe('IdeasApi Service - Core Retrieval & Submission', () => {
       ).rejects.toThrow('Unable to connect to PitchMint server');
 
       expect(postSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Explicit Timeout Selection & Route Isolation', () => {
+    it('uses standard default timeout (DEFAULT_TIMEOUT_MS) for standard queries without explicit timeout', async () => {
+      const getSpy = jest.spyOn(apiClient, 'get').mockResolvedValue({ success: true, ideas: [] } as any);
+
+      await ideasApi.getSavedIdeas();
+
+      expect(getSpy).toHaveBeenCalledWith('/api/idea/saved');
+      // No custom timeoutMs passed, so apiClient defaults to DEFAULT_TIMEOUT_MS
+    });
+
+    it('preserves caller timeout override on standard endpoint when provided', async () => {
+      const getSpy = jest.spyOn(apiClient, 'get').mockResolvedValue({ _id: 'idea-1' } as any);
+
+      await ideasApi.getIdeaById('idea-1', { timeoutMs: 5000 });
+
+      expect(getSpy).toHaveBeenCalledWith('/api/idea/idea-1', { timeoutMs: 5000 });
     });
   });
 });

@@ -302,6 +302,55 @@ describe('ValidateModalScreen Submission & Error Interception (Phase 3B)', () =>
     expect(mockNavigate).toHaveBeenCalledWith('MainTabs', { screen: 'Ideas' });
   });
 
+  it('handles client request timeout with ambiguous warning, preserving user idea text and guiding to check Saved Ideas without retrying', async () => {
+    const timeoutError = new ApiError({
+      message: 'Request timed out after 45 seconds. The server might still be processing.',
+      status: 0,
+      code: 'TIMEOUT',
+      isTimeout: true,
+    });
+    const submitSpy = jest.spyOn(ideasApi, 'submitIdea').mockRejectedValue(timeoutError);
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<ValidateModalScreen />);
+    });
+
+    const root = renderer!.root;
+    const textInput = root.findByType(TextInput);
+
+    await act(async () => {
+      textInput.props.onChangeText('AI legal assistant for seed startups');
+    });
+
+    const submitBtn = root.findByProps({ testID: 'submit-idea-button' });
+
+    await act(async () => {
+      submitBtn.props.onPress();
+    });
+
+    const confirmBtn = root.findByProps({ testID: 'confirm-validation-button' });
+
+    await act(async () => {
+      confirmBtn.props.onPress();
+    });
+
+    await act(async () => {
+      jest.runAllTimers();
+    });
+
+    // Exactly one attempt was made, no automatic retry
+    expect(submitSpy).toHaveBeenCalledTimes(1);
+
+    const textNodes = root.findAllByType(Text).map((t) => t.props.children);
+    expect(textNodes).toContain('Connection Issue');
+    expect(textNodes).toContain('Check Saved Ideas →');
+
+    // User\'s entered text is preserved in TextInput
+    const preservedInput = root.findByType(TextInput);
+    expect(preservedInput.props.value).toBe('AI legal assistant for seed startups');
+  });
+
   it('handles server errors (HTTP 500) without automatic retry', async () => {
     const error500 = new ApiError({
       message: 'Internal server error',

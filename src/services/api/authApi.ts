@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient';
+import { apiClient, RequestOptions } from './apiClient';
 
 export interface User {
   _id: string;
@@ -70,56 +70,58 @@ export const authApi = {
   /**
    * Registers a new user account. Returns userId and triggers email verification code.
    */
-  register(params: RegisterParams): Promise<RegisterResponse> {
-    return apiClient.post<RegisterResponse>('/api/auth/register', params, { skipAuth: true });
+  register(params: RegisterParams, options?: RequestOptions): Promise<RegisterResponse> {
+    return apiClient.post<RegisterResponse>('/api/auth/register', params, { skipAuth: true, ...options });
   },
 
   /**
    * Verifies 6-digit email token. Returns authenticated user session and JWT token.
    */
-  verifyEmail(params: VerifyEmailParams): Promise<AuthSuccessResponse> {
-    return apiClient.post<AuthSuccessResponse>('/api/auth/verify-email', params, { skipAuth: true });
+  verifyEmail(params: VerifyEmailParams, options?: RequestOptions): Promise<AuthSuccessResponse> {
+    return apiClient.post<AuthSuccessResponse>('/api/auth/verify-email', params, { skipAuth: true, ...options });
   },
 
   /**
    * Requests a new 6-digit verification code to be sent to the user's email.
    */
-  resendVerification(params: ResendVerificationParams): Promise<MessageResponse> {
-    return apiClient.post<MessageResponse>('/api/auth/resend-verification', params, { skipAuth: true });
+  resendVerification(params: ResendVerificationParams, options?: RequestOptions): Promise<MessageResponse> {
+    return apiClient.post<MessageResponse>('/api/auth/resend-verification', params, { skipAuth: true, ...options });
   },
 
   /**
    * Authenticates user with email and password. Returns JWT and user profile.
    */
-  signIn(params: SignInParams): Promise<AuthSuccessResponse> {
-    return apiClient.post<AuthSuccessResponse>('/api/auth/signin', params, { skipAuth: true });
+  signIn(params: SignInParams, options?: RequestOptions): Promise<AuthSuccessResponse> {
+    return apiClient.post<AuthSuccessResponse>('/api/auth/signin', params, { skipAuth: true, ...options });
   },
 
   /**
    * Authenticates user using Google ID token.
    */
-  googleAuth(params: GoogleAuthParams): Promise<AuthSuccessResponse> {
-    return apiClient.post<AuthSuccessResponse>('/api/auth/google', params, { skipAuth: true });
+  googleAuth(params: GoogleAuthParams, options?: RequestOptions): Promise<AuthSuccessResponse> {
+    return apiClient.post<AuthSuccessResponse>('/api/auth/google', params, { skipAuth: true, ...options });
   },
 
   /**
    * Requests a password reset token to be emailed to the given address.
    */
-  forgotPassword(params: ForgotPasswordParams): Promise<MessageResponse> {
-    return apiClient.post<MessageResponse>('/api/auth/forgot-password', params, { skipAuth: true });
+  forgotPassword(params: ForgotPasswordParams, options?: RequestOptions): Promise<MessageResponse> {
+    return apiClient.post<MessageResponse>('/api/auth/forgot-password', params, { skipAuth: true, ...options });
   },
 
   /**
    * Resets password using the token sent to the user's email.
    */
-  resetPassword(params: ResetPasswordParams): Promise<MessageResponse> {
-    return apiClient.post<MessageResponse>('/api/auth/reset-password', params, { skipAuth: true });
+  resetPassword(params: ResetPasswordParams, options?: RequestOptions): Promise<MessageResponse> {
+    return apiClient.post<MessageResponse>('/api/auth/reset-password', params, { skipAuth: true, ...options });
   },
 
   /**
    * Fetches the profile of the currently authenticated user session.
    */
-  getCurrentUser(): Promise<User> {
-    return apiClient.get<User>('/api/auth/user');
+  getCurrentUser(options?: RequestOptions): Promise<User> {
+    return options
+      ? apiClient.get<User>('/api/auth/user', options)
+      : apiClient.get<User>('/api/auth/user');
   },
 };

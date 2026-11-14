@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient';
+import { apiClient, RequestOptions } from './apiClient';
 
 export type BackendServiceType =
   | 'idea_validation'
@@ -37,7 +37,10 @@ export const activityApi = {
    * Note: The backend returns an array of ActivityHistory objects directly,
    * unlike the paginated object envelope in saved ideas.
    */
-  async getActivityHistory(params?: GetActivityHistoryParams): Promise<ActivityHistoryItem[]> {
+  async getActivityHistory(
+    params?: GetActivityHistoryParams,
+    options?: RequestOptions
+  ): Promise<ActivityHistoryItem[]> {
     const query = new URLSearchParams();
     if (params?.serviceType && params.serviceType !== 'all') {
       query.append('serviceType', params.serviceType);
@@ -51,7 +54,9 @@ export const activityApi = {
 
     const qs = query.toString();
     const endpoint = `/api/history${qs ? `?${qs}` : ''}`;
-    const response = await apiClient.get<unknown>(endpoint);
+    const response = options
+      ? await apiClient.get<unknown>(endpoint, options)
+      : await apiClient.get<unknown>(endpoint);
 
     // Backend returns Array directly: res.json(activities)
     if (Array.isArray(response)) {

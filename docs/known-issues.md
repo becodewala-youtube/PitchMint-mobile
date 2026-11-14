@@ -27,10 +27,10 @@ This document tracks verified limitations, technical debt, release prerequisites
 
 ### API-01: Missing Request Timeout & Cancellation Handling
 - **Category:** Network Resilience & UX
-- **Status:** Open / Requires Engineering Investigation
-- **Evidence:** [`src/services/api/apiClient.ts`](../src/services/api/apiClient.ts) executes native `fetch` without `AbortController` signals or timeout mechanisms.
-- **Assessment:** If the backend network socket drops or AI generation hangs indefinitely, the mobile client remains on a loading spinner without timing out or offering clean recovery.
-- **Required Action:** Investigate route-specific timeout and cancellation thresholds. Fast profile/auth endpoints may benefit from shorter timeouts (e.g. 10–15s), while heavy AI evaluation, pitch deck, and canvas generations require distinct thresholds and cancel signals.
+- **Status:** Resolved / Implemented (Stage 5.1 & Stage 5.1.1)
+- **Evidence:** [`src/services/api/apiClient.ts`](../src/services/api/apiClient.ts) and [`src/services/api/ideasApi.ts`](../src/services/api/ideasApi.ts) implement configurable request timeouts with explicit operation defaults (`DEFAULT_TIMEOUT_MS = 15000` for standard queries, `AI_GENERATION_TIMEOUT_MS = 60000` explicitly on the 5 credit-consuming endpoints: `submitIdea`, `generatePitchDeck`, `regeneratePitchDeck`, `generateCanvas`, `regenerateCanvas`), caller timeout overrides, response-body stream timeout protection, and API-level `AbortSignal` cancellation support.
+- **Assessment:** Distinguishes `TIMEOUT` and `CANCELLED` errors from ordinary network failures (`status: 0, code: NETWORK_ERROR`) and HTTP errors. Credit-consuming operations enforce strict non-retry policies, preserve user inputs, and guide users to check Saved Ideas / idea status rather than re-submitting immediately. Generation status recovery uses conservative content-comparison fallback because the backend Idea schema lacks generation-specific version or timestamp markers. Caller-provided `AbortSignal` provides API-level cancellation capability (no automatic unmount cancellation on credit mutations or UI cancel button is implemented).
+- **Required Action:** Resolved in mobile client. Note that client-side request timeouts do not guarantee backend cancellation or transaction rollback (see API-02).
 
 ### UX-01: Inconsistent Credit Consumption Confirmation & Balance Authority
 - **Category:** UX Consistency & Accidental Deduction Prevention
@@ -54,10 +54,10 @@ This document tracks verified limitations, technical debt, release prerequisites
 
 ### API-02: Validation Request Idempotency
 - **Category:** Backend Integration & Reliability
-- **Status:** Requires Backend Verification
-- **Evidence:** Documented concern from previous project notes regarding whether `POST /api/idea/submit` evaluates idempotency tokens.
-- **Assessment:** Mobile currently mitigates network drops by disabling automated retries and guiding users to verify Saved Ideas before resubmitting. Whether the live backend supports or ignores idempotency headers has not been independently verified against backend source code.
-- **Required Action:** Coordinate with backend team to verify if `Idempotency-Key` header handling is supported or needed before high-volume commercial launch.
+- **Status:** Open / Requires Backend Verification
+- **Evidence:** Documented concern regarding whether `POST /api/idea/submit` (as well as `POST/PUT /api/pitchdeck/:id` and `POST/PUT /api/canvas/:id`) evaluates idempotency tokens.
+- **Assessment:** While Stage 5.1 introduced client-side request timeout handling and non-retry safety policies in the mobile client, client timeouts do NOT guarantee that backend AI processing was cancelled or that atomic credit deductions were rolled back. Backend idempotency handling remains a separate open concern.
+- **Required Action:** Coordinate with backend team to verify if `Idempotency-Key` header handling or atomic transaction rollback is supported or needed before high-volume commercial launch.
 
 ---
 

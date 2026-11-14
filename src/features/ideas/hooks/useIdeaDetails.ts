@@ -212,8 +212,11 @@ export function useIdeaDetails(): UseIdeaDetailsResult {
     setIsGeneratingDeck(true);
     setShowDeckConfirmModal(false);
 
+    const isRegen = hasPitchDeck;
+    const prevDeckString = JSON.stringify(idea?.pitchDeckContent || {});
+
     try {
-      const updatedIdea: PitchDeckResponse = hasPitchDeck
+      const updatedIdea: PitchDeckResponse = isRegen
         ? await ideasApi.regeneratePitchDeck(ideaId)
         : await ideasApi.generatePitchDeck(ideaId);
 
@@ -229,34 +232,61 @@ export function useIdeaDetails(): UseIdeaDetailsResult {
     } catch (err: any) {
       if (!isMountedRef.current) return;
 
-      let msg = 'Failed to generate pitch deck. Please try again.';
+      let msg = isRegen
+        ? 'Failed to regenerate pitch deck. Please try again.'
+        : 'Failed to generate pitch deck. Please try again.';
       if (err instanceof ApiError) {
         if (err.status === 402) {
           msg = 'Insufficient credits. 1 credit is required to generate a pitch deck.';
         } else if (err.status === 429) {
           msg = 'Rate limit reached: Maximum 2 generation requests allowed per minute. Please wait 60 seconds before trying again.';
+        } else if (err.isCancelled) {
+          msg = isRegen
+            ? 'Pitch deck regeneration was cancelled.'
+            : 'Pitch deck generation was cancelled.';
+        } else if (err.isTimeout || err.status === 0) {
+          Alert.alert(
+            'Request Timed Out',
+            'Your pitch deck request was sent, but the network connection timed out. The AI may still be generating your pitch deck on the server.\n\nPlease tap "Check Status" in a few moments rather than resubmitting to avoid duplicate credit charges.',
+            [
+              {
+                text: 'Check Status',
+                onPress: async () => {
+                  try {
+                    const fresh = await ideasApi.getIdeaById(ideaId);
+                    if (!isMountedRef.current) return;
+                    if (hasSubDocument(fresh?.pitchDeckContent)) {
+                      const newDeckString = JSON.stringify(fresh.pitchDeckContent);
+                      if (!isRegen || newDeckString !== prevDeckString) {
+                        setIdea(fresh);
+                        await refreshUser().catch(() => {});
+                        navigation.navigate('PitchDeck', {
+                          ideaId,
+                          ideaTitle: parsedTitle,
+                        });
+                        return;
+                      }
+                    }
+                    Alert.alert(
+                      'Still Processing',
+                      'The pitch deck has not appeared yet. Please pull to refresh in a few moments.'
+                    );
+                  } catch {
+                    if (isMountedRef.current) {
+                      Alert.alert('Connection Error', 'Could not reach server to verify pitch deck status.');
+                    }
+                  }
+                },
+              },
+              { text: 'OK', style: 'cancel' },
+            ]
+          );
+          return;
         } else {
           msg = err.message || msg;
         }
       } else if (err?.message) {
         msg = err.message;
-      }
-
-      if (err instanceof ApiError && err.status === 0) {
-        try {
-          const fresh = await ideasApi.getIdeaById(ideaId);
-          if (isMountedRef.current && fresh?.pitchDeckContent) {
-            setIdea(fresh);
-            await refreshUser().catch(() => {});
-            navigation.navigate('PitchDeck', {
-              ideaId,
-              ideaTitle: parsedTitle,
-            });
-            return;
-          }
-        } catch {
-          // Keep original error message
-        }
       }
 
       Alert.alert('Generation Failed', msg, [{ text: 'OK' }]);
@@ -324,7 +354,11 @@ export function useIdeaDetails(): UseIdeaDetailsResult {
           msg = 'Insufficient credits. 1 credit is required to generate a canvas.';
         } else if (err.status === 429) {
           msg = 'Rate limit reached: Maximum 2 generation requests allowed per minute. Please wait 60 seconds before trying again.';
-        } else if (err.status === 0) {
+        } else if (err.isCancelled) {
+          msg = isRegen
+            ? 'Business model canvas regeneration was cancelled.'
+            : 'Business model canvas generation was cancelled.';
+        } else if (err.isTimeout || err.status === 0) {
           Alert.alert(
             'Network Request Timed Out',
             'Your generation request was sent, but the network connection was interrupted. The AI may still be processing your canvas on the server.\n\nPlease tap "Check Status" in a few moments rather than resubmitting.',
@@ -334,7 +368,8 @@ export function useIdeaDetails(): UseIdeaDetailsResult {
                 onPress: async () => {
                   try {
                     const fresh = await ideasApi.getIdeaById(ideaId);
-                    if (isMountedRef.current && fresh?.canvasContent) {
+                    if (!isMountedRef.current) return;
+                    if (hasSubDocument(fresh?.canvasContent)) {
                       const newCanvasString = JSON.stringify(fresh.canvasContent);
                       if (!isRegen || newCanvasString !== prevCanvasString) {
                         setIdea(fresh);
@@ -352,7 +387,9 @@ export function useIdeaDetails(): UseIdeaDetailsResult {
                       'The canvas update has not appeared yet. Please pull to refresh in a few moments.'
                     );
                   } catch {
-                    Alert.alert('Connection Error', 'Could not reach server to verify canvas status.');
+                    if (isMountedRef.current) {
+                      Alert.alert('Connection Error', 'Could not reach server to verify canvas status.');
+                    }
                   }
                 },
               },

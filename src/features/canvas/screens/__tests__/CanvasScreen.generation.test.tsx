@@ -3,7 +3,7 @@ import ReactTestRenderer, { act } from 'react-test-renderer';
 import { Text, Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { CanvasScreen } from '../CanvasScreen';
-import { ideasApi } from '../../../../services/api/ideasApi';
+import { ideasApi, BackendIdea } from '../../../../services/api/ideasApi';
 import { ApiError } from '../../../../services/api/apiClient';
 import { sampleIdeaWithCanvas, sampleIdeaWithoutCanvas } from './canvasFixtures';
 
@@ -239,8 +239,8 @@ describe('CanvasScreen Generation & Credit Modals (Phase 4B)', () => {
     );
   });
 
-  it('handles ambiguous network timeout (status 0) without automatic paid re-submissions', async () => {
-    jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(sampleIdeaWithCanvas);
+  it('handles ambiguous network timeout (status 0) without automatic paid re-submissions and recovers via Check Status', async () => {
+    const getSpy = jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(sampleIdeaWithCanvas);
     const timeoutError = new ApiError({
       message: 'Network request timed out',
       status: 0,
@@ -251,6 +251,10 @@ describe('CanvasScreen Generation & Credit Modals (Phase 4B)', () => {
     await act(async () => {
       renderer = ReactTestRenderer.create(<CanvasScreen />);
     });
+
+    // Account for mount-time call and clear spy history
+    expect(getSpy).toHaveBeenCalledTimes(1);
+    getSpy.mockClear();
 
     const root = renderer!.root;
     const regenerateBtn = root.findByProps({ testID: 'canvas-regenerate-button' });
@@ -270,5 +274,42 @@ describe('CanvasScreen Generation & Credit Modals (Phase 4B)', () => {
       expect.stringContaining('The AI may still be processing your canvas'),
       expect.any(Array)
     );
+
+    // Locate Check Status button in Alert.alert arguments
+    const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+    const timeoutAlertCall = alertCalls.find((call) => call[0] === 'Network Request Timed Out');
+    expect(timeoutAlertCall).toBeDefined();
+    const alertButtons = timeoutAlertCall[2];
+    const checkStatusBtn = alertButtons.find((btn: any) => btn.text === 'Check Status');
+    expect(checkStatusBtn).toBeDefined();
+
+    // Prepare fresh updated idea for recovery
+    const updatedIdea: BackendIdea = {
+      ...sampleIdeaWithCanvas,
+      canvasContent: {
+        ...sampleIdeaWithCanvas.canvasContent,
+        problem: 'Recovered canvas problem statement after server timeout.',
+      },
+    };
+    getSpy.mockResolvedValueOnce(updatedIdea);
+
+    // Execute Check Status callback inside act()
+    await act(async () => {
+      await checkStatusBtn.onPress();
+    });
+
+    // Verify recovery request was sent to getIdeaById
+    expect(getSpy).toHaveBeenCalledTimes(1);
+    expect(getSpy).toHaveBeenCalledWith('idea-canvas-123');
+
+    // Verify success alert was displayed
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Canvas Updated',
+      'Your canvas was generated successfully.'
+    );
+
+    // Verify UI reflects updated content
+    const textNodes = root.findAllByType(Text).map((t) => t.props.children).flat(Infinity).filter(Boolean).join(' ');
+    expect(textNodes).toContain('Recovered canvas problem statement after server timeout.');
   });
 });

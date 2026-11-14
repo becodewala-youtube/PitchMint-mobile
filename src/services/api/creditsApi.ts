@@ -1,4 +1,4 @@
-import { apiClient, ApiError } from './apiClient';
+import { apiClient, ApiError, RequestOptions } from './apiClient';
 
 export interface CreditBalanceResponse {
   success: boolean;
@@ -36,8 +36,10 @@ export const creditsApi = {
    * Fetches current credit balance and active plan tier for the authenticated user.
    * Route: GET /api/credits/balance
    */
-  async getBalance(): Promise<CreditBalanceResponse> {
-    const response = await apiClient.get<CreditBalanceResponse>('/api/credits/balance');
+  async getBalance(options?: RequestOptions): Promise<CreditBalanceResponse> {
+    const response = options
+      ? await apiClient.get<CreditBalanceResponse>('/api/credits/balance', options)
+      : await apiClient.get<CreditBalanceResponse>('/api/credits/balance');
     return {
       success: response?.success ?? true,
       credits: typeof response?.credits === 'number' ? response.credits : 0,
@@ -50,8 +52,10 @@ export const creditsApi = {
    * Fetches configured credit plans from the backend.
    * Route: GET /api/credits/plans
    */
-  async getPlans(): Promise<CreditPlansRecord> {
-    return apiClient.get<CreditPlansRecord>('/api/credits/plans');
+  async getPlans(options?: RequestOptions): Promise<CreditPlansRecord> {
+    return options
+      ? apiClient.get<CreditPlansRecord>('/api/credits/plans', options)
+      : apiClient.get<CreditPlansRecord>('/api/credits/plans');
   },
 
   /**
@@ -59,7 +63,10 @@ export const creditsApi = {
    * Route: POST /api/credits/simulate-payment-success
    * RESTRICTED: The backend strictly enforces NODE_ENV === 'development' || NODE_ENV === 'test'.
    */
-  async simulatePaymentSuccess(payload: SimulatePaymentRequest): Promise<SimulatePaymentResponse> {
+  async simulatePaymentSuccess(
+    payload: SimulatePaymentRequest,
+    options?: RequestOptions
+  ): Promise<SimulatePaymentResponse> {
     const trimmedPlanId = payload?.planId?.trim();
     if (!trimmedPlanId) {
       throw new ApiError({
@@ -68,10 +75,16 @@ export const creditsApi = {
       });
     }
 
-    const response = await apiClient.post<SimulatePaymentResponse>(
-      '/api/credits/simulate-payment-success',
-      { planId: trimmedPlanId }
-    );
+    const response = options
+      ? await apiClient.post<SimulatePaymentResponse>(
+          '/api/credits/simulate-payment-success',
+          { planId: trimmedPlanId },
+          options
+        )
+      : await apiClient.post<SimulatePaymentResponse>(
+          '/api/credits/simulate-payment-success',
+          { planId: trimmedPlanId }
+        );
 
     // Validate response shape to guard against malformed data
     if (!response || typeof response !== 'object' || typeof response.credits !== 'number') {

@@ -2,10 +2,29 @@ import { config } from '../../config/env';
 import { tokenStorage, TokenStorageError } from '../storage/tokenStorage';
 
 /**
- * Normalized API error representing structured backend failures.
+ * Standard timeout thresholds in milliseconds.
+ * - DEFAULT_TIMEOUT_MS: 15 seconds for general CRUD, authentication, and history queries.
+ * - AI_GENERATION_TIMEOUT_MS: 60 seconds for long-running Gemini AI generation
+ *   (idea validation, pitch deck generation, and business model canvas generation).
+ *   PitchMint-Backend enforces an internal Gemini timeout of up to 45 seconds
+ *   (gemini.client.ts: 45s for pitch deck & canvas, 30s for validation).
+ *   60s provides an essential 15-second cushion for server-side MongoDB transactions,
+ *   Express middleware processing, and network transit without aborting prematurely.
+ */
+export const DEFAULT_TIMEOUT_MS = 15000;
+export const AI_GENERATION_TIMEOUT_MS = 60000;
+
+export type ApiErrorCode = 'TIMEOUT' | 'CANCELLED' | 'NETWORK_ERROR' | 'HTTP_ERROR';
+
+/**
+ * Normalized API error representing structured backend failures,
+ * connection issues, timeouts, and caller-initiated cancellations.
  */
 export class ApiError extends Error {
   public status: number;
+  public code?: ApiErrorCode;
+  public isTimeout?: boolean;
+  public isCancelled?: boolean;
   public emailNotVerified?: boolean;
   public email?: string;
   public errors?: Array<{ msg?: string; message?: string; param?: string }>;
@@ -14,6 +33,9 @@ export class ApiError extends Error {
   constructor(params: {
     message: string;
     status: number;
+    code?: ApiErrorCode;
+    isTimeout?: boolean;
+    isCancelled?: boolean;
     emailNotVerified?: boolean;
     email?: string;
     errors?: Array<{ msg?: string; message?: string; param?: string }>;
@@ -22,6 +44,9 @@ export class ApiError extends Error {
     super(params.message);
     this.name = 'ApiError';
     this.status = params.status;
+    this.code = params.code;
+    this.isTimeout = params.isTimeout;
+    this.isCancelled = params.isCancelled;
     this.emailNotVerified = params.emailNotVerified;
     this.email = params.email;
     this.errors = params.errors;
@@ -54,6 +79,7 @@ export const setUnauthorizedHandler = (handler: UnauthorizedHandler | null): voi
 
 export interface RequestOptions extends RequestInit {
   skipAuth?: boolean;
+  timeoutMs?: number;
 }
 
 /**
@@ -61,18 +87,30 @@ export interface RequestOptions extends RequestInit {
  */
 export const apiClient = {
   async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+    const { skipAuth, timeoutMs: callerTimeoutMs, signal: callerSignal, ...fetchInit } = options;
     const url = `${config.apiUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     const requestId = generateRequestId();
+
+    // Check if caller's AbortSignal is already aborted before starting
+    if (callerSignal?.aborted) {
+      throw new ApiError({
+        message: 'Request was cancelled.',
+        status: 0,
+        code: 'CANCELLED',
+        isCancelled: true,
+        requestId,
+      });
+    }
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'X-Request-ID': requestId,
-      ...((options.headers as Record<string, string>) || {}),
+      ...((fetchInit.headers as Record<string, string>) || {}),
     };
 
     // Attach Bearer token from secure storage unless explicitly skipped
-    if (!options.skipAuth) {
+    if (!skipAuth) {
       let token: string | null = null;
       try {
         token = await tokenStorage.getToken();
@@ -96,33 +134,135 @@ export const apiClient = {
       }
     }
 
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        ...options,
-        headers,
-      });
-    } catch (networkError: any) {
+    // Set up AbortController and timeout timer
+    const internalController = new AbortController();
+    let didTimeout = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const onCallerAbort = () => {
+      internalController.abort();
+    };
+
+    if (callerSignal) {
+      if (callerSignal.aborted) {
+        internalController.abort();
+      } else {
+        callerSignal.addEventListener('abort', onCallerAbort, { once: true });
+      }
+    }
+
+    if (callerSignal?.aborted) {
       throw new ApiError({
-        message: 'Unable to connect to PitchMint server. Please check your network connection.',
+        message: 'Request was cancelled.',
         status: 0,
+        code: 'CANCELLED',
+        isCancelled: true,
         requestId,
       });
     }
 
-    const echoedRequestId = response.headers.get('x-request-id') || requestId;
+    const timeoutMs = callerTimeoutMs !== undefined ? callerTimeoutMs : DEFAULT_TIMEOUT_MS;
+    if (timeoutMs > 0 && Number.isFinite(timeoutMs)) {
+      timer = setTimeout(() => {
+        didTimeout = true;
+        internalController.abort();
+      }, timeoutMs);
+    }
 
-    // Parse response body safely
-    let data: any = null;
-    const text = await response.text();
-    if (text) {
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = { message: text };
+    // Ensure rejection if aborted even in test/mock environments where fetch mock does not implement signal
+    const abortPromise = new Promise<never>((_, reject) => {
+      if (internalController.signal.aborted) {
+        const err = new Error('The operation was aborted');
+        err.name = 'AbortError';
+        reject(err);
+        return;
       }
-    } else {
-      data = {};
+      internalController.signal.addEventListener(
+        'abort',
+        () => {
+          const err = new Error('The operation was aborted');
+          err.name = 'AbortError';
+          reject(err);
+        },
+        { once: true }
+      );
+    });
+
+    let response: Response;
+    let echoedRequestId = requestId;
+    let data: any = null;
+
+    try {
+      response = await Promise.race([
+        fetch(url, {
+          ...fetchInit,
+          headers,
+          signal: internalController.signal,
+        }),
+        abortPromise,
+      ]);
+
+      echoedRequestId = response.headers?.get?.('x-request-id') || requestId;
+
+      // Parse response body safely with timeout and abort race protection
+      const text = await Promise.race([
+        response.text(),
+        abortPromise,
+      ]);
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { message: text };
+        }
+      } else {
+        data = {};
+      }
+    } catch (fetchError: any) {
+      if (callerSignal?.aborted) {
+        throw new ApiError({
+          message: 'Request was cancelled.',
+          status: 0,
+          code: 'CANCELLED',
+          isCancelled: true,
+          requestId,
+        });
+      }
+
+      if (didTimeout) {
+        throw new ApiError({
+          message: `Request timed out after ${Math.round(timeoutMs / 1000)} seconds. Please check your connection.`,
+          status: 0,
+          code: 'TIMEOUT',
+          isTimeout: true,
+          requestId,
+        });
+      }
+
+      if (fetchError?.name === 'AbortError') {
+        throw new ApiError({
+          message: 'Request was cancelled.',
+          status: 0,
+          code: 'CANCELLED',
+          isCancelled: true,
+          requestId,
+        });
+      }
+
+      throw new ApiError({
+        message: 'Unable to connect to PitchMint server. Please check your network connection.',
+        status: 0,
+        code: 'NETWORK_ERROR',
+        requestId,
+      });
+    } finally {
+      if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      if (callerSignal) {
+        callerSignal.removeEventListener('abort', onCallerAbort);
+      }
     }
 
     if (!response.ok) {
@@ -131,6 +271,7 @@ export const apiClient = {
         endpoint.includes('/signin') ||
         endpoint.includes('/register') ||
         endpoint.includes('/verify-email') ||
+        endpoint.includes('/resend-verification') ||
         endpoint.includes('/forgot-password') ||
         endpoint.includes('/reset-password');
 
@@ -149,6 +290,7 @@ export const apiClient = {
       throw new ApiError({
         message: errorMessage,
         status: response.status,
+        code: 'HTTP_ERROR',
         emailNotVerified: !!data?.emailNotVerified,
         email: data?.email,
         errors: data?.errors,

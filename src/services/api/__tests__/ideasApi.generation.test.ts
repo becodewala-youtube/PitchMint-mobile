@@ -1,5 +1,5 @@
 import { ideasApi } from '../ideasApi';
-import { apiClient } from '../apiClient';
+import { apiClient, AI_GENERATION_TIMEOUT_MS } from '../apiClient';
 
 describe('IdeasApi Service - Generation & Regeneration', () => {
   beforeEach(() => {
@@ -43,7 +43,9 @@ describe('IdeasApi Service - Generation & Regeneration', () => {
       const result = await ideasApi.generatePitchDeck('idea-123');
 
       expect(postSpy).toHaveBeenCalledTimes(1);
-      expect(postSpy).toHaveBeenCalledWith('/api/pitchdeck/idea-123');
+      expect(postSpy).toHaveBeenCalledWith('/api/pitchdeck/idea-123', undefined, {
+        timeoutMs: AI_GENERATION_TIMEOUT_MS,
+      });
       expect(result._id).toBe('idea-123');
       expect(result.pitchDeckContent?.problem).toBe('Problem statement');
       expect(result.userCredits).toBe(4);
@@ -123,7 +125,9 @@ describe('IdeasApi Service - Generation & Regeneration', () => {
       const result = await ideasApi.regeneratePitchDeck('idea-123');
 
       expect(putSpy).toHaveBeenCalledTimes(1);
-      expect(putSpy).toHaveBeenCalledWith('/api/pitchdeck/idea-123');
+      expect(putSpy).toHaveBeenCalledWith('/api/pitchdeck/idea-123', undefined, {
+        timeoutMs: AI_GENERATION_TIMEOUT_MS,
+      });
       expect(result._id).toBe('idea-123');
       expect(result.pitchDeckContent?.problem).toBe('Updated problem');
       expect(result.userCredits).toBe(3);
@@ -198,7 +202,9 @@ describe('IdeasApi Service - Generation & Regeneration', () => {
       const result = await ideasApi.generateCanvas('idea-canvas-1');
 
       expect(postSpy).toHaveBeenCalledTimes(1);
-      expect(postSpy).toHaveBeenCalledWith('/api/canvas/idea-canvas-1');
+      expect(postSpy).toHaveBeenCalledWith('/api/canvas/idea-canvas-1', undefined, {
+        timeoutMs: AI_GENERATION_TIMEOUT_MS,
+      });
       expect(result._id).toBe('idea-canvas-1');
       expect(result.canvasContent?.problem).toBe('Waste problem');
       expect(result.canvasContent?.unfairAdvantage).toBe('Proprietary model');
@@ -275,7 +281,9 @@ describe('IdeasApi Service - Generation & Regeneration', () => {
       const result = await ideasApi.regenerateCanvas('idea-canvas-1');
 
       expect(putSpy).toHaveBeenCalledTimes(1);
-      expect(putSpy).toHaveBeenCalledWith('/api/canvas/idea-canvas-1');
+      expect(putSpy).toHaveBeenCalledWith('/api/canvas/idea-canvas-1', undefined, {
+        timeoutMs: AI_GENERATION_TIMEOUT_MS,
+      });
       expect(result._id).toBe('idea-canvas-1');
       expect(result.canvasContent?.problem).toBe('Updated waste problem');
       expect(result.userCredits).toBe(1);

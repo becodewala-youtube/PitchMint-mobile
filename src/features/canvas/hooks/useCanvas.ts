@@ -160,7 +160,11 @@ export const useCanvas = ({
           msg = 'Insufficient credits. 1 credit is required to generate your canvas.';
         } else if (err.status === 429) {
           msg = 'Rate limit reached: Maximum 2 generation requests allowed per minute. Please wait 60 seconds before trying again.';
-        } else if (err.status === 0) {
+        } else if (err.isCancelled) {
+          msg = isRegeneration
+            ? 'Business model canvas regeneration was cancelled.'
+            : 'Business model canvas generation was cancelled.';
+        } else if (err.isTimeout || err.status === 0) {
           Alert.alert(
             'Network Request Timed Out',
             'Your generation request was sent, but the network connection was interrupted. The AI may still be processing your canvas on the server.\n\nPlease tap "Check Status" in a few moments rather than resubmitting.',
@@ -170,7 +174,8 @@ export const useCanvas = ({
                 onPress: async () => {
                   try {
                     const fresh = await ideasApi.getIdeaById(ideaId);
-                    if (isMountedRef.current && fresh?.canvasContent) {
+                    if (!isMountedRef.current) return;
+                    if (hasSubDocument(fresh?.canvasContent)) {
                       const newCanvasString = JSON.stringify(fresh.canvasContent);
                       if (!isRegeneration || newCanvasString !== previousCanvasString) {
                         setIdea(fresh);
@@ -186,7 +191,9 @@ export const useCanvas = ({
                       'The canvas update has not appeared yet. Please pull to refresh in a few moments.'
                     );
                   } catch {
-                    Alert.alert('Connection Error', 'Could not reach server to verify canvas status.');
+                    if (isMountedRef.current) {
+                      Alert.alert('Connection Error', 'Could not reach server to verify canvas status.');
+                    }
                   }
                 },
               },
