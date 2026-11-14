@@ -8,7 +8,6 @@ import {
   RefreshControl,
   ScrollView,
   Alert,
-  Modal,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { RootStackParamList, RootStackNavigationProp } from '../../../navigation/types';
@@ -22,6 +21,7 @@ import {
   Button,
   ScoreRing,
   ScoreBar,
+  CreditConfirmationModal,
 } from '../../../components';
 import { colors, Tone, spacing, typography, borderRadius, touchTargets } from '../../../theme';
 import {
@@ -1019,109 +1019,31 @@ export const IdeaDetailsScreen: React.FC = () => {
         </Text>
       </Card>
 
-      {/* 1-Credit Pre-Flight Confirmation Modal */}
-      <Modal
+      {/* 1-Credit Pre-Flight Confirmation Modal (Pitch Deck) */}
+      <CreditConfirmationModal
         visible={showDeckConfirmModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowDeckConfirmModal(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <Card style={styles.confirmModalCard}>
-            <IconBadge name="sparkles" tone="violet" size={44} />
-            <Text style={styles.modalTitle}>
-              {hasPitchDeck ? 'Regenerate Pitch Deck?' : 'Generate Pitch Deck?'}
-            </Text>
-            <Text style={styles.modalBody}>
-              PitchMint AI will create a comprehensive 10-slide investor presentation tailored to this idea.
-            </Text>
-
-            <View style={styles.modalCreditBox}>
-              <View style={styles.modalCreditRow}>
-                <Text style={styles.modalCreditLabel}>Cost:</Text>
-                <Text style={styles.modalCreditValue}>1 Credit</Text>
-              </View>
-              <View style={styles.modalCreditRow}>
-                <Text style={styles.modalCreditLabel}>Current Balance:</Text>
-                <Text style={styles.modalCreditValue}>{`${userCredits} Credits`}</Text>
-              </View>
-              <View style={[styles.modalCreditRow, styles.modalCreditRowLast]}>
-                <Text style={styles.modalCreditLabel}>Remaining After:</Text>
-                <Text style={[styles.modalCreditValue, { color: colors.tones.emerald.text }]}>
-                  {`${Math.max(0, userCredits - 1)} Credits`}
-                </Text>
-              </View>
-            </View>
-
-            <Button
-              testID="idea-details-confirm-generate-deck-button"
-              title="Confirm & Deduct 1 Credit"
-              variant="primary"
-              onPress={handleConfirmGenerateDeck}
-              style={styles.modalConfirmBtn}
-            />
-            <Button
-              testID="idea-details-cancel-generate-deck-button"
-              title="Cancel"
-              variant="ghost"
-              onPress={() => setShowDeckConfirmModal(false)}
-              style={styles.modalCancelBtn}
-            />
-          </Card>
-        </View>
-      </Modal>
+        title={hasPitchDeck ? 'Regenerate Pitch Deck?' : 'Generate Pitch Deck?'}
+        description="PitchMint AI will create a comprehensive 10-slide investor presentation tailored to this idea."
+        costCredits={1}
+        currentCredits={userCredits}
+        confirmTestID="idea-details-confirm-generate-deck-button"
+        cancelTestID="idea-details-cancel-generate-deck-button"
+        onConfirm={handleConfirmGenerateDeck}
+        onCancel={() => setShowDeckConfirmModal(false)}
+      />
 
       {/* 1-Credit Pre-Flight Confirmation Modal (Business Model Canvas) */}
-      <Modal
+      <CreditConfirmationModal
         visible={showCanvasConfirmModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowCanvasConfirmModal(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <Card style={styles.confirmModalCard}>
-            <IconBadge name="sparkles" tone="violet" size={44} />
-            <Text style={styles.modalTitle}>
-              {hasCanvas ? 'Regenerate Business Model Canvas?' : 'Generate Business Model Canvas?'}
-            </Text>
-            <Text style={styles.modalBody}>
-              PitchMint AI will analyze this startup idea using lean startup principles to create a comprehensive 9-block model.
-            </Text>
-
-            <View style={styles.modalCreditBox}>
-              <View style={styles.modalCreditRow}>
-                <Text style={styles.modalCreditLabel}>Cost:</Text>
-                <Text style={styles.modalCreditValue}>1 Credit</Text>
-              </View>
-              <View style={styles.modalCreditRow}>
-                <Text style={styles.modalCreditLabel}>Current Balance:</Text>
-                <Text style={styles.modalCreditValue}>{`${userCredits} Credits`}</Text>
-              </View>
-              <View style={[styles.modalCreditRow, styles.modalCreditRowLast]}>
-                <Text style={styles.modalCreditLabel}>Remaining After:</Text>
-                <Text style={[styles.modalCreditValue, { color: colors.tones.emerald.text }]}>
-                  {`${Math.max(0, userCredits - 1)} Credits`}
-                </Text>
-              </View>
-            </View>
-
-            <Button
-              testID="idea-details-confirm-generate-canvas-button"
-              title="Confirm & Deduct 1 Credit"
-              variant="primary"
-              onPress={handleConfirmGenerateCanvas}
-              style={styles.modalConfirmBtn}
-            />
-            <Button
-              testID="idea-details-cancel-generate-canvas-button"
-              title="Cancel"
-              variant="ghost"
-              onPress={() => setShowCanvasConfirmModal(false)}
-              style={styles.modalCancelBtn}
-            />
-          </Card>
-        </View>
-      </Modal>
+        title={hasCanvas ? 'Regenerate Business Model Canvas?' : 'Generate Business Model Canvas?'}
+        description="PitchMint AI will analyze this startup idea using lean startup principles to create a comprehensive 9-block model."
+        costCredits={1}
+        currentCredits={userCredits}
+        confirmTestID="idea-details-confirm-generate-canvas-button"
+        cancelTestID="idea-details-cancel-generate-canvas-button"
+        onConfirm={handleConfirmGenerateCanvas}
+        onCancel={() => setShowCanvasConfirmModal(false)}
+      />
     </ScreenContainer>
   );
 };
@@ -1610,71 +1532,6 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: spacing.xs,
     minHeight: touchTargets.minTouchSize,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  confirmModalCard: {
-    width: '100%',
-    maxWidth: 380,
-    alignItems: 'center',
-    padding: spacing.xl,
-  },
-  modalTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
-    color: colors.text.primary,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
-    textAlign: 'center',
-  },
-  modalBody: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 19,
-    marginBottom: spacing.md,
-  },
-  modalCreditBox: {
-    width: '100%',
-    backgroundColor: colors.background.card2,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  modalCreditRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  modalCreditRowLast: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.05)',
-    marginTop: 4,
-    paddingTop: 8,
-  },
-  modalCreditLabel: {
-    fontSize: typography.sizes.xs,
-    color: colors.text.muted,
-  },
-  modalCreditValue: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.bold,
-    color: colors.text.primary,
-  },
-  modalConfirmBtn: {
-    width: '100%',
-    marginBottom: spacing.xs,
-  },
-  modalCancelBtn: {
-    width: '100%',
   },
 });
 

@@ -11,3 +11,4 @@ export * from './SectionHeader';
 export * from './Input';
 export * from './GoogleSignInButton';
 export * from './AuthCard';
+export * from './CreditConfirmationModal';
