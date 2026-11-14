@@ -80,6 +80,7 @@ export const setUnauthorizedHandler = (handler: UnauthorizedHandler | null): voi
 export interface RequestOptions extends RequestInit {
   skipAuth?: boolean;
   timeoutMs?: number;
+  idempotencyKey?: string;
 }
 
 /**
@@ -108,6 +109,10 @@ export const apiClient = {
       'X-Request-ID': requestId,
       ...((fetchInit.headers as Record<string, string>) || {}),
     };
+
+    if (options.idempotencyKey) {
+      headers['Idempotency-Key'] = options.idempotencyKey;
+    }
 
     // Attach Bearer token from secure storage unless explicitly skipped
     if (!skipAuth) {

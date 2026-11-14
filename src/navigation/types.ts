@@ -28,6 +28,8 @@ export type RootStackParamList = {
   IdeaDetails: { ideaId: string };
   PitchDeck: { ideaId: string; ideaTitle?: string; initialSlideIndex?: number };
   Canvas: { ideaId: string; ideaTitle?: string; initialBlockIndex?: number };
+  Competitor: { ideaId: string; ideaTitle?: string };
+  PitchSimulator: { ideaId: string; ideaTitle?: string };
 };
 
 export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;

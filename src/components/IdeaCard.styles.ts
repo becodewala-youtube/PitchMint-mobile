@@ -18,11 +18,28 @@ export const ideaCardStyles = StyleSheet.create({
   contentCol: {
     flex: 1,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
   title: {
+    flex: 1,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
     color: colors.text.primary,
-    marginBottom: 2,
+  },
+  deleteButton: {
+    minWidth: 48,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: borderRadius.sm,
+    marginLeft: spacing.xs,
+  },
+  deleteButtonPressed: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
   },
   description: {
     fontSize: typography.sizes.sm,

@@ -5,6 +5,8 @@ import { colors } from '../../../theme';
 import { BackendIdea } from '../../../services/api/ideasApi';
 import { SLIDE_DEFINITIONS } from '../../pitch-deck/constants/slideDefinitions';
 import { CANVAS_BLOCK_DEFINITIONS } from '../../canvas/constants/blockDefinitions';
+import { CompetitorActionModule } from './CompetitorActionModule';
+import { PitchSimulationActionModule } from './PitchSimulationActionModule';
 import { styles } from '../screens/IdeaDetailsScreen.styles';
 
 export interface IdeaActionModulesProps {
@@ -20,6 +22,11 @@ export interface IdeaActionModulesProps {
   onOpenDeckConfirm: () => void;
   onViewCanvas: (initialBlockIndex?: number) => void;
   onOpenCanvasConfirm: () => void;
+  onViewCompetitors?: () => void;
+  onAnalyzeCompetitors?: () => void;
+  onViewPitchSimulation?: () => void;
+  onStartPitchSimulation?: () => void;
+  onDeleteIdea?: () => void;
   onValidateAnother: () => void;
   onBack: () => void;
 }
@@ -37,6 +44,11 @@ export const IdeaActionModules: React.FC<IdeaActionModulesProps> = ({
   onOpenDeckConfirm,
   onViewCanvas,
   onOpenCanvasConfirm,
+  onViewCompetitors,
+  onAnalyzeCompetitors,
+  onViewPitchSimulation,
+  onStartPitchSimulation,
+  onDeleteIdea,
   onValidateAnother,
   onBack,
 }) => {
@@ -45,102 +57,12 @@ export const IdeaActionModules: React.FC<IdeaActionModulesProps> = ({
       <Text style={styles.sectionHeaderTitle}>Saved Action Modules</Text>
 
       {/* Module A: Competitor Analysis */}
-      <Card style={styles.moduleCard}>
-        <View style={styles.moduleHeaderRow}>
-          <IconBadge name="users" tone="orange" size={32} />
-          <View style={styles.moduleHeaderTitleCol}>
-            <Text style={styles.moduleTitle}>Competitor Analysis</Text>
-            <Text style={styles.moduleSubtitle}>
-              {hasCompetitors
-                ? `${idea.competitorAnalysis?.competitors?.length} competitors profiled`
-                : 'Not generated yet'}
-            </Text>
-          </View>
-          <Badge
-            label={hasCompetitors ? 'ACTIVE' : 'NOT GENERATED'}
-            variant={hasCompetitors ? 'emerald' : 'gray'}
-          />
-        </View>
-
-        {hasCompetitors ? (
-          <View style={styles.moduleContentArea}>
-            {idea.competitorAnalysis?.summary ? (
-              <View style={styles.summaryBox}>
-                <Text style={styles.summaryLabel}>Competitive Landscape Summary</Text>
-                <Text style={styles.summaryText}>{idea.competitorAnalysis.summary}</Text>
-              </View>
-            ) : null}
-
-            {idea.competitorAnalysis?.competitors?.map((comp, idx) => (
-              <View
-                key={`${comp.name || 'comp'}-${idx}`}
-                testID={`idea-details-competitor-card-${idx}`}
-                style={styles.competitorCard}
-              >
-                <View style={styles.competitorHeaderRow}>
-                  <Text style={styles.competitorName}>{comp.name || `Competitor #${idx + 1}`}</Text>
-                  <Pill label={`Competitor #${idx + 1}`} tone="gray" />
-                </View>
-                {comp.description ? (
-                  <Text style={styles.competitorDesc}>{comp.description}</Text>
-                ) : null}
-
-                {/* SWOT matrix if available */}
-                {comp.swot && (
-                  <View style={styles.swotGrid}>
-                    {comp.swot.strengths && comp.swot.strengths.length > 0 && (
-                      <View style={styles.swotCol}>
-                        <Text style={[styles.swotTitle, { color: colors.tones.emerald.text }]}>
-                          Strengths
-                        </Text>
-                        {comp.swot.strengths.map((s, i) => (
-                          <Text key={i} style={styles.swotItem}>• {s}</Text>
-                        ))}
-                      </View>
-                    )}
-                    {comp.swot.weaknesses && comp.swot.weaknesses.length > 0 && (
-                      <View style={styles.swotCol}>
-                        <Text style={[styles.swotTitle, { color: colors.tones.red.text }]}>
-                          Weaknesses
-                        </Text>
-                        {comp.swot.weaknesses.map((w, i) => (
-                          <Text key={i} style={styles.swotItem}>• {w}</Text>
-                        ))}
-                      </View>
-                    )}
-                    {comp.swot.opportunities && comp.swot.opportunities.length > 0 && (
-                      <View style={styles.swotCol}>
-                        <Text style={[styles.swotTitle, { color: colors.tones.cyan.text }]}>
-                          Opportunities
-                        </Text>
-                        {comp.swot.opportunities.map((o, i) => (
-                          <Text key={i} style={styles.swotItem}>• {o}</Text>
-                        ))}
-                      </View>
-                    )}
-                    {comp.swot.threats && comp.swot.threats.length > 0 && (
-                      <View style={styles.swotCol}>
-                        <Text style={[styles.swotTitle, { color: colors.tones.amber.text }]}>
-                          Threats
-                        </Text>
-                        {comp.swot.threats.map((t, i) => (
-                          <Text key={i} style={styles.swotItem}>• {t}</Text>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.moduleEmptyState}>
-            <Text style={styles.moduleEmptyText}>
-              Competitor profiles and SWOT matrices have not been generated for this idea yet.
-            </Text>
-          </View>
-        )}
-      </Card>
+      <CompetitorActionModule
+        idea={idea}
+        hasCompetitors={hasCompetitors}
+        onViewCompetitors={onViewCompetitors}
+        onAnalyzeCompetitors={onAnalyzeCompetitors}
+      />
 
       {/* Module B: Pitch Deck Presentation */}
       <Card style={styles.moduleCard}>
@@ -240,14 +162,14 @@ export const IdeaActionModules: React.FC<IdeaActionModulesProps> = ({
         )}
       </Card>
 
-      {/* Module C: Business Model Canvas */}
+      {/* Module C: Business Model Canvas (Lean Canvas) */}
       <Card style={styles.moduleCard}>
         <View style={styles.moduleHeaderRow}>
           <IconBadge name="panelsTopLeft" tone="emerald" size={32} />
           <View style={styles.moduleHeaderTitleCol}>
             <Text style={styles.moduleTitle}>Business Model Canvas</Text>
             <Text style={styles.moduleSubtitle}>
-              {hasCanvas ? '9-block canvas generated' : 'Not generated yet'}
+              {hasCanvas ? '9-block business model model ready' : 'Not generated yet'}
             </Text>
           </View>
           <Badge
@@ -261,7 +183,7 @@ export const IdeaActionModules: React.FC<IdeaActionModulesProps> = ({
             <View style={styles.deckActionRow}>
               <Button
                 testID="idea-details-view-canvas-button"
-                title="View Canvas"
+                title="View Full Canvas"
                 variant="primary"
                 onPress={() => onViewCanvas(0)}
                 leftIcon={<Icon name="panelsTopLeft" size={16} color="#FFFFFF" />}
@@ -294,7 +216,10 @@ export const IdeaActionModules: React.FC<IdeaActionModulesProps> = ({
                     key={block.key}
                     testID={`idea-details-canvas-preview-${bIdx}`}
                     onPress={() => onViewCanvas(bIdx)}
-                    style={styles.canvasBox}
+                    style={[
+                      styles.canvasBox,
+                      { borderColor: colors.tones[block.tone].border },
+                    ]}
                     accessibilityRole="button"
                     accessibilityLabel={`Open canvas block ${block.title}`}
                   >
@@ -339,76 +264,12 @@ export const IdeaActionModules: React.FC<IdeaActionModulesProps> = ({
       </Card>
 
       {/* Module D: Pitch Simulation & Investor Q&A */}
-      <Card style={styles.moduleCard}>
-        <View style={styles.moduleHeaderRow}>
-          <IconBadge name="messageSquare" tone="pink" size={32} />
-          <View style={styles.moduleHeaderTitleCol}>
-            <Text style={styles.moduleTitle}>Investor Pitch Simulation</Text>
-            <Text style={styles.moduleSubtitle}>
-              {hasSimulation
-                ? `${idea.pitchSimulation?.questions?.length} Q&A questions stored`
-                : 'Not simulated yet'}
-            </Text>
-          </View>
-          <Badge
-            label={hasSimulation ? 'ACTIVE' : 'NOT GENERATED'}
-            variant={hasSimulation ? 'emerald' : 'gray'}
-          />
-        </View>
-
-        {hasSimulation ? (
-          <View style={styles.moduleContentArea}>
-            {idea.pitchSimulation?.questions?.map((q, idx) => (
-              <View key={q.id || `q-${idx}`} style={styles.questionCard}>
-                <View style={styles.questionHeader}>
-                  <Pill label={q.category || 'General'} tone="violet" />
-                  {q.feedback?.rating ? (
-                    <Badge label={`Rating: ${q.feedback.rating}/5`} variant="amber" />
-                  ) : null}
-                </View>
-                <Text style={styles.questionText}>Q: {q.question}</Text>
-                {q.answer ? (
-                  <View style={styles.answerBox}>
-                    <Text style={styles.answerLabel}>Your Stored Answer:</Text>
-                    <Text style={styles.answerText}>{q.answer}</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.noAnswerText}>No response recorded yet.</Text>
-                )}
-                {q.feedback && (
-                  <View style={styles.feedbackBox}>
-                    {q.feedback.strengths && q.feedback.strengths.length > 0 && (
-                      <View style={styles.feedbackSection}>
-                        <Text style={styles.feedbackSectionTitle}>Strengths:</Text>
-                        {q.feedback.strengths.map((s, i) => (
-                          <Text key={i} style={styles.feedbackBullet}>• {s}</Text>
-                        ))}
-                      </View>
-                    )}
-                    {q.feedback.improvements && q.feedback.improvements.length > 0 && (
-                      <View style={styles.feedbackSection}>
-                        <Text style={styles.feedbackSectionTitle}>Areas for Improvement:</Text>
-                        {q.feedback.improvements.map((imp, i) => (
-                          <Text key={i} style={styles.feedbackBullet}>• {imp}</Text>
-                        ))}
-                      </View>
-                    )}
-                    {q.feedback.additionalAdvice ? (
-                      <Text style={styles.adviceText}>💡 {q.feedback.additionalAdvice}</Text>
-                    ) : null}
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.moduleEmptyState}>
-            <Text style={styles.moduleEmptyText}>
-              Interactive investor simulation questions have not been generated for this idea yet.
-            </Text>
-          </View>
-        )}
-      </Card>
+      <PitchSimulationActionModule
+        idea={idea}
+        hasSimulation={hasSimulation}
+        onViewPitchSimulation={onViewPitchSimulation}
+        onStartPitchSimulation={onStartPitchSimulation}
+      />
 
       {/* Action Hub */}
       <Text style={styles.sectionHeaderTitle}>Action Hub</Text>
@@ -418,7 +279,7 @@ export const IdeaActionModules: React.FC<IdeaActionModulesProps> = ({
           <View style={styles.actionHubTitleCol}>
             <Text style={styles.actionHubTitle}>Idea Next Steps</Text>
             <Text style={styles.actionHubSubtitle}>
-              Validate new ideas or return to your portfolio.
+              Validate new ideas, manage your portfolio, or remove this idea.
             </Text>
           </View>
         </View>
@@ -440,6 +301,18 @@ export const IdeaActionModules: React.FC<IdeaActionModulesProps> = ({
           leftIcon={<Icon name="chevronLeft" size={16} color={colors.text.primary} />}
           style={styles.actionBtnSecondary}
         />
+
+        {onDeleteIdea ? (
+          <Button
+            testID="idea-details-action-hub-delete-button"
+            title="Delete Saved Idea"
+            variant="ghost"
+            onPress={onDeleteIdea}
+            leftIcon={<Icon name="trash" size={16} color={colors.tones.red.text} />}
+            style={[styles.actionBtnSecondary, { borderColor: 'rgba(239, 68, 68, 0.3)' }]}
+            textStyle={{ color: colors.tones.red.text }}
+          />
+        ) : null}
 
         <Text style={styles.actionHubFooter}>
           All data is backed by your cloud MongoDB account.

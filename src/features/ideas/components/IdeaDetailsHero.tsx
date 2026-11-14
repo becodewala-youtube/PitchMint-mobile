@@ -12,6 +12,7 @@ export interface IdeaDetailsHeroProps {
   verdictColor: string;
   ideaText: string;
   onBack: () => void;
+  onDelete?: () => void;
 }
 
 export const IdeaDetailsHero: React.FC<IdeaDetailsHeroProps> = ({
@@ -22,6 +23,7 @@ export const IdeaDetailsHero: React.FC<IdeaDetailsHeroProps> = ({
   verdictColor,
   ideaText,
   onBack,
+  onDelete,
 }) => {
   return (
     <>
@@ -44,7 +46,20 @@ export const IdeaDetailsHero: React.FC<IdeaDetailsHeroProps> = ({
             {dateFormatted ? `Validated ${dateFormatted}` : 'Saved Idea Analysis'}
           </Text>
         </View>
-        <Pill label={`${overallScore}/100`} tone="gray" />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Pill label={`${overallScore}/100`} tone="gray" />
+          {onDelete ? (
+            <Pressable
+              testID="idea-details-header-delete-button"
+              onPress={onDelete}
+              style={styles.backBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Delete this idea"
+            >
+              <Icon name="trash" size={18} color={colors.tones.red.text} />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       {/* Hero Score Box */}

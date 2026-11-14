@@ -1,7 +1,19 @@
-import React from 'react';
-import { View, Text, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
-import { ScreenContainer, Card, IconBadge, Icon, Button, CreditConfirmationModal } from '../../../components';
+import React, { useState } from 'react';
+import { View, Text, Pressable, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {
+  ScreenContainer,
+  Card,
+  IconBadge,
+  Icon,
+  Button,
+  CreditConfirmationModal,
+  DeleteConfirmationModal,
+} from '../../../components';
 import { colors } from '../../../theme';
+import { RootStackParamList } from '../../../navigation/types';
+import { ideasApi } from '../../../services/api/ideasApi';
 import { useIdeaDetails } from '../hooks/useIdeaDetails';
 import { IdeaDetailsHero } from '../components/IdeaDetailsHero';
 import { IdeaBreakdownSection } from '../components/IdeaBreakdownSection';
@@ -13,6 +25,10 @@ import { styles } from './IdeaDetailsScreen.styles';
  * Decomposed in Stage 4.4 into modular components and custom hooks.
  */
 export const IdeaDetailsScreen: React.FC = () => {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
   const {
     idea,
     isLoading,
@@ -54,6 +70,35 @@ export const IdeaDetailsScreen: React.FC = () => {
     hasSimulation,
     userCredits,
   } = useIdeaDetails();
+
+  const handleOpenDelete = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!idea || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await ideasApi.deleteIdea(idea._id);
+      setShowDeleteModal(false);
+      navigation.navigate('MainTabs', { screen: 'Ideas' } as any);
+    } catch (err: any) {
+      console.warn('[IdeaDetailsScreen] Delete failed:', err);
+      Alert.alert('Delete Failed', err?.message || 'Unable to delete idea. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleViewCompetitors = () => {
+    if (!idea) return;
+    navigation.navigate('Competitor' as any, { ideaId: idea._id, ideaTitle: parsedTitle });
+  };
+
+  const handleViewPitchSimulation = () => {
+    if (!idea) return;
+    navigation.navigate('PitchSimulator' as any, { ideaId: idea._id, ideaTitle: parsedTitle });
+  };
 
   // 1. Loading State
   if (isLoading) {
@@ -144,6 +189,7 @@ export const IdeaDetailsScreen: React.FC = () => {
         verdictColor={verdictColor}
         ideaText={idea.ideaText}
         onBack={handleBack}
+        onDelete={handleOpenDelete}
       />
 
       <IdeaBreakdownSection
@@ -171,6 +217,11 @@ export const IdeaDetailsScreen: React.FC = () => {
         onOpenDeckConfirm={handleOpenDeckConfirm}
         onViewCanvas={handleViewCanvas}
         onOpenCanvasConfirm={handleOpenCanvasConfirm}
+        onViewCompetitors={handleViewCompetitors}
+        onAnalyzeCompetitors={handleViewCompetitors}
+        onViewPitchSimulation={handleViewPitchSimulation}
+        onStartPitchSimulation={handleViewPitchSimulation}
+        onDeleteIdea={handleOpenDelete}
         onValidateAnother={handleValidateAnother}
         onBack={handleBack}
       />
@@ -199,6 +250,19 @@ export const IdeaDetailsScreen: React.FC = () => {
         cancelTestID="idea-details-cancel-generate-canvas-button"
         onConfirm={handleConfirmGenerateCanvas}
         onCancel={() => setShowCanvasConfirmModal(false)}
+      />
+
+      {/* Delete Idea Confirmation Modal */}
+      <DeleteConfirmationModal
+        visible={showDeleteModal}
+        ideaTitle={parsedTitle}
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => {
+          if (!isDeleting) setShowDeleteModal(false);
+        }}
+        confirmTestID="idea-details-confirm-delete-button"
+        cancelTestID="idea-details-cancel-delete-button"
       />
     </ScreenContainer>
   );

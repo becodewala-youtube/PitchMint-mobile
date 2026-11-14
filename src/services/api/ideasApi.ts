@@ -1,105 +1,19 @@
-import { apiClient, ApiError, AI_GENERATION_TIMEOUT_MS, RequestOptions } from './apiClient';
+import { apiClient, ApiError, AI_GENERATION_TIMEOUT_MS, RequestOptions, generateRequestId } from './apiClient';
 import { parseIdeaTitleAndDesc, hasSubDocument, ParsedIdeaCard } from '../../utils/ideaParser';
 
-export interface PitchDeckSlideItem {
-  problem?: string;
-  solution?: string;
-  marketSize?: string;
-  businessModel?: string;
-  competitors?: string;
-  goToMarket?: string;
-  team?: string;
-  financials?: string;
-  milestones?: string;
-  askAndUse?: string;
-  [key: string]: string | undefined;
-}
-
-export interface CanvasContentData {
-  problem?: string;
-  solution?: string;
-  keyMetrics?: string;
-  uniqueValueProposition?: string;
-  channels?: string;
-  customerSegments?: string;
-  costStructure?: string;
-  revenueStreams?: string;
-  unfairAdvantage?: string;
-  [key: string]: string | undefined;
-}
-
-export interface CompetitorSwot {
-  strengths?: string[];
-  weaknesses?: string[];
-  opportunities?: string[];
-  threats?: string[];
-}
-
-export interface CompetitorItem {
-  name?: string;
-  description?: string;
-  swot?: CompetitorSwot;
-}
-
-export interface PitchSimulationQuestion {
-  id?: string;
-  question?: string;
-  category?: string;
-  answer?: string;
-  feedback?: {
-    rating?: number;
-    strengths?: string[];
-    improvements?: string[];
-    additionalAdvice?: string;
-  } | null;
-}
-
-export interface BackendIdea {
-  _id: string;
-  userId: string;
-  ideaText: string;
-  marketDemandScore?: number;
-  competitionScore?: number;
-  monetizationFeasibilityScore?: number;
-  overallScore?: number;
-  analysis?: {
-    marketDemand?: { score?: number; text?: string };
-    competition?: { score?: number; text?: string };
-    monetization?: { score?: number; text?: string };
-    overall?: { score?: number; text?: string };
-  };
-  pitchDeckContent?: PitchDeckSlideItem;
-  canvasContent?: CanvasContentData;
-  competitorAnalysis?: {
-    summary?: string;
-    competitors?: CompetitorItem[];
-  };
-  pitchSimulation?: {
-    questions?: PitchSimulationQuestion[];
-  };
-  createdAt: string;
-}
-
-export interface SavedIdeasResponse {
-  success: boolean;
-  ideas: BackendIdea[];
-  totalPages: number;
-  currentPage: number;
-  total: number;
-}
-
-export interface GetSavedIdeasParams {
-  page?: number;
-  limit?: number;
-}
-
-export interface SubmitIdeaRequest {
-  ideaText: string;
-}
-
-export interface SubmitIdeaResponse extends BackendIdea {
-  userCredits?: number;
-}
+export * from './ideasApi.types';
+import {
+  BackendIdea,
+  SavedIdeasResponse,
+  GetSavedIdeasParams,
+  SubmitIdeaRequest,
+  SubmitIdeaResponse,
+  PitchDeckResponse,
+  CanvasResponse,
+  CompetitorAnalysisResponse,
+  PitchSimulationResponse,
+  EvaluateAnswerResponse,
+} from './ideasApi.types';
 
 /**
  * Transforms a raw BackendIdea into a UI-ready ParsedIdeaCard.
@@ -128,14 +42,6 @@ export const mapBackendIdeaToCard = (raw: BackendIdea): ParsedIdeaCard => {
   };
 };
 
-export interface PitchDeckResponse extends BackendIdea {
-  userCredits?: number;
-}
-
-export interface CanvasResponse extends BackendIdea {
-  userCredits?: number;
-}
-
 /**
  * Service encapsulating PitchMint backend saved idea endpoints.
  */
@@ -148,6 +54,18 @@ export const ideasApi = {
     const query = new URLSearchParams();
     if (params?.page !== undefined) query.append('page', String(params.page));
     if (params?.limit !== undefined) query.append('limit', String(params.limit));
+    if (params?.search !== undefined && params.search.trim()) {
+      query.append('search', params.search.trim());
+    }
+    if (params?.filter !== undefined && params.filter) {
+      query.append('filter', params.filter);
+    }
+    if (params?.sortBy !== undefined && params.sortBy) {
+      query.append('sortBy', params.sortBy);
+    }
+    if (params?.sortOrder !== undefined && params.sortOrder) {
+      query.append('sortOrder', params.sortOrder);
+    }
 
     const qs = query.toString();
     const endpoint = `/api/idea/saved${qs ? `?${qs}` : ''}`;
@@ -193,6 +111,25 @@ export const ideasApi = {
   },
 
   /**
+   * Deletes a saved idea by ID.
+   * Route: DELETE /api/idea/:id
+   */
+  async deleteIdea(id: string, options?: RequestOptions): Promise<{ success: boolean; message?: string }> {
+    const trimmedId = id?.trim();
+    if (!trimmedId) {
+      throw new ApiError({
+        message: 'Invalid idea identifier',
+        status: 400,
+      });
+    }
+
+    return apiClient.delete<{ success: boolean; message?: string }>(
+      `/api/idea/${trimmedId}`,
+      options
+    );
+  },
+
+  /**
    * Submits a startup idea for live backend AI validation.
    * Route: POST /api/idea/submit
    * Cost: 1 credit (deducted atomically by backend)
@@ -210,6 +147,7 @@ export const ideasApi = {
     const requestOptions: RequestOptions = {
       ...options,
       timeoutMs: options?.timeoutMs !== undefined ? options.timeoutMs : AI_GENERATION_TIMEOUT_MS,
+      ...(options?.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : {}),
     };
 
     const response = await apiClient.post<SubmitIdeaResponse>(
@@ -252,6 +190,7 @@ export const ideasApi = {
     const requestOptions: RequestOptions = {
       ...options,
       timeoutMs: options?.timeoutMs !== undefined ? options.timeoutMs : AI_GENERATION_TIMEOUT_MS,
+      ...(options?.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : {}),
     };
 
     const response = await apiClient.post<PitchDeckResponse>(
@@ -288,6 +227,7 @@ export const ideasApi = {
     const requestOptions: RequestOptions = {
       ...options,
       timeoutMs: options?.timeoutMs !== undefined ? options.timeoutMs : AI_GENERATION_TIMEOUT_MS,
+      ...(options?.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : {}),
     };
 
     const response = await apiClient.put<PitchDeckResponse>(
@@ -324,6 +264,7 @@ export const ideasApi = {
     const requestOptions: RequestOptions = {
       ...options,
       timeoutMs: options?.timeoutMs !== undefined ? options.timeoutMs : AI_GENERATION_TIMEOUT_MS,
+      ...(options?.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : {}),
     };
 
     const response = await apiClient.post<CanvasResponse>(
@@ -360,6 +301,7 @@ export const ideasApi = {
     const requestOptions: RequestOptions = {
       ...options,
       timeoutMs: options?.timeoutMs !== undefined ? options.timeoutMs : AI_GENERATION_TIMEOUT_MS,
+      ...(options?.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : {}),
     };
 
     const response = await apiClient.put<CanvasResponse>(
@@ -371,6 +313,122 @@ export const ideasApi = {
     if (!response || typeof response !== 'object' || !response._id || !response.canvasContent) {
       throw new ApiError({
         message: 'Received an incomplete or malformed canvas response from server.',
+        status: 502,
+      });
+    }
+
+    return response;
+  },
+
+  /**
+   * Generates or retrieves competitor analysis with SWOT matrix for an existing idea.
+   * Route: POST /api/competitors/analyze/:id
+   * Cost: 1 credit if new or regenerating
+   */
+  async analyzeCompetitors(
+    ideaId: string,
+    regenerate?: boolean,
+    options?: RequestOptions
+  ): Promise<CompetitorAnalysisResponse> {
+    const trimmedId = ideaId?.trim();
+    if (!trimmedId) {
+      throw new ApiError({
+        message: 'Invalid idea identifier',
+        status: 400,
+      });
+    }
+
+    const requestOptions: RequestOptions = {
+      ...options,
+      timeoutMs: options?.timeoutMs !== undefined ? options.timeoutMs : AI_GENERATION_TIMEOUT_MS,
+      ...(options?.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : {}),
+    };
+
+    const response = await apiClient.post<CompetitorAnalysisResponse>(
+      `/api/competitors/analyze/${trimmedId}`,
+      { regenerate: Boolean(regenerate) },
+      requestOptions
+    );
+
+    if (!response || typeof response !== 'object' || !response.competitorAnalysis) {
+      throw new ApiError({
+        message: 'Received an incomplete competitor analysis response from server.',
+        status: 502,
+      });
+    }
+
+    return response;
+  },
+
+  /**
+   * Generates or retrieves pitch simulation questions for an existing idea.
+   * Route: POST /api/pitch-simulator/simulate/:id
+   * Cost: 1 credit if new or regenerating
+   */
+  async simulatePitch(
+    ideaId: string,
+    regenerate?: boolean,
+    options?: RequestOptions
+  ): Promise<PitchSimulationResponse> {
+    const trimmedId = ideaId?.trim();
+    if (!trimmedId) {
+      throw new ApiError({
+        message: 'Invalid idea identifier',
+        status: 400,
+      });
+    }
+
+    const requestOptions: RequestOptions = {
+      ...options,
+      timeoutMs: options?.timeoutMs !== undefined ? options.timeoutMs : AI_GENERATION_TIMEOUT_MS,
+      ...(options?.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : {}),
+    };
+
+    const endpoint = `/api/pitch-simulator/simulate/${trimmedId}${regenerate ? '?regenerate=true' : ''}`;
+    const response = await apiClient.post<PitchSimulationResponse>(
+      endpoint,
+      undefined,
+      requestOptions
+    );
+
+    if (!response || typeof response !== 'object' || !response._id) {
+      throw new ApiError({
+        message: 'Received an incomplete pitch simulation response from server.',
+        status: 502,
+      });
+    }
+
+    return response;
+  },
+
+  /**
+   * Submits an answer to a pitch simulation question for AI evaluation.
+   * Route: POST /api/pitch-simulator/evaluate/:id
+   * Cost: 0 credits
+   */
+  async evaluateAnswer(
+    ideaId: string,
+    questionId: string,
+    answer: string,
+    options?: RequestOptions
+  ): Promise<EvaluateAnswerResponse> {
+    const trimmedId = ideaId?.trim();
+    if (!trimmedId || !questionId?.trim()) {
+      throw new ApiError({
+        message: 'Invalid idea or question identifier',
+        status: 400,
+      });
+    }
+
+    const response = await apiClient.post<EvaluateAnswerResponse>(
+      `/api/pitch-simulator/evaluate/${trimmedId}`,
+      { questionId: questionId.trim(), answer: answer?.trim() || '' },
+      options
+    );
+
+    if (!response || typeof response !== 'object' || !response.feedback) {
+      throw new ApiError({
+        message: 'Received an incomplete evaluation response from server.',
         status: 502,
       });
     }

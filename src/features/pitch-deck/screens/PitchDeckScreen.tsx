@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   Pressable,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../../navigation/types';
@@ -16,6 +17,7 @@ import { styles } from './PitchDeckScreen.styles';
 import { usePitchDeck } from '../hooks/usePitchDeck';
 import { PitchDeckSlideViewer } from '../components/PitchDeckSlideViewer';
 import { PitchDeckSlideStrip } from '../components/PitchDeckSlideStrip';
+import { exportPitchDeckPdf } from '../utils/pdfExport';
 
 export { SLIDE_DEFINITIONS, SlideDefinition };
 
@@ -52,6 +54,21 @@ export const PitchDeckScreen: React.FC = () => {
     userCredits: user?.credits ?? 0,
     refreshUserData: refreshUser,
   });
+
+  const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
+
+  const handleExportPdf = async () => {
+    if (isExportingPdf || !idea) return;
+    setIsExportingPdf(true);
+    try {
+      await exportPitchDeckPdf(displayTitle, idea.pitchDeckContent || {});
+    } catch (err: any) {
+      console.warn('[PitchDeckScreen] PDF export failed:', err);
+      Alert.alert('Export Failed', err?.message || 'Unable to generate PDF pitch deck.');
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   const handleBack = () => {
     navigation.goBack();
@@ -164,15 +181,28 @@ export const PitchDeckScreen: React.FC = () => {
             </Text>
           </View>
         </View>
-        <Button
-          testID="pitch-deck-regenerate-button"
-          title="Regenerate Deck (1 Credit)"
-          variant="primary"
-          onPress={handleOpenRegenerateModal}
-          disabled={isSubmitting}
-          loading={isSubmitting}
-          style={styles.regenerateBtn}
-        />
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+          <Button
+            testID="pitch-deck-export-pdf-button"
+            title={isExportingPdf ? 'Exporting PDF…' : 'Export PDF'}
+            variant="secondary"
+            onPress={handleExportPdf}
+            disabled={isExportingPdf}
+            loading={isExportingPdf}
+            leftIcon={<Icon name="fileText" size={16} color={colors.text.primary} />}
+            style={{ flex: 1, minHeight: 48 }}
+          />
+          <Button
+            testID="pitch-deck-regenerate-button"
+            title={isSubmitting ? 'Regenerating…' : 'Regenerate (1 Credit)'}
+            variant="primary"
+            onPress={handleOpenRegenerateModal}
+            disabled={isSubmitting || isExportingPdf}
+            loading={isSubmitting}
+            leftIcon={<Icon name="sparkles" size={16} color="#FFFFFF" />}
+            style={{ flex: 1, minHeight: 48 }}
+          />
+        </View>
         <Text style={styles.footerCreditBalance}>
           Current balance: {currentCredits} {currentCredits === 1 ? 'Credit' : 'Credits'}
         </Text>
