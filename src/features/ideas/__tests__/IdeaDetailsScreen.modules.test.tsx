@@ -204,7 +204,7 @@ describe('IdeaDetailsScreen Modules Integration (Phase 4A & 4B)', () => {
       );
     });
 
-    it('inspects backend idea on ambiguous network error without automatic re-submission', async () => {
+    it('inspects backend idea on ambiguous network error without automatic re-submission and recovers via Check Status', async () => {
       const getSpy = jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(ideaWithoutDeckFixture);
       const timeoutError = new ApiError({
         message: 'Network request timed out',
@@ -216,6 +216,10 @@ describe('IdeaDetailsScreen Modules Integration (Phase 4A & 4B)', () => {
       await act(async () => {
         renderer = ReactTestRenderer.create(<IdeaDetailsScreen />);
       });
+
+      // Clear mount-time call history
+      expect(getSpy).toHaveBeenCalledTimes(1);
+      getSpy.mockClear();
 
       const root = renderer!.root;
       const genBtn = root.findByProps({ testID: 'idea-details-generate-pitch-deck-button' });
@@ -230,8 +234,46 @@ describe('IdeaDetailsScreen Modules Integration (Phase 4A & 4B)', () => {
 
       // Paid generation request executed only once - no automatic duplicate retry
       expect(generateSpy).toHaveBeenCalledTimes(1);
-      // Fallback read executed to inspect persistence
+
+      // Verify timeout alert was presented with Check Status action
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'Request Timed Out',
+        expect.stringContaining('Please tap "Check Status"'),
+        expect.any(Array)
+      );
+
+      // Locate Check Status button
+      const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+      const timeoutAlertCall = alertCalls.find((call) => call[0] === 'Request Timed Out');
+      expect(timeoutAlertCall).toBeDefined();
+      const checkStatusBtn = timeoutAlertCall[2].find((btn: any) => btn.text === 'Check Status');
+      expect(checkStatusBtn).toBeDefined();
+
+      // Return idea with generated pitch deck
+      const recoveredIdea = {
+        ...ideaWithoutDeckFixture,
+        pitchDeckContent: {
+          problem: 'Plumbing dispatch delays',
+          solution: 'Real-time AI dispatch',
+        },
+      };
+      getSpy.mockResolvedValueOnce(recoveredIdea);
+
+      // Execute Check Status callback
+      await act(async () => {
+        await checkStatusBtn.onPress();
+      });
+
+      // Verify recovery query
+      expect(getSpy).toHaveBeenCalledTimes(1);
       expect(getSpy).toHaveBeenCalledWith('idea-123');
+      // User balance refreshed on established success
+      expect(mockRefreshUser).toHaveBeenCalled();
+      // Navigated to PitchDeck screen
+      expect(mockNavigate).toHaveBeenCalledWith('PitchDeck', {
+        ideaId: 'idea-123',
+        ideaTitle: 'Vertical AI for Plumbing Contractors',
+      });
     });
   });
 

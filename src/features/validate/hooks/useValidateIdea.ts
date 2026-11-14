@@ -171,7 +171,10 @@ export const useValidateIdea = ({
           errorMessage = 'Your session has expired. Please sign in again.';
         } else if (err.status === 400) {
           errorMessage = err.message || 'Please provide a valid startup idea.';
-        } else if (err.status === 0) {
+        } else if (err.isCancelled) {
+          isAmbiguous = false;
+          errorMessage = 'Validation request was cancelled.';
+        } else if (err.status === 0 || err.isTimeout) {
           isAmbiguous = true;
           errorMessage =
             'Network connection interrupted or timed out. If the request reached the server, your validation may still process. Please check your Saved Ideas before re-submitting to avoid duplicate charges.';

@@ -69,7 +69,8 @@ This document captures the verified technical facts, architecture, dependencies,
   - Node.js runtime: `22` (cached npm dependencies)
   - Triggered on push to `main` and pull requests targeting `main`.
 - **Test Snapshot (Dated Audit Snapshot: November 2026):**
-  - 32 test suites, 268 tests passing cleanly (0 failures).
+  - 36 test suites, 320 tests passing cleanly (0 failures).
+  - Baseline at Stage 4.4 was 32 suites, 270 tests; +12 tests added in Stage 5.1; +38 tests and 4 test suites added in Stage 5.1.1 remediating review findings (+9 in `apiClient.lifecycle.test.ts`, +6 in `usePitchDeck.recovery.test.tsx`, +6 in `useCanvas.recovery.test.tsx`, +8 in `useIdeaDetails.recovery.test.tsx`, +2 in `ideasApi.test.ts`, +1 in `apiClient.test.ts`, +1 in `PitchDeckScreen.test.tsx`, +1 in `CanvasScreen.generation.test.tsx`, +1 in `IdeaDetailsScreen.modules.test.tsx`, +4 in existing suites).
   - 100% adherence to strict architectural rule: zero production source or test files exceed 500 lines.
   *(Note: Dynamic test numbers will change over time as new tests are added).*
 
@@ -79,9 +80,9 @@ This document captures the verified technical facts, architecture, dependencies,
 
 The following items are tracked in [`docs/known-issues.md`](docs/known-issues.md):
 1. **ENV-01:** Resolved as a verified safe public-default convention. Tracked `.env` provides safe defaults (`EXPO_PUBLIC_*`); local overrides belong in ignored `.env.local`. No untracking or history rewrite is required.
-2. **API-01:** `apiClient.ts` lacks request timeout/abort handling. Requires route-specific timeout investigation.
+2. **API-01:** Resolved. `apiClient.ts` implements configurable request timeouts (`DEFAULT_TIMEOUT_MS = 15000` standard default, `AI_GENERATION_TIMEOUT_MS = 60000` explicit configuration for the five credit-consuming operations in `ideasApi.ts`), caller overrides, response stream timeout protection, and caller `AbortSignal` API-level cancellation capability. Distinct `TIMEOUT` and `CANCELLED` error codes prevent misclassifying timeouts as auth or payment failures. Credit-consuming endpoints enforce non-retry policies and prompt the user to check saved ideas / idea status before attempting repeated requests. Status verification uses conservative content comparison fallback due to absence of backend timestamp/version markers.
 3. **UX-01:** Resolved. `ValidateModalScreen.tsx` includes pre-flight 1-credit confirmation modal matching Pitch Deck and Canvas patterns with duplicate-tap protection. Backend remains authoritative for credit checks, atomic deduction, and rollback/refund behavior.
-4. **API-02:** Backend idempotency handling on `POST /api/idea/submit` requires backend verification.
+4. **API-02:** Backend idempotency handling on `POST /api/idea/submit` (as well as `POST/PUT /api/pitchdeck/:id` and `POST/PUT /api/canvas/:id`) remains OPEN. Client-side timeouts and aborts do NOT guarantee backend transaction rollback or cancel server-side AI processing; backend idempotency verification remains a separate tracked issue.
 5. **AUTH-01:** In-app account deletion (`DELETE /api/auth/account`) required for App Store and Google Play compliance.
 6. **AUTH-02:** JavaScript fail-closed hardening is implemented, but the Android SecureStore native persistence limitation (`SharedPreferences.Editor.commit()` Boolean result check and memory rollback in `expo-secure-store@58.0.3`) remains open pending upstream SDK release.
 7. **AUTH-03:** Google Sign-In is an informational placeholder stub. Implementation requires evaluating supported Expo SDK 58 authentication approaches (browser-based vs. native SDK) and backend integration.

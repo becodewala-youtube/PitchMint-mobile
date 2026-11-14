@@ -304,7 +304,7 @@ describe('PitchDeckScreen Component (Phase 4A)', () => {
     );
   });
 
-  it('inspects backend idea on ambiguous network error without automatic re-submission', async () => {
+  it('inspects backend idea on ambiguous network error without automatic re-submission and recovers via Check Status', async () => {
     const getSpy = jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(sampleIdeaWithDeck);
     const timeoutError = new ApiError({
       message: 'Network request timed out',
@@ -316,6 +316,10 @@ describe('PitchDeckScreen Component (Phase 4A)', () => {
     await act(async () => {
       renderer = ReactTestRenderer.create(<PitchDeckScreen />);
     });
+
+    // Account for mount-time call and clear spy history
+    expect(getSpy).toHaveBeenCalledTimes(1);
+    getSpy.mockClear();
 
     const root = renderer!.root;
     const regenerateBtn = root.findByProps({ testID: 'pitch-deck-regenerate-button' });
@@ -330,8 +334,50 @@ describe('PitchDeckScreen Component (Phase 4A)', () => {
 
     // Only one regeneration attempt was made - no auto-retries for paid endpoints
     expect(regenSpy).toHaveBeenCalledTimes(1);
-    // Checked if saved via GET /api/idea/:id
+
+    // Verify timeout alert was presented with Check Status action
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Request Timed Out',
+      expect.stringContaining('Please tap "Check Status"'),
+      expect.any(Array)
+    );
+
+    // Locate Check Status button in Alert.alert arguments
+    const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+    const timeoutAlertCall = alertCalls.find((call) => call[0] === 'Request Timed Out');
+    expect(timeoutAlertCall).toBeDefined();
+    const alertButtons = timeoutAlertCall[2];
+    const checkStatusBtn = alertButtons.find((btn: any) => btn.text === 'Check Status');
+    expect(checkStatusBtn).toBeDefined();
+
+    // Prepare fresh updated idea for recovery
+    const updatedIdea: BackendIdea = {
+      ...sampleIdeaWithDeck,
+      pitchDeckContent: {
+        ...sampleIdeaWithDeck.pitchDeckContent,
+        problem: 'Recovered problem text after server timeout.',
+      },
+    };
+    getSpy.mockResolvedValueOnce(updatedIdea);
+
+    // Execute Check Status callback inside act()
+    await act(async () => {
+      await checkStatusBtn.onPress();
+    });
+
+    // Verify recovery request was sent to getIdeaById
+    expect(getSpy).toHaveBeenCalledTimes(1);
     expect(getSpy).toHaveBeenCalledWith('idea-123');
+
+    // Verify success alert was displayed
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Pitch Deck Ready',
+      'Your pitch deck was generated successfully.'
+    );
+
+    // Verify UI reflects updated content
+    const textNodes = root.findAllByType(Text).map((t) => t.props.children).flat(Infinity).filter(Boolean).join(' ');
+    expect(textNodes).toContain('Recovered problem text after server timeout.');
   });
 
   it('handles back button navigation', async () => {

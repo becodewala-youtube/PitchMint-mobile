@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { ideasApi, BackendIdea, PitchDeckResponse, ApiError } from '../../../services/api';
+import { hasSubDocument } from '../../../utils/ideaParser';
 import { SLIDE_DEFINITIONS } from '../constants/slideDefinitions';
 
 export interface UsePitchDeckOptions {
@@ -97,6 +98,13 @@ export const usePitchDeck = ({
     setIsSubmitting(true);
     setShowRegenerateModal(false);
 
+    // Capture pre-regeneration state for conservative content-comparison fallback.
+    // Backend limitation: Idea model does not maintain an updatedAt timestamp or generation version marker.
+    // A conservative content comparison is used as a fallback to detect whether newly generated content has been persisted.
+    // If content remains identical, status is reported as still-processing/uncertain rather than falsely claiming success.
+    const isRegeneration = hasSubDocument(idea?.pitchDeckContent);
+    const previousDeckString = JSON.stringify(idea?.pitchDeckContent || {});
+
     try {
       const updatedIdea: PitchDeckResponse = await ideasApi.regeneratePitchDeck(ideaId);
       if (isMountedRef.current) {
@@ -114,26 +122,50 @@ export const usePitchDeck = ({
           msg = 'Insufficient credits. 1 credit is required to regenerate your pitch deck.';
         } else if (err.status === 429) {
           msg = 'Rate limit reached: Maximum 2 generation requests allowed per minute. Please wait 60 seconds before trying again.';
+        } else if (err.isCancelled) {
+          msg = 'Pitch deck regeneration was cancelled.';
+        } else if (err.isTimeout || err.status === 0) {
+          Alert.alert(
+            'Request Timed Out',
+            'Your regeneration request was sent, but the network connection timed out. The AI may still be generating your pitch deck on the server.\n\nPlease tap "Check Status" in a few moments rather than resubmitting to avoid duplicate charges.',
+            [
+              {
+                text: 'Check Status',
+                onPress: async () => {
+                  try {
+                    const fresh = await ideasApi.getIdeaById(ideaId);
+                    if (!isMountedRef.current) return;
+                    if (hasSubDocument(fresh?.pitchDeckContent)) {
+                      const newDeckString = JSON.stringify(fresh.pitchDeckContent);
+                      if (!isRegeneration || newDeckString !== previousDeckString) {
+                        setIdea(fresh);
+                        if (refreshUserData) {
+                          await refreshUserData().catch(() => {});
+                        }
+                        Alert.alert('Pitch Deck Ready', 'Your pitch deck was generated successfully.');
+                        return;
+                      }
+                    }
+                    Alert.alert(
+                      'Still Processing',
+                      'The pitch deck update has not appeared yet. Please pull to refresh in a few moments.'
+                    );
+                  } catch {
+                    if (isMountedRef.current) {
+                      Alert.alert('Connection Error', 'Could not reach server to verify pitch deck status.');
+                    }
+                  }
+                },
+              },
+              { text: 'OK', style: 'cancel' },
+            ]
+          );
+          return;
         } else {
           msg = err.message || msg;
         }
       } else if (err?.message) {
         msg = err.message;
-      }
-
-      if (err instanceof ApiError && err.status === 0) {
-        try {
-          const fresh = await ideasApi.getIdeaById(ideaId);
-          if (isMountedRef.current && fresh?.pitchDeckContent) {
-            setIdea(fresh);
-            if (refreshUserData) {
-              await refreshUserData().catch(() => {});
-            }
-            return;
-          }
-        } catch {
-          // Keep original error message
-        }
       }
 
       Alert.alert('Regeneration Failed', msg, [{ text: 'OK' }]);
