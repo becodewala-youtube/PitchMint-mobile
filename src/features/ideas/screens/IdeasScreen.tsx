@@ -14,6 +14,7 @@ import {
   IconBadge,
   Icon,
   IdeaCard,
+  DeleteConfirmationModal,
 } from '../../../components';
 import { colors } from '../../../theme';
 import { RootStackParamList } from '../../../navigation/types';
@@ -36,6 +37,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export const IdeasScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
   const [ideas, setIdeas] = useState<ParsedIdeaCard[]>([]);
@@ -47,32 +49,71 @@ export const IdeasScreen: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchIdeas = useCallback(async (page: number = 1) => {
-    setError(null);
-    try {
-      const response = await ideasApi.getSavedIdeas({ page, limit: 10 });
-      const cards = (response.ideas || []).map(mapBackendIdeaToCard);
-      setIdeas(cards);
-      setCurrentPage(response.currentPage || page);
-      setTotalPages(response.totalPages || 1);
-      setTotalCount(response.total || cards.length);
-    } catch (err: any) {
-      console.warn('[IdeasScreen] Failed to load saved ideas:', err?.message || err);
-      setError(err?.message || 'Unable to retrieve saved ideas. Please try again.');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
+  // Deletion modal state
+  const [ideaToDelete, setIdeaToDelete] = useState<ParsedIdeaCard | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
+  // Debounce search query changes with 350ms delay
+  useEffect(() => {
+    if (searchQuery === debouncedSearch) return;
+    let isCancelled = false;
+    const timer = setTimeout(() => {
+      if (!isCancelled) {
+        setDebouncedSearch(searchQuery);
+      }
+    }, 350);
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchQuery, debouncedSearch]);
+
+  const fetchIdeas = useCallback(
+    async (
+      page: number = 1,
+      search: string = debouncedSearch,
+      filter: FilterType = activeFilter
+    ) => {
+      setError(null);
+      try {
+        const response = await ideasApi.getSavedIdeas({
+          page,
+          limit: 10,
+          search: search.trim() || undefined,
+          filter: filter !== 'all' ? filter : undefined,
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+        });
+        const cards = (response.ideas || []).map(mapBackendIdeaToCard);
+        setIdeas(cards);
+        setCurrentPage(response.currentPage || page);
+        setTotalPages(response.totalPages || 1);
+        setTotalCount(response.total || cards.length);
+      } catch (err: any) {
+        console.warn('[IdeasScreen] Failed to load saved ideas:', err?.message || err);
+        setError(err?.message || 'Unable to retrieve saved ideas. Please try again.');
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [debouncedSearch, activeFilter]
+  );
+
+  // Refetch and reset to page 1 whenever debounced search query or active filter changes
+  useEffect(() => {
+    setIsLoading(true);
+    setCurrentPage(1);
+    fetchIdeas(1, debouncedSearch, activeFilter);
+  }, [debouncedSearch, activeFilter]);
+
+  // Refresh on focus
   useEffect(() => {
     let isMounted = true;
-    fetchIdeas(1);
-
     if (typeof (navigation as any)?.addListener === 'function') {
       const unsubscribe = (navigation as any).addListener('focus', () => {
         if (isMounted) {
-          fetchIdeas(1);
+          fetchIdeas(currentPage, debouncedSearch, activeFilter);
         }
       });
       return () => {
@@ -80,25 +121,61 @@ export const IdeasScreen: React.FC = () => {
         unsubscribe();
       };
     }
-
     return () => {
       isMounted = false;
     };
-  }, [fetchIdeas]);
+  }, [fetchIdeas, currentPage, debouncedSearch, activeFilter, navigation]);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    fetchIdeas(currentPage);
-  }, [fetchIdeas, currentPage]);
+    fetchIdeas(currentPage, debouncedSearch, activeFilter);
+  }, [fetchIdeas, currentPage, debouncedSearch, activeFilter]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
       setIsLoading(true);
-      fetchIdeas(newPage);
+      fetchIdeas(newPage, debouncedSearch, activeFilter);
     }
   };
 
-  const filteredIdeas = ideas.filter((i) => {
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setDebouncedSearch('');
+    setActiveFilter('all');
+  };
+
+  const handleOpenDelete = (idea: ParsedIdeaCard) => {
+    setIdeaToDelete(idea);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!ideaToDelete || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await ideasApi.deleteIdea(ideaToDelete.id);
+      const remainingIdeas = ideas.filter((i) => i.id !== ideaToDelete.id);
+      setIdeas(remainingIdeas);
+      setTotalCount((prev) => Math.max(0, prev - 1));
+
+      // Handle empty page transition: if page becomes empty and we're past page 1, shift back
+      if (remainingIdeas.length === 0 && currentPage > 1) {
+        const prevPage = currentPage - 1;
+        setCurrentPage(prevPage);
+        await fetchIdeas(prevPage, debouncedSearch, activeFilter);
+      } else {
+        const newTotal = Math.max(0, totalCount - 1);
+        setTotalPages(Math.max(1, Math.ceil(newTotal / 10)));
+      }
+      setIdeaToDelete(null);
+    } catch (delErr: any) {
+      console.warn('[IdeasScreen] Failed to delete idea:', delErr?.message || delErr);
+      setError(delErr?.message || 'Failed to delete idea. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const displayedIdeas = ideas.filter((i) => {
     const query = searchQuery.trim().toLowerCase();
     const matchesSearch =
       query === '' ||
@@ -175,7 +252,7 @@ export const IdeasScreen: React.FC = () => {
           <Text style={styles.errorTitle}>Could not load saved ideas</Text>
           <Text style={styles.errorSubtitle}>{error}</Text>
           <Pressable
-            onPress={() => fetchIdeas(currentPage)}
+            onPress={() => fetchIdeas(currentPage, debouncedSearch, activeFilter)}
             style={styles.retryButton}
             accessibilityRole="button"
             accessibilityLabel="Retry loading ideas"
@@ -185,7 +262,7 @@ export const IdeasScreen: React.FC = () => {
         </Card>
       )}
 
-      {/* 6. Empty State: No ideas at all */}
+      {/* 6. Empty State: No ideas at all in catalog */}
       {!isLoading && !error && ideas.length === 0 && (
         <View style={styles.emptyContainer}>
           <IconBadge name="lightbulb" tone="gray" size={56} />
@@ -205,7 +282,7 @@ export const IdeasScreen: React.FC = () => {
       )}
 
       {/* 7. Empty State: Filter/Search matched 0 results */}
-      {!isLoading && !error && ideas.length > 0 && filteredIdeas.length === 0 && (
+      {!isLoading && !error && ideas.length > 0 && displayedIdeas.length === 0 && (
         <View style={styles.emptyContainer}>
           <IconBadge name="search" tone="gray" size={56} />
           <Text style={styles.emptyTitle}>No ideas match your filter</Text>
@@ -213,10 +290,7 @@ export const IdeasScreen: React.FC = () => {
             Try adjusting your search terms or selecting another filter chip.
           </Text>
           <Pressable
-            onPress={() => {
-              setSearchQuery('');
-              setActiveFilter('all');
-            }}
+            onPress={handleClearFilters}
             style={styles.resetFilterBtn}
             accessibilityRole="button"
             accessibilityLabel="Clear filters"
@@ -226,10 +300,10 @@ export const IdeasScreen: React.FC = () => {
         </View>
       )}
 
-      {/* 8. Idea Cards List using Shared IdeaCard */}
+      {/* 8. Idea Cards List using Shared IdeaCard with Delete Action */}
       {!isLoading &&
         !error &&
-        filteredIdeas.map((idea) => {
+        displayedIdeas.map((idea) => {
           const dateStr = formatDisplayDate(idea.createdAt);
 
           return (
@@ -240,6 +314,8 @@ export const IdeasScreen: React.FC = () => {
               onPress={() =>
                 navigation.navigate('IdeaDetails', { ideaId: idea.id } as any)
               }
+              onDelete={() => handleOpenDelete(idea)}
+              deleteTestID={`idea-card-delete-${idea.id}`}
               style={styles.ideaCard}
               ringSize={54}
               descriptionLines={2}
@@ -256,6 +332,19 @@ export const IdeasScreen: React.FC = () => {
           onPageChange={handlePageChange}
         />
       )}
+
+      {/* 10. Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        visible={Boolean(ideaToDelete)}
+        ideaTitle={ideaToDelete?.title}
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => {
+          if (!isDeleting) setIdeaToDelete(null);
+        }}
+        confirmTestID="ideas-screen-confirm-delete-button"
+        cancelTestID="ideas-screen-cancel-delete-button"
+      />
     </ScreenContainer>
   );
 };

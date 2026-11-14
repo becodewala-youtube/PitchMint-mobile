@@ -54,10 +54,13 @@ This document tracks verified limitations, technical debt, release prerequisites
 
 ### API-02: Validation Request Idempotency
 - **Category:** Backend Integration & Reliability
-- **Status:** Open / Requires Backend Verification
-- **Evidence:** Documented concern regarding whether `POST /api/idea/submit` (as well as `POST/PUT /api/pitchdeck/:id` and `POST/PUT /api/canvas/:id`) evaluates idempotency tokens.
-- **Assessment:** While Stage 5.1 introduced client-side request timeout handling and non-retry safety policies in the mobile client, client timeouts do NOT guarantee that backend AI processing was cancelled or that atomic credit deductions were rolled back. Backend idempotency handling remains a separate open concern.
-- **Required Action:** Coordinate with backend team to verify if `Idempotency-Key` header handling or atomic transaction rollback is supported or needed before high-volume commercial launch.
+- **Status:** Resolved / Implemented (Stage 5 Feature Completion)
+- **Evidence:** 
+  - Backend implemented durable MongoDB idempotency (`src/modules/idempotency/idempotency.model.ts` and `src/shared/middleware/idempotency.middleware.ts`) bound to `{ userId, idempotencyKey }` with 24-hour TTL.
+  - Enforced across all credit-consuming mutation endpoints (`POST /api/idea/submit`, `POST/PUT /api/pitchdeck/:id`, `POST/PUT /api/canvas/:id`, `POST /api/competitors/analyze/:id`, and `POST /api/pitch-simulator/simulate/:id`).
+  - Mobile client generates unique operation UUIDs and propagates the `Idempotency-Key` header via [`src/services/api/apiClient.ts`](../src/services/api/apiClient.ts) and [`src/services/api/ideasApi.ts`](../src/services/api/ideasApi.ts).
+- **Assessment:** Duplicate requests with the same key safely return cached HTTP responses without duplicate credit deduction; concurrent duplicate calls return HTTP 409 Conflict; failed requests allow clean retry.
+- **Required Action:** None. Resolved across mobile and backend.
 
 ---
 

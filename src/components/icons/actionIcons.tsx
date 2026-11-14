@@ -221,6 +221,51 @@ export const renderActionIcon = (
         </View>
       );
 
+    case 'trash':
+      return (
+        <View style={[iconStyles.center, { width: s, height: s }, style]}>
+          {/* Top handle / lid */}
+          <View
+            style={{
+              width: s * 0.35,
+              height: stroke,
+              backgroundColor: color,
+              borderRadius: 1,
+              marginBottom: 1.5,
+            }}
+          />
+          {/* Lid crossbar */}
+          <View
+            style={{
+              width: s * 0.7,
+              height: stroke,
+              backgroundColor: color,
+              borderRadius: 1,
+              marginBottom: 1.5,
+            }}
+          />
+          {/* Can body */}
+          <View
+            style={{
+              width: s * 0.52,
+              height: s * 0.55,
+              borderWidth: stroke,
+              borderColor: color,
+              borderTopWidth: 0,
+              borderBottomLeftRadius: 3,
+              borderBottomRightRadius: 3,
+              alignItems: 'center',
+              justifyContent: 'space-evenly',
+              flexDirection: 'row',
+              paddingVertical: 1,
+            }}
+          >
+            <View style={{ width: stroke * 0.8, height: '70%', backgroundColor: color, borderRadius: 0.5 }} />
+            <View style={{ width: stroke * 0.8, height: '70%', backgroundColor: color, borderRadius: 0.5 }} />
+          </View>
+        </View>
+      );
+
     default:
       return null;
   }

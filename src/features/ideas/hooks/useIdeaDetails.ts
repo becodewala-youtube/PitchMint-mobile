@@ -8,7 +8,7 @@ import {
   PitchDeckResponse,
   CanvasResponse,
 } from '../../../services/api/ideasApi';
-import { ApiError } from '../../../services/api/apiClient';
+import { ApiError, generateIdempotencyKey } from '../../../services/api/apiClient';
 import { useAuth } from '../../../context/AuthContext';
 import { parseIdeaTitleAndDesc, hasSubDocument } from '../../../utils/ideaParser';
 import { formatDisplayDate } from '../../../utils/date';
@@ -76,6 +76,8 @@ export function useIdeaDetails(): UseIdeaDetailsResult {
   const isMountedRef = useRef<boolean>(true);
   const isSubmittingDeckRef = useRef<boolean>(false);
   const isSubmittingCanvasRef = useRef<boolean>(false);
+  const deckIdempotencyKeyRef = useRef<string | null>(null);
+  const canvasIdempotencyKeyRef = useRef<string | null>(null);
 
   const fetchIdeaDetails = useCallback(
     async (isPullToRefresh = false) => {
@@ -212,17 +214,22 @@ export function useIdeaDetails(): UseIdeaDetailsResult {
     setIsGeneratingDeck(true);
     setShowDeckConfirmModal(false);
 
+    if (!deckIdempotencyKeyRef.current) {
+      deckIdempotencyKeyRef.current = generateIdempotencyKey();
+    }
+
     const isRegen = hasPitchDeck;
     const prevDeckString = JSON.stringify(idea?.pitchDeckContent || {});
 
     try {
       const updatedIdea: PitchDeckResponse = isRegen
-        ? await ideasApi.regeneratePitchDeck(ideaId)
-        : await ideasApi.generatePitchDeck(ideaId);
+        ? await ideasApi.regeneratePitchDeck(ideaId, { idempotencyKey: deckIdempotencyKeyRef.current })
+        : await ideasApi.generatePitchDeck(ideaId, { idempotencyKey: deckIdempotencyKeyRef.current });
 
       if (isMountedRef.current) {
         setIdea(updatedIdea);
       }
+      deckIdempotencyKeyRef.current = null;
       await refreshUser().catch(() => {});
 
       navigation.navigate('PitchDeck', {
@@ -324,17 +331,22 @@ export function useIdeaDetails(): UseIdeaDetailsResult {
     setIsGeneratingCanvas(true);
     setShowCanvasConfirmModal(false);
 
+    if (!canvasIdempotencyKeyRef.current) {
+      canvasIdempotencyKeyRef.current = generateIdempotencyKey();
+    }
+
     const isRegen = hasCanvas;
     const prevCanvasString = JSON.stringify(idea?.canvasContent || {});
 
     try {
       const updatedIdea: CanvasResponse = isRegen
-        ? await ideasApi.regenerateCanvas(ideaId)
-        : await ideasApi.generateCanvas(ideaId);
+        ? await ideasApi.regenerateCanvas(ideaId, { idempotencyKey: canvasIdempotencyKeyRef.current })
+        : await ideasApi.generateCanvas(ideaId, { idempotencyKey: canvasIdempotencyKeyRef.current });
 
       if (isMountedRef.current) {
         setIdea(updatedIdea);
       }
+      canvasIdempotencyKeyRef.current = null;
       await refreshUser().catch(() => {});
 
       navigation.navigate('Canvas', {

@@ -39,7 +39,8 @@ export type IconName =
   | 'lock'
   | 'eye'
   | 'eyeOff'
-  | 'user';
+  | 'user'
+  | 'trash';
 
 export interface IconProps {
   name: IconName;

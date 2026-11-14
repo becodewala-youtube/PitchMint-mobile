@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, Pressable, StyleProp, ViewStyle } from 'react-native';
 import { colors } from '../theme';
 import { Card } from './Card';
 import { ScoreRing } from './ScoreRing';
@@ -11,6 +11,8 @@ import { ideaCardStyles as styles } from './IdeaCard.styles';
 export interface IdeaCardProps {
   idea: ParsedIdeaCard;
   onPress: () => void;
+  onDelete?: () => void;
+  deleteTestID?: string;
   testID?: string;
   style?: StyleProp<ViewStyle>;
   ringSize?: number;
@@ -25,6 +27,8 @@ export interface IdeaCardProps {
 export const IdeaCard: React.FC<IdeaCardProps> = ({
   idea,
   onPress,
+  onDelete,
+  deleteTestID,
   testID = `idea-card-${idea.id}`,
   style,
   ringSize = 54,
@@ -41,9 +45,26 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({
       <View style={styles.row}>
         <ScoreRing value={idea.overallScore} size={ringSize} />
         <View style={styles.contentCol}>
-          <Text style={styles.title} numberOfLines={1}>
-            {idea.title}
-          </Text>
+          <View style={styles.headerRow}>
+            <Text style={styles.title} numberOfLines={1}>
+              {idea.title}
+            </Text>
+            {onDelete ? (
+              <Pressable
+                testID={deleteTestID || `idea-card-delete-${idea.id}`}
+                onPress={onDelete}
+                style={({ pressed }) => [
+                  styles.deleteButton,
+                  pressed && styles.deleteButtonPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Delete ${idea.title}`}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Icon name="trash" size={16} color={colors.tones.red.text} />
+              </Pressable>
+            ) : null}
+          </View>
           <Text style={styles.description} numberOfLines={descriptionLines}>
             {idea.description}
           </Text>

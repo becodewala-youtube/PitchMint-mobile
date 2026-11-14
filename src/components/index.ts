@@ -12,4 +12,5 @@ export * from './Input';
 export * from './GoogleSignInButton';
 export * from './AuthCard';
 export * from './CreditConfirmationModal';
+export * from './DeleteConfirmationModal';
 export * from './IdeaCard';

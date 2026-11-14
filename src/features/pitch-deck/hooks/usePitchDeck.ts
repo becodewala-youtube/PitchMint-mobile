@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { ideasApi, BackendIdea, PitchDeckResponse, ApiError } from '../../../services/api';
+import { ideasApi, BackendIdea, PitchDeckResponse, ApiError, generateIdempotencyKey } from '../../../services/api';
 import { hasSubDocument } from '../../../utils/ideaParser';
 import { SLIDE_DEFINITIONS } from '../constants/slideDefinitions';
 
@@ -26,6 +26,7 @@ export const usePitchDeck = ({
 
   const isSubmittingRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   const fetchIdeaData = useCallback(async () => {
     setIsLoading(true);
@@ -98,6 +99,10 @@ export const usePitchDeck = ({
     setIsSubmitting(true);
     setShowRegenerateModal(false);
 
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = generateIdempotencyKey();
+    }
+
     // Capture pre-regeneration state for conservative content-comparison fallback.
     // Backend limitation: Idea model does not maintain an updatedAt timestamp or generation version marker.
     // A conservative content comparison is used as a fallback to detect whether newly generated content has been persisted.
@@ -106,10 +111,13 @@ export const usePitchDeck = ({
     const previousDeckString = JSON.stringify(idea?.pitchDeckContent || {});
 
     try {
-      const updatedIdea: PitchDeckResponse = await ideasApi.regeneratePitchDeck(ideaId);
+      const updatedIdea: PitchDeckResponse = await ideasApi.regeneratePitchDeck(ideaId, {
+        idempotencyKey: idempotencyKeyRef.current,
+      });
       if (isMountedRef.current) {
         setIdea(updatedIdea);
       }
+      idempotencyKeyRef.current = null;
       if (refreshUserData) {
         await refreshUserData().catch(() => {});
       }

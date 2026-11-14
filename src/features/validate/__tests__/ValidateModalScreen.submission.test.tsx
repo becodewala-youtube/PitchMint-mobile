@@ -145,9 +145,12 @@ describe('ValidateModalScreen Submission & Error Interception (Phase 3B)', () =>
 
     // Verify exactly one client request was made
     expect(submitSpy).toHaveBeenCalledTimes(1);
-    expect(submitSpy).toHaveBeenCalledWith({
-      ideaText: 'A specialized platform for carbon footprint accounting for logistics fleets',
-    });
+    expect(submitSpy).toHaveBeenCalledWith(
+      {
+        ideaText: 'A specialized platform for carbon footprint accounting for logistics fleets',
+      },
+      expect.objectContaining({ idempotencyKey: expect.any(String) })
+    );
 
     // Fast-forward timers for step progression and transition
     await act(async () => {

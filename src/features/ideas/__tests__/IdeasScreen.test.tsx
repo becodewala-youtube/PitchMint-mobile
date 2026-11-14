@@ -20,8 +20,20 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 describe('IdeasScreen Integration (Phase 3A)', () => {
+  let activeRenderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    if (activeRenderer) {
+      act(() => {
+        activeRenderer?.unmount();
+      });
+      activeRenderer = null;
+    }
+    jest.clearAllTimers();
   });
 
   const sampleIdeas = [
@@ -55,6 +67,7 @@ describe('IdeasScreen Integration (Phase 3A)', () => {
     await act(async () => {
       renderer = ReactTestRenderer.create(<IdeasScreen />);
     });
+    activeRenderer = renderer!;
 
     const root = renderer!.root;
     const textNodes = root
@@ -81,6 +94,7 @@ describe('IdeasScreen Integration (Phase 3A)', () => {
     await act(async () => {
       renderer = ReactTestRenderer.create(<IdeasScreen />);
     });
+    activeRenderer = renderer!;
 
     const root = renderer!.root;
     const card = root.findByProps({ testID: 'idea-card-id-1' });
@@ -106,6 +120,7 @@ describe('IdeasScreen Integration (Phase 3A)', () => {
     await act(async () => {
       renderer = ReactTestRenderer.create(<IdeasScreen />);
     });
+    activeRenderer = renderer!;
 
     const root = renderer!.root;
     const input = root.findByType(TextInput);
@@ -137,6 +152,7 @@ describe('IdeasScreen Integration (Phase 3A)', () => {
     await act(async () => {
       renderer = ReactTestRenderer.create(<IdeasScreen />);
     });
+    activeRenderer = renderer!;
 
     const root = renderer!.root;
     const topChip = root.findByProps({ accessibilityLabel: 'Top scored (80+)' });
@@ -169,6 +185,7 @@ describe('IdeasScreen Integration (Phase 3A)', () => {
     await act(async () => {
       renderer = ReactTestRenderer.create(<IdeasScreen />);
     });
+    activeRenderer = renderer!;
 
     const root = renderer!.root;
     const textNodes = root
@@ -194,6 +211,7 @@ describe('IdeasScreen Integration (Phase 3A)', () => {
     await act(async () => {
       renderer = ReactTestRenderer.create(<IdeasScreen />);
     });
+    activeRenderer = renderer!;
 
     const root = renderer!.root;
     const nextBtn = root.findByProps({ accessibilityLabel: 'Next page' });
@@ -222,6 +240,7 @@ describe('IdeasScreen Integration (Phase 3A)', () => {
     await act(async () => {
       renderer = ReactTestRenderer.create(<IdeasScreen />);
     });
+    activeRenderer = renderer!;
 
     const root = renderer!.root;
     expect(
@@ -239,5 +258,51 @@ describe('IdeasScreen Integration (Phase 3A)', () => {
     });
 
     expect(ideasSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('triggers delete confirmation modal, calls deleteIdea and removes card on confirm', async () => {
+    jest.spyOn(ideasApi, 'getSavedIdeas').mockResolvedValue({
+      success: true,
+      ideas: sampleIdeas,
+      total: 2,
+      totalPages: 1,
+      currentPage: 1,
+    });
+    const deleteSpy = jest.spyOn(ideasApi, 'deleteIdea').mockResolvedValue({ success: true, message: 'Idea removed' });
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<IdeasScreen />);
+    });
+    activeRenderer = renderer!;
+
+    const root = renderer!.root;
+
+    // Verify both ideas rendered initially
+    let textNodes = root.findAllByType(Text).map((t) => t.props.children).flat(Infinity).filter(Boolean).join(' ');
+    expect(textNodes).toContain('AI Dental Clinic');
+    expect(textNodes).toContain('Sub-lease Marketplace');
+
+    // Click delete button on idea 1
+    const deleteBtn = root.findByProps({ testID: 'idea-card-delete-id-1' });
+    await act(async () => {
+      deleteBtn.props.onPress();
+    });
+
+    // Delete confirmation modal should be visible
+    const confirmBtn = root.findByProps({ testID: 'ideas-screen-confirm-delete-button' });
+    expect(confirmBtn).toBeDefined();
+
+    // Confirm deletion
+    await act(async () => {
+      await confirmBtn.props.onPress();
+    });
+
+    expect(deleteSpy).toHaveBeenCalledWith('id-1');
+
+    // Idea 1 should now be removed from displayed ideas
+    textNodes = root.findAllByType(Text).map((t) => t.props.children).flat(Infinity).filter(Boolean).join(' ');
+    expect(textNodes).not.toContain('AI Dental Clinic');
+    expect(textNodes).toContain('Sub-lease Marketplace');
   });
 });

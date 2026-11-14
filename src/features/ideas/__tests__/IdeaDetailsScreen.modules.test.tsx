@@ -165,7 +165,7 @@ describe('IdeaDetailsScreen Modules Integration (Phase 4A & 4B)', () => {
         confirmBtn.props.onPress();
       });
 
-      expect(generateSpy).toHaveBeenCalledWith('idea-123');
+      expect(generateSpy).toHaveBeenCalledWith('idea-123', expect.objectContaining({ idempotencyKey: expect.any(String) }));
       expect(mockRefreshUser).toHaveBeenCalledTimes(1);
       expect(mockNavigate).toHaveBeenCalledWith('PitchDeck', {
         ideaId: 'idea-123',
@@ -330,7 +330,7 @@ describe('IdeaDetailsScreen Modules Integration (Phase 4A & 4B)', () => {
         confirmBtn.props.onPress();
       });
 
-      expect(generateSpy).toHaveBeenCalledWith('idea-123');
+      expect(generateSpy).toHaveBeenCalledWith('idea-123', expect.objectContaining({ idempotencyKey: expect.any(String) }));
       expect(mockRefreshUser).toHaveBeenCalledTimes(1);
       expect(mockNavigate).toHaveBeenCalledWith('Canvas', {
         ideaId: 'idea-123',
@@ -432,7 +432,7 @@ describe('IdeaDetailsScreen Modules Integration (Phase 4A & 4B)', () => {
         confirmBtn.props.onPress();
       });
 
-      expect(regenerateSpy).toHaveBeenCalledWith('idea-123');
+      expect(regenerateSpy).toHaveBeenCalledWith('idea-123', expect.objectContaining({ idempotencyKey: expect.any(String) }));
       expect(mockRefreshUser).toHaveBeenCalledTimes(1);
       expect(mockNavigate).toHaveBeenCalledWith('Canvas', {
         ideaId: 'idea-123',
