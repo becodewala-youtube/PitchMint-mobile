@@ -5,6 +5,19 @@ import { PitchDeckScreen, SLIDE_DEFINITIONS } from '../PitchDeckScreen';
 import { ideasApi, BackendIdea } from '../../../../services/api/ideasApi';
 import { ApiError } from '../../../../services/api/apiClient';
 
+jest.mock('expo-file-system', () => ({
+  Paths: { cache: { uri: 'file:///cache' } },
+  File: class MockFile {
+    uri = 'file:///cache/test.pdf';
+    exists = true;
+    size = 1000;
+    create = jest.fn();
+    delete = jest.fn();
+    write = jest.fn();
+    bytes = jest.fn(async () => new Uint8Array());
+  },
+}));
+
 (global as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 const mockNavigate = jest.fn();

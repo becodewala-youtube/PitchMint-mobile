@@ -271,4 +271,42 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.xs,
   },
+  downloadSuccessBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  downloadSuccessIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  downloadSuccessTextBox: {
+    flex: 1,
+  },
+  downloadSuccessTitle: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
+    color: '#FFFFFF',
+  },
+  downloadSuccessLocation: {
+    fontSize: typography.sizes.xs,
+    color: '#A7F3D0',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  downloadSuccessCloseBtn: {
+    padding: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

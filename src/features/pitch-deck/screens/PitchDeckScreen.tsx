@@ -17,7 +17,7 @@ import { styles } from './PitchDeckScreen.styles';
 import { usePitchDeck } from '../hooks/usePitchDeck';
 import { PitchDeckSlideViewer } from '../components/PitchDeckSlideViewer';
 import { PitchDeckSlideStrip } from '../components/PitchDeckSlideStrip';
-import { exportPitchDeckPdf } from '../utils/pdfExport';
+import { exportPitchDeckPdf, ExportPitchDeckDownloadInfo } from '../utils/pdfExport';
 
 export { SLIDE_DEFINITIONS, SlideDefinition };
 
@@ -56,15 +56,38 @@ export const PitchDeckScreen: React.FC = () => {
   });
 
   const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
+  const [downloadSuccess, setDownloadSuccess] = useState<ExportPitchDeckDownloadInfo | null>(null);
 
   const handleExportPdf = async () => {
-    if (isExportingPdf || !idea) return;
+    if (isExportingPdf) return;
+
+    if (!idea || !idea.pitchDeckContent || Object.keys(idea.pitchDeckContent).length === 0) {
+      Alert.alert(
+        'No Pitch Deck Available',
+        'Please generate or regenerate the pitch deck before exporting.'
+      );
+      return;
+    }
+
     setIsExportingPdf(true);
     try {
-      await exportPitchDeckPdf(displayTitle, idea.pitchDeckContent || {});
+      const result = await exportPitchDeckPdf(displayTitle, idea.pitchDeckContent, {
+        onDownloadSuccess: async (info) => {
+          setDownloadSuccess(info);
+          // Presentation timing: allow success banner to render and be perceived before the native share sheet opens
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        },
+      });
+
+      if (result.shareError) {
+        Alert.alert(
+          'Share Sheet Unavailable',
+          'Your pitch deck was saved to Downloads, but the share dialog could not be opened.'
+        );
+      }
     } catch (err: any) {
       console.warn('[PitchDeckScreen] PDF export failed:', err);
-      Alert.alert('Export Failed', err?.message || 'Unable to generate PDF pitch deck.');
+      Alert.alert('Export Failed', err?.message || 'Unable to generate or download PDF pitch deck.');
     } finally {
       setIsExportingPdf(false);
     }
@@ -170,6 +193,30 @@ export const PitchDeckScreen: React.FC = () => {
         onSelectSlide={handleSelectSlide}
       />
 
+      {/* Permanent Download Success Feedback Banner */}
+      {downloadSuccess && (
+        <View style={styles.downloadSuccessBanner} testID="pitch-deck-download-success-banner">
+          <View style={styles.downloadSuccessIconBox}>
+            <Icon name="check" size={18} color="#10B981" />
+          </View>
+          <View style={styles.downloadSuccessTextBox}>
+            <Text style={styles.downloadSuccessTitle}>Pitch Deck downloaded successfully</Text>
+            <Text style={styles.downloadSuccessLocation} numberOfLines={2}>
+              {downloadSuccess.location}
+            </Text>
+          </View>
+          <Pressable
+            testID="pitch-deck-download-banner-close"
+            onPress={() => setDownloadSuccess(null)}
+            style={styles.downloadSuccessCloseBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss download notification"
+          >
+            <Icon name="close" size={16} color="#9CA3AF" />
+          </Pressable>
+        </View>
+      )}
+
       {/* Footer 1-Credit Regeneration Card */}
       <Card style={styles.footerActionCard}>
         <View style={styles.footerTextRow}>
@@ -184,10 +231,10 @@ export const PitchDeckScreen: React.FC = () => {
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
           <Button
             testID="pitch-deck-export-pdf-button"
-            title={isExportingPdf ? 'Exporting PDF…' : 'Export PDF'}
+            title={isExportingPdf ? 'Preparing PDF…' : 'Export PDF'}
             variant="secondary"
             onPress={handleExportPdf}
-            disabled={isExportingPdf}
+            disabled={isExportingPdf || isSubmitting || isLoading}
             loading={isExportingPdf}
             leftIcon={<Icon name="fileText" size={16} color={colors.text.primary} />}
             style={{ flex: 1, minHeight: 48 }}
