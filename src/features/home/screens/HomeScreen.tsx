@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Text,
   View,
@@ -40,54 +40,96 @@ export const HomeScreen: React.FC = () => {
   const [totalIdeasCount, setTotalIdeasCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isRetrying, setIsRetrying] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const inFlightRef = useRef<boolean>(false);
+  const requestIdRef = useRef<number>(0);
+  const isMountedRef = useRef<boolean>(true);
+  const recentIdeasRef = useRef<ParsedIdeaCard[]>(recentIdeas);
+  recentIdeasRef.current = recentIdeas;
 
   const displayName = user?.name ? user.name.split(' ')[0] : 'Founder';
   const initialLetter = (user?.name?.[0] || 'F').toUpperCase();
   const availableCredits = user?.credits ?? 0;
   const planDisplay = (user?.plan || (user?.isPremium ? 'PRO' : 'FREE')).toUpperCase();
 
-  const loadDashboardData = useCallback(async () => {
-    setLoadError(null);
-    try {
-      await refreshUser();
-      const ideasResponse = await ideasApi.getSavedIdeas({ page: 1, limit: 3 });
-      const cards = (ideasResponse.ideas || []).map(mapBackendIdeaToCard);
-      setRecentIdeas(cards);
-      setTotalIdeasCount(ideasResponse.total ?? cards.length);
-    } catch (err: any) {
-      console.warn('[HomeScreen] Error loading dashboard data:', err?.message || err);
-      setLoadError(err?.message || 'Unable to load dashboard data. Please check your connection.');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [refreshUser]);
+  const loadDashboardData = useCallback(
+    async (options: { isRetry?: boolean; isBackground?: boolean } = {}) => {
+      // Prevent duplicate concurrent requests
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
+
+      const currentReqId = ++requestIdRef.current;
+
+      if (options.isRetry) {
+        setIsRetrying(true);
+      } else if (!options.isBackground) {
+        if (recentIdeasRef.current.length === 0) {
+          setIsLoading(true);
+        }
+        setLoadError(null);
+      }
+
+      try {
+        await refreshUser();
+        const ideasResponse = await ideasApi.getSavedIdeas({ page: 1, limit: 3 });
+
+        if (!isMountedRef.current || currentReqId !== requestIdRef.current) {
+          return;
+        }
+
+        const cards = (ideasResponse.ideas || []).map(mapBackendIdeaToCard);
+        setRecentIdeas(cards);
+        setTotalIdeasCount(ideasResponse.total ?? cards.length);
+        setLoadError(null);
+      } catch (err: any) {
+        if (!isMountedRef.current || currentReqId !== requestIdRef.current) {
+          return;
+        }
+        console.warn('[HomeScreen] Error loading dashboard data:', err?.message || err);
+        // Only surface full error card if not background refresh or if no data is available
+        if (!options.isBackground || recentIdeasRef.current.length === 0) {
+          setLoadError(
+            err?.message || 'Unable to load dashboard data. Please check your connection.'
+          );
+        }
+      } finally {
+        if (isMountedRef.current && currentReqId === requestIdRef.current) {
+          setIsLoading(false);
+          setIsRetrying(false);
+          setIsRefreshing(false);
+        }
+        inFlightRef.current = false;
+      }
+    },
+    [refreshUser]
+  );
 
   useEffect(() => {
-    let isMounted = true;
+    isMountedRef.current = true;
     loadDashboardData();
 
     if (typeof (navigation as any)?.addListener === 'function') {
       const unsubscribe = (navigation as any).addListener('focus', () => {
-        if (isMounted) {
-          loadDashboardData();
+        if (isMountedRef.current) {
+          loadDashboardData({ isBackground: true });
         }
       });
       return () => {
-        isMounted = false;
+        isMountedRef.current = false;
         unsubscribe();
       };
     }
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
     };
   }, [loadDashboardData]);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    loadDashboardData();
+    loadDashboardData({ isBackground: true });
   }, [loadDashboardData]);
 
   const handleLaunchValidate = () => {
@@ -157,19 +199,28 @@ export const HomeScreen: React.FC = () => {
             <Text style={styles.errorTitle}>Could not load recent ideas</Text>
             <Text style={styles.errorSubtitle}>{loadError}</Text>
             <Pressable
-              onPress={loadDashboardData}
-              style={styles.retryPill}
+              onPress={() => loadDashboardData({ isRetry: true })}
+              style={[styles.retryPill, isRetrying && { opacity: 0.7 }]}
+              disabled={isRetrying}
               accessibilityRole="button"
               accessibilityLabel="Retry loading ideas"
+              accessibilityState={{ busy: isRetrying, disabled: isRetrying }}
             >
-              <Text style={styles.retryPillText}>Retry</Text>
+              {isRetrying ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.retryPillText}>Retrying...</Text>
+                </View>
+              ) : (
+                <Text style={styles.retryPillText}>Retry</Text>
+              )}
             </Pressable>
           </View>
         </Card>
       )}
 
       {/* Empty State */}
-      {!isLoading && !loadError && recentIdeas.length === 0 && (
+      {!isLoading && !isRetrying && !loadError && recentIdeas.length === 0 && (
         <Card variant="surface" style={styles.emptyCard}>
           <IconBadge name="lightbulb" tone="gray" size={44} />
           <Text style={styles.emptyCardTitle}>No saved ideas yet</Text>
@@ -189,6 +240,7 @@ export const HomeScreen: React.FC = () => {
 
       {/* Real Saved Ideas List using Shared IdeaCard */}
       {!isLoading &&
+        !isRetrying &&
         !loadError &&
         recentIdeas.map((idea) => {
           const timeAgo = formatRelativeTime(idea.createdAt);

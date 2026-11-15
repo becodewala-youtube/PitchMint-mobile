@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Text,
   View,
@@ -47,7 +47,14 @@ export const IdeasScreen: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isRetrying, setIsRetrying] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const inFlightRef = useRef<boolean>(false);
+  const requestIdRef = useRef<number>(0);
+  const isMountedRef = useRef<boolean>(true);
+  const ideasRef = useRef<ParsedIdeaCard[]>(ideas);
+  ideasRef.current = ideas;
 
   // Deletion modal state
   const [ideaToDelete, setIdeaToDelete] = useState<ParsedIdeaCard | null>(null);
@@ -72,9 +79,21 @@ export const IdeasScreen: React.FC = () => {
     async (
       page: number = 1,
       search: string = debouncedSearch,
-      filter: FilterType = activeFilter
+      filter: FilterType = activeFilter,
+      options: { isRetry?: boolean; isBackground?: boolean } = {}
     ) => {
-      setError(null);
+      if (options.isRetry && inFlightRef.current) return;
+      inFlightRef.current = true;
+
+      const currentReqId = ++requestIdRef.current;
+
+      if (options.isRetry) {
+        setIsRetrying(true);
+      } else if (!options.isBackground) {
+        setIsLoading(true);
+        setError(null);
+      }
+
       try {
         const response = await ideasApi.getSavedIdeas({
           page,
@@ -84,17 +103,32 @@ export const IdeasScreen: React.FC = () => {
           sortBy: 'createdAt',
           sortOrder: 'desc',
         });
+
+        if (!isMountedRef.current || currentReqId !== requestIdRef.current) {
+          return;
+        }
+
         const cards = (response.ideas || []).map(mapBackendIdeaToCard);
         setIdeas(cards);
         setCurrentPage(response.currentPage || page);
         setTotalPages(response.totalPages || 1);
-        setTotalCount(response.total || cards.length);
+        setTotalCount(response.total ?? cards.length);
+        setError(null);
       } catch (err: any) {
+        if (!isMountedRef.current || currentReqId !== requestIdRef.current) {
+          return;
+        }
         console.warn('[IdeasScreen] Failed to load saved ideas:', err?.message || err);
-        setError(err?.message || 'Unable to retrieve saved ideas. Please try again.');
+        if (!options.isBackground || ideasRef.current.length === 0) {
+          setError(err?.message || 'Unable to retrieve saved ideas. Please try again.');
+        }
       } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+        if (isMountedRef.current && currentReqId === requestIdRef.current) {
+          setIsLoading(false);
+          setIsRetrying(false);
+          setIsRefreshing(false);
+        }
+        inFlightRef.current = false;
       }
     },
     [debouncedSearch, activeFilter]
@@ -102,33 +136,32 @@ export const IdeasScreen: React.FC = () => {
 
   // Refetch and reset to page 1 whenever debounced search query or active filter changes
   useEffect(() => {
-    setIsLoading(true);
     setCurrentPage(1);
     fetchIdeas(1, debouncedSearch, activeFilter);
   }, [debouncedSearch, activeFilter]);
 
   // Refresh on focus
   useEffect(() => {
-    let isMounted = true;
+    isMountedRef.current = true;
     if (typeof (navigation as any)?.addListener === 'function') {
       const unsubscribe = (navigation as any).addListener('focus', () => {
-        if (isMounted) {
-          fetchIdeas(currentPage, debouncedSearch, activeFilter);
+        if (isMountedRef.current) {
+          fetchIdeas(currentPage, debouncedSearch, activeFilter, { isBackground: true });
         }
       });
       return () => {
-        isMounted = false;
+        isMountedRef.current = false;
         unsubscribe();
       };
     }
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
     };
-  }, [fetchIdeas, currentPage, debouncedSearch, activeFilter, navigation]);
+  }, [fetchIdeas, currentPage, debouncedSearch, activeFilter]);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    fetchIdeas(currentPage, debouncedSearch, activeFilter);
+    fetchIdeas(currentPage, debouncedSearch, activeFilter, { isBackground: true });
   }, [fetchIdeas, currentPage, debouncedSearch, activeFilter]);
 
   const handlePageChange = (newPage: number) => {
@@ -175,19 +208,32 @@ export const IdeasScreen: React.FC = () => {
     }
   };
 
-  const displayedIdeas = ideas.filter((i) => {
-    const query = searchQuery.trim().toLowerCase();
-    const matchesSearch =
-      query === '' ||
-      i.title.toLowerCase().includes(query) ||
-      i.description.toLowerCase().includes(query) ||
-      i.category.toLowerCase().includes(query);
+  const hasActiveFilterOrSearch = Boolean(
+    searchQuery.trim().length > 0 ||
+    debouncedSearch.trim().length > 0 ||
+    activeFilter !== 'all'
+  );
 
-    if (!matchesSearch) return false;
-    if (activeFilter === 'top') return i.overallScore >= 80;
-    if (activeFilter === 'deck') return i.hasPitchDeck;
-    if (activeFilter === 'none') {
-      return !i.hasPitchDeck && !i.hasCanvas && !i.hasCompetitors && !i.hasSimulation;
+  const isTypingAhead =
+    searchQuery.trim().toLowerCase() !== debouncedSearch.trim().toLowerCase();
+
+  const displayedIdeas = ideas.filter((i) => {
+    if (isTypingAhead && searchQuery.trim().length > 0) {
+      const query = searchQuery.trim().toLowerCase();
+      const matchesSearch =
+        i.title.toLowerCase().includes(query) ||
+        i.description.toLowerCase().includes(query) ||
+        i.category.toLowerCase().includes(query);
+      if (!matchesSearch) return false;
+    }
+
+    if (activeFilter === 'top' && i.overallScore < 80) return false;
+    if (activeFilter === 'deck' && !i.hasPitchDeck) return false;
+    if (
+      activeFilter === 'none' &&
+      (i.hasPitchDeck || i.hasCanvas || i.hasCompetitors || i.hasSimulation)
+    ) {
+      return false;
     }
     return true;
   });
@@ -252,56 +298,77 @@ export const IdeasScreen: React.FC = () => {
           <Text style={styles.errorTitle}>Could not load saved ideas</Text>
           <Text style={styles.errorSubtitle}>{error}</Text>
           <Pressable
-            onPress={() => fetchIdeas(currentPage, debouncedSearch, activeFilter)}
-            style={styles.retryButton}
+            onPress={() =>
+              fetchIdeas(currentPage, debouncedSearch, activeFilter, { isRetry: true })
+            }
+            style={[styles.retryButton, isRetrying && { opacity: 0.7 }]}
+            disabled={isRetrying}
             accessibilityRole="button"
             accessibilityLabel="Retry loading ideas"
+            accessibilityState={{ busy: isRetrying, disabled: isRetrying }}
           >
-            <Text style={styles.retryButtonText}>Retry</Text>
+            {isRetrying ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <Text style={styles.retryButtonText}>Retrying...</Text>
+              </View>
+            ) : (
+              <Text style={styles.retryButtonText}>Retry</Text>
+            )}
           </Pressable>
         </Card>
       )}
 
-      {/* 6. Empty State: No ideas at all in catalog */}
-      {!isLoading && !error && ideas.length === 0 && (
-        <View style={styles.emptyContainer}>
-          <IconBadge name="lightbulb" tone="gray" size={56} />
-          <Text style={styles.emptyTitle}>No saved ideas yet</Text>
-          <Text style={styles.emptySubtitle}>
-            Submit your first startup idea to get instant AI scores and feedback.
-          </Text>
-          <Pressable
-            onPress={() => navigation.navigate('ValidateModal')}
-            style={styles.emptyValidateBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Submit first idea"
-          >
-            <Text style={styles.emptyValidateBtnText}>Submit New Idea</Text>
-          </Pressable>
-        </View>
-      )}
+      {/* 6. Empty State: Filter/Search matched 0 results */}
+      {!isLoading &&
+        !isRetrying &&
+        !isTypingAhead &&
+        !error &&
+        hasActiveFilterOrSearch &&
+        displayedIdeas.length === 0 && (
+          <View style={styles.emptyContainer}>
+            <IconBadge name="search" tone="gray" size={56} />
+            <Text style={styles.emptyTitle}>No ideas match your filter</Text>
+            <Text style={styles.emptySubtitle}>
+              Try adjusting your search terms or selecting another filter chip.
+            </Text>
+            <Pressable
+              onPress={handleClearFilters}
+              style={styles.resetFilterBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Clear filters"
+            >
+              <Text style={styles.resetFilterBtnText}>Clear filters</Text>
+            </Pressable>
+          </View>
+        )}
 
-      {/* 7. Empty State: Filter/Search matched 0 results */}
-      {!isLoading && !error && ideas.length > 0 && displayedIdeas.length === 0 && (
-        <View style={styles.emptyContainer}>
-          <IconBadge name="search" tone="gray" size={56} />
-          <Text style={styles.emptyTitle}>No ideas match your filter</Text>
-          <Text style={styles.emptySubtitle}>
-            Try adjusting your search terms or selecting another filter chip.
-          </Text>
-          <Pressable
-            onPress={handleClearFilters}
-            style={styles.resetFilterBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Clear filters"
-          >
-            <Text style={styles.resetFilterBtnText}>Clear filters</Text>
-          </Pressable>
-        </View>
-      )}
+      {/* 7. Empty State: No ideas at all in catalog */}
+      {!isLoading &&
+        !isRetrying &&
+        !error &&
+        !hasActiveFilterOrSearch &&
+        ideas.length === 0 && (
+          <View style={styles.emptyContainer}>
+            <IconBadge name="lightbulb" tone="gray" size={56} />
+            <Text style={styles.emptyTitle}>No saved ideas yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Submit your first startup idea to get instant AI scores and feedback.
+            </Text>
+            <Pressable
+              onPress={() => navigation.navigate('ValidateModal')}
+              style={styles.emptyValidateBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Submit first idea"
+            >
+              <Text style={styles.emptyValidateBtnText}>Submit New Idea</Text>
+            </Pressable>
+          </View>
+        )}
 
       {/* 8. Idea Cards List using Shared IdeaCard with Delete Action */}
       {!isLoading &&
+        !isRetrying &&
         !error &&
         displayedIdeas.map((idea) => {
           const dateStr = formatDisplayDate(idea.createdAt);
@@ -325,7 +392,7 @@ export const IdeasScreen: React.FC = () => {
         })}
 
       {/* 9. Pagination Controls */}
-      {!isLoading && !error && totalPages > 1 && (
+      {!isLoading && !isRetrying && !error && totalPages > 1 && (
         <IdeasPagination
           currentPage={currentPage}
           totalPages={totalPages}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -48,38 +48,82 @@ export const ActivityScreen: React.FC = () => {
   const [activities, setActivities] = useState<ActivityHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isRetrying, setIsRetrying] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchActivities = useCallback(async (serviceTypeFilter: string = 'all') => {
-    setError(null);
-    try {
-      const response = await activityApi.getActivityHistory({
-        serviceType: serviceTypeFilter !== 'all' ? serviceTypeFilter : undefined,
-        page: 1,
-        limit: 30,
-      });
-      setActivities(response);
-    } catch (err: any) {
-      console.warn('[ActivityScreen] Error loading activity history:', err?.message || err);
-      setError(err?.message || 'Unable to load activity history. Please try again.');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
+  const inFlightRef = useRef<boolean>(false);
+  const requestIdRef = useRef<number>(0);
+  const isMountedRef = useRef<boolean>(true);
+  const activitiesRef = useRef<ActivityHistoryItem[]>(activities);
+  activitiesRef.current = activities;
+
+  const fetchActivities = useCallback(
+    async (
+      serviceTypeFilter: string = 'all',
+      options: { isRetry?: boolean; isBackground?: boolean } = {}
+    ) => {
+      if (options.isRetry && inFlightRef.current) return;
+      inFlightRef.current = true;
+
+      const currentReqId = ++requestIdRef.current;
+
+      if (options.isRetry) {
+        setIsRetrying(true);
+      } else if (!options.isBackground) {
+        if (activitiesRef.current.length === 0) {
+          setIsLoading(true);
+        }
+        setError(null);
+      }
+
+      try {
+        const response = await activityApi.getActivityHistory({
+          serviceType: serviceTypeFilter !== 'all' ? serviceTypeFilter : undefined,
+          page: 1,
+          limit: 30,
+        });
+
+        if (!isMountedRef.current || currentReqId !== requestIdRef.current) {
+          return;
+        }
+
+        setActivities(response);
+        setError(null);
+      } catch (err: any) {
+        if (!isMountedRef.current || currentReqId !== requestIdRef.current) {
+          return;
+        }
+        console.warn('[ActivityScreen] Error loading activity history:', err?.message || err);
+        if (!options.isBackground || activitiesRef.current.length === 0) {
+          setError(err?.message || 'Unable to load activity history. Please try again.');
+        }
+      } finally {
+        if (isMountedRef.current && currentReqId === requestIdRef.current) {
+          setIsLoading(false);
+          setIsRetrying(false);
+          setIsRefreshing(false);
+        }
+        inFlightRef.current = false;
+      }
+    },
+    []
+  );
 
   useEffect(() => {
+    isMountedRef.current = true;
     fetchActivities(filter);
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [fetchActivities, filter]);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    fetchActivities(filter);
+    fetchActivities(filter, { isBackground: true });
   }, [fetchActivities, filter]);
 
   const handleFilterChange = (newFilter: string) => {
     setFilter(newFilter);
-    setIsLoading(true);
     fetchActivities(newFilter);
   };
 
@@ -170,19 +214,28 @@ export const ActivityScreen: React.FC = () => {
             <Text style={styles.errorTitle}>Could not load activity</Text>
             <Text style={styles.errorSubtitle}>{error}</Text>
             <Pressable
-              onPress={() => fetchActivities(filter)}
-              style={styles.retryPill}
+              onPress={() => fetchActivities(filter, { isRetry: true })}
+              style={[styles.retryPill, isRetrying && { opacity: 0.7 }]}
+              disabled={isRetrying}
               accessibilityRole="button"
               accessibilityLabel="Retry loading activity"
+              accessibilityState={{ busy: isRetrying, disabled: isRetrying }}
             >
-              <Text style={styles.retryPillText}>Retry</Text>
+              {isRetrying ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.retryPillText}>Retrying...</Text>
+                </View>
+              ) : (
+                <Text style={styles.retryPillText}>Retry</Text>
+              )}
             </Pressable>
           </View>
         </Card>
       )}
 
       {/* 6. Empty State */}
-      {!isLoading && !error && activities.length === 0 && (
+      {!isLoading && !isRetrying && !error && activities.length === 0 && (
         <View style={styles.emptyContainer}>
           <IconBadge name="activity" tone="gray" size={56} />
           <Text style={styles.emptyTitle}>No activity recorded yet</Text>
@@ -194,7 +247,7 @@ export const ActivityScreen: React.FC = () => {
       )}
 
       {/* 7. Real Timeline Cards */}
-      {!isLoading && !error && (
+      {!isLoading && !isRetrying && !error && (
         <View style={styles.timelineList}>
           {activities.map((item) => {
             const { icon, tone } = getServiceVisuals(item.serviceType);
