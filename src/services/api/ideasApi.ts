@@ -1,5 +1,5 @@
 import { apiClient, ApiError, AI_GENERATION_TIMEOUT_MS, RequestOptions, generateRequestId } from './apiClient';
-import { parseIdeaTitleAndDesc, hasSubDocument, ParsedIdeaCard } from '../../utils/ideaParser';
+import { parseIdeaTitleAndDesc, hasSubDocument, detectCategory, ParsedIdeaCard } from '../../utils/ideaParser';
 
 export * from './ideasApi.types';
 import {
@@ -29,7 +29,7 @@ export const mapBackendIdeaToCard = (raw: BackendIdea): ParsedIdeaCard => {
     marketDemandScore: raw.marketDemandScore,
     competitionScore: raw.competitionScore,
     monetizationScore: raw.monetizationFeasibilityScore,
-    category: 'Validation',
+    category: detectCategory(raw.ideaText),
     hasPitchDeck: hasSubDocument(raw.pitchDeckContent),
     hasCanvas: hasSubDocument(raw.canvasContent),
     hasCompetitors: Boolean(

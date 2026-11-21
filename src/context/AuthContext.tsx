@@ -34,6 +34,7 @@ export interface AuthContextType {
   resetPassword: (params: ResetPasswordParams) => Promise<MessageResponse>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateName: (name: string) => Promise<User>;
   retryBootstrap?: () => Promise<void>;
   clearError: () => void;
 }
@@ -358,6 +359,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   /**
+   * Updates user display name via PUT /api/auth/user.
+   * Updates state only on confirmed server success; never exposes sensitive data.
+   */
+  const updateName = useCallback(async (name: string): Promise<User> => {
+    const trimmed = name?.trim();
+    if (!trimmed) {
+      throw new Error('Name cannot be empty.');
+    }
+    setError(null);
+    try {
+      const updatedUser = await authApi.updateProfile({ name: trimmed });
+      if (isMountedRef.current) {
+        setUser(updatedUser);
+      }
+      return updatedUser;
+    } catch (err: unknown) {
+      logAuthWarning('Error updating profile name', err);
+      let message = 'Unable to update profile name. Please try again.';
+      if (err instanceof ApiError) {
+        message = err.message || message;
+      } else if (err instanceof Error) {
+        message = err.message || message;
+      }
+      if (isMountedRef.current) {
+        setError(message);
+      }
+      throw err;
+    }
+  }, []);
+
+  /**
    * Handles server 401 expiration on authenticated requests:
    * immediately blocks protected UI access and attempts local token cleanup without unhandled rejections.
    */
@@ -421,6 +453,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetPassword,
     signOut,
     refreshUser,
+    updateName,
     retryBootstrap: bootstrapAuth,
     clearError,
   };

@@ -151,4 +151,20 @@ describe('AuthApi Service', () => {
     expect(getSpy).toHaveBeenCalledWith('/api/auth/user');
     expect(user._id).toBe('usr-123');
   });
+
+  it('should update authenticated user profile via PUT /api/auth/user', async () => {
+    const putSpy = jest.spyOn(apiClient, 'put').mockResolvedValue({
+      _id: 'usr-123',
+      name: 'Aarav Updated',
+      email: 'aarav@pitchmint.app',
+      credits: 3,
+      isPremium: false,
+      isEmailVerified: true,
+    } as any);
+
+    const user = await authApi.updateProfile({ name: 'Aarav Updated' });
+
+    expect(putSpy).toHaveBeenCalledWith('/api/auth/user', { name: 'Aarav Updated' }, undefined);
+    expect(user.name).toBe('Aarav Updated');
+  });
 });

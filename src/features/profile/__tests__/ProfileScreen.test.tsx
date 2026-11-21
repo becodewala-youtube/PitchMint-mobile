@@ -1,17 +1,19 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { Text, Pressable, Alert } from 'react-native';
+import { Text, Pressable, Alert, Linking } from 'react-native';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { ideasApi } from '../../../services/api/ideasApi';
 import { creditsApi } from '../../../services/api/creditsApi';
 import { ApiError } from '../../../services/api/apiClient';
 import { TokenStorageError } from '../../../services/storage/tokenStorage';
 import { config } from '../../../config/env';
+import { LEGAL_URLS } from '../constants/profileConstants';
 
 (global as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 const mockSignOut = jest.fn();
 const mockRefreshUser = jest.fn().mockResolvedValue(undefined);
+const mockUpdateName = jest.fn().mockResolvedValue({ name: 'Aarav Sharma' });
 
 let mockUser: any = {
   _id: 'usr-1',
@@ -31,6 +33,7 @@ jest.mock('../../../context/AuthContext', () => ({
     user: mockUser,
     signOut: mockSignOut,
     refreshUser: mockRefreshUser,
+    updateName: mockUpdateName,
   }),
 }));
 
@@ -38,6 +41,16 @@ describe('ProfileScreen Integration (Phase 3B.1)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    jest.spyOn(Linking, 'canOpenURL').mockResolvedValue(true as any);
+    jest.spyOn(Linking, 'openURL').mockResolvedValue(true as any);
+    mockUser = {
+      _id: 'usr-1',
+      name: 'Aarav Sharma',
+      email: 'aarav@pitchmint.app',
+      credits: 8,
+      plan: 'pro',
+      isPremium: true,
+    };
     config.features.enableDemoTopUp = true;
     jest.spyOn(ideasApi, 'getSavedIdeas').mockResolvedValue({
       success: true,
@@ -323,5 +336,93 @@ describe('ProfileScreen Integration (Phase 3B.1)', () => {
     });
 
     expect(root.findAllByProps({ testID: 'profile-signout-error-banner' })).toHaveLength(0);
+  });
+
+  it('displays crown badge and hides upgrade banner when user is eligible premium', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<ProfileScreen />);
+    });
+
+    const root = renderer!.root;
+    expect(root.findAllByProps({ testID: 'profile-crown-badge' }).length).toBeGreaterThan(0);
+    expect(root.findAllByProps({ testID: 'profile-upgrade-banner-button' })).toHaveLength(0);
+  });
+
+  it('omits crown badge and renders actionable upgrade banner for free user', async () => {
+    mockUser = {
+      ...mockUser,
+      isPremium: false,
+      plan: 'free',
+    };
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<ProfileScreen />);
+    });
+
+    const root = renderer!.root;
+    expect(root.findAllByProps({ testID: 'profile-crown-badge' })).toHaveLength(0);
+
+    const upgradeBtn = root.findByProps({ testID: 'profile-upgrade-banner-button' });
+    expect(upgradeBtn).toBeDefined();
+
+    act(() => {
+      upgradeBtn.props.onPress();
+    });
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'PitchMint Premium',
+      expect.stringContaining('upcoming release'),
+      expect.any(Array)
+    );
+  });
+
+  it('opens official legal URLs when legal settings rows are pressed', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<ProfileScreen />);
+    });
+
+    const root = renderer!.root;
+
+    const privacyRow = root.findByProps({ accessibilityLabel: 'Privacy Policy' });
+    await act(async () => {
+      privacyRow.props.onPress();
+    });
+    expect(Linking.openURL).toHaveBeenCalledWith(LEGAL_URLS.privacyPolicy);
+
+    const termsRow = root.findByProps({ accessibilityLabel: 'Terms of Service' });
+    await act(async () => {
+      termsRow.props.onPress();
+    });
+    expect(Linking.openURL).toHaveBeenCalledWith(LEGAL_URLS.termsOfService);
+
+    const refundRow = root.findByProps({ accessibilityLabel: 'Refund Policy' });
+    await act(async () => {
+      refundRow.props.onPress();
+    });
+    expect(Linking.openURL).toHaveBeenCalledWith(LEGAL_URLS.refundPolicy);
+  });
+
+  it('handles legal URL open error gracefully', async () => {
+    jest.spyOn(Linking, 'openURL').mockRejectedValueOnce(new Error('Cannot open URL'));
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<ProfileScreen />);
+    });
+
+    const root = renderer!.root;
+    const privacyRow = root.findByProps({ accessibilityLabel: 'Privacy Policy' });
+
+    await act(async () => {
+      privacyRow.props.onPress();
+    });
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Unable to Open Link',
+      expect.stringContaining('Could not open Privacy Policy')
+    );
   });
 });

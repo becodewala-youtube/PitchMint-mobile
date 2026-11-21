@@ -63,6 +63,13 @@ export interface GoogleAuthParams {
   credential: string;
 }
 
+export interface UpdateProfileParams {
+  name?: string;
+  email?: string;
+  password?: string;
+  currentPassword?: string;
+}
+
 /**
  * Service encapsulating PitchMint backend authentication endpoints.
  */
@@ -123,5 +130,13 @@ export const authApi = {
     return options
       ? apiClient.get<User>('/api/auth/user', options)
       : apiClient.get<User>('/api/auth/user');
+  },
+
+  /**
+   * Updates user profile fields (e.g. name).
+   * Route: PUT /api/auth/user
+   */
+  updateProfile(params: UpdateProfileParams, options?: RequestOptions): Promise<User> {
+    return apiClient.put<User>('/api/auth/user', params, options);
   },
 };

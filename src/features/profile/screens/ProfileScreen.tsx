@@ -5,6 +5,8 @@ import {
   Switch,
   RefreshControl,
   Alert,
+  Linking,
+  Pressable,
 } from 'react-native';
 import {
   ScreenContainer,
@@ -24,6 +26,7 @@ import { styles } from './ProfileScreen.styles';
 import { SettingRow } from '../components/SettingRow';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { DemoCreditTopUp } from '../components/DemoCreditTopUp';
+import { LEGAL_URLS } from '../constants/profileConstants';
 
 /**
  * ProfileScreen - Settings & Account Management
@@ -31,7 +34,7 @@ import { DemoCreditTopUp } from '../components/DemoCreditTopUp';
  * Decomposed in Stage 4.4 into modular components, styles, and constants.
  */
 export const ProfileScreen: React.FC = () => {
-  const { user, refreshUser, signOut } = useAuth();
+  const { user, refreshUser, signOut, updateName } = useAuth();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [founderTipsEnabled, setFounderTipsEnabled] = useState(true);
@@ -57,6 +60,30 @@ export const ProfileScreen: React.FC = () => {
   const displayCredits = user?.credits ?? 0;
   const displayPlan = (user?.plan || (user?.isPremium ? 'PRO' : 'FREE')).toUpperCase();
   const initialLetter = (displayName[0] || 'F').toUpperCase();
+  const isEligiblePremium = Boolean(
+    user?.isPremium || (user?.plan && user.plan.toLowerCase() === 'premium')
+  );
+
+  const handleOpenLegalUrl = async (url: string, title: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Unable to Open Link', `Could not open ${title} in your browser.`);
+      }
+    } catch (err: unknown) {
+      Alert.alert('Unable to Open Link', `Could not open ${title}. Please try again later.`);
+    }
+  };
+
+  const handleUpgradePress = () => {
+    Alert.alert(
+      'PitchMint Premium',
+      'PitchMint Premium unlocks the curated Investor Directory, AI Matchmaking, and full exports.\n\nIn-app subscriptions will be available via Google Play Billing in an upcoming release.',
+      [{ text: 'OK' }]
+    );
+  };
 
   const loadProfileMetrics = useCallback(async () => {
     try {
@@ -220,21 +247,31 @@ export const ProfileScreen: React.FC = () => {
         displayPlan={displayPlan}
         displayCredits={displayCredits}
         totalIdeasCount={totalIdeasCount}
+        isPremium={isEligiblePremium}
+        onUpdateName={updateName}
       />
 
       {/* 2. Unlock PitchMint Premium Banner */}
-      <Card variant="highlight" style={styles.premiumBannerCard}>
-        <View style={styles.premiumBannerRow}>
-          <IconBadge name="crown" tone="amber" size={42} />
-          <View style={styles.premiumTextCol}>
-            <Text style={styles.premiumTitle}>Unlock PitchMint Premium</Text>
-            <Text style={styles.premiumSubtitle}>
-              Investor directory & AI matchmaking · ₹29
-            </Text>
-          </View>
-          <Icon name="chevronRight" size={16} color={colors.tones.amber.text} />
-        </View>
-      </Card>
+      {!isEligiblePremium && (
+        <Card variant="highlight" style={styles.premiumBannerCard}>
+          <Pressable
+            testID="profile-upgrade-banner-button"
+            onPress={handleUpgradePress}
+            style={styles.premiumBannerRow}
+            accessibilityRole="button"
+            accessibilityLabel="Unlock PitchMint Premium. Learn more about investor directory and AI matchmaking."
+          >
+            <IconBadge name="crown" tone="amber" size={42} />
+            <View style={styles.premiumTextCol}>
+              <Text style={styles.premiumTitle}>Unlock PitchMint Premium</Text>
+              <Text style={styles.premiumSubtitle}>
+                Investor directory & AI matchmaking · ₹29
+              </Text>
+            </View>
+            <Icon name="chevronRight" size={16} color={colors.tones.amber.text} />
+          </Pressable>
+        </Card>
+      )}
 
       {/* Dev / Demo Credit Top-Up Section */}
       {config.features.enableDemoTopUp && (
@@ -319,22 +356,28 @@ export const ProfileScreen: React.FC = () => {
       </Card>
 
       {/* 5. Section: LEGAL & STORE COMPLIANCE */}
-      <Text style={styles.sectionCategory}>LEGAL & COMPLIANCE</Text>
+      <Text style={styles.sectionCategory}>LEGAL</Text>
       <Card style={styles.settingsGroupCard}>
         <SettingRow
           icon="shield"
           label="Privacy Policy"
           tone="gray"
-          onPress={() => Alert.alert('Privacy Policy', 'https://pitchmint.app/privacy')}
+          onPress={() => handleOpenLegalUrl(LEGAL_URLS.privacyPolicy, 'Privacy Policy')}
         />
         <View style={styles.divider} />
-        <View style={styles.complianceNoteBox}>
-          <Text style={styles.complianceNoteTitle}>Store Release Notice</Text>
-          <Text style={styles.complianceNoteText}>
-            • In-app account deletion (DELETE /api/auth/account) is tracked as a mandatory backend blocker before Google Play release.
-            {'\n'}• Native Google Play Billing will replace digital checkout post-MVP.
-          </Text>
-        </View>
+        <SettingRow
+          icon="fileText"
+          label="Terms of Service"
+          tone="gray"
+          onPress={() => handleOpenLegalUrl(LEGAL_URLS.termsOfService, 'Terms of Service')}
+        />
+        <View style={styles.divider} />
+        <SettingRow
+          icon="trendingUp"
+          label="Refund Policy"
+          tone="gray"
+          onPress={() => handleOpenLegalUrl(LEGAL_URLS.refundPolicy, 'Refund Policy')}
+        />
       </Card>
 
       {/* 6. Sign Out Danger Card */}

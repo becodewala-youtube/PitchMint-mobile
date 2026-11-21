@@ -22,7 +22,7 @@ export const IdeasSearchBar: React.FC<IdeasSearchBarProps> = ({
   totalIdeas,
 }) => {
   const filters: Array<{ key: FilterType; label: string }> = [
-    { key: 'all', label: `All (${totalIdeas})` },
+    { key: 'all', label: typeof totalIdeas === 'number' ? `All (${totalIdeas})` : 'All' },
     { key: 'top', label: 'Top scored (80+)' },
     { key: 'deck', label: 'Has pitch deck' },
     { key: 'none', label: 'Not explored' },

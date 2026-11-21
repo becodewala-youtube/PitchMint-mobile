@@ -19,6 +19,35 @@ export interface ParsedIdeaCard {
 }
 
 /**
+ * Authoritative category detection rules matching the Arena reference design.
+ */
+export const CATEGORY_RULES: Array<[RegExp, string]> = [
+  [/(?<!machine\s|deep\s)\b(learn|school|student|education|course|tutor|language|teach)\w*/i, 'Education'],
+  [/\b(health|medical|doctor|patient|fitness|wellness|clinic|therapy)\w*/i, 'Healthcare'],
+  [/\b(pay|bank|loan|finance|invest|insur|credit|fintech|wallet)\w*/i, 'Fintech'],
+  [/\b(shop|store|retail|ecommerce|e-commerce|marketplace|grocery|delivery)\w*/i, 'E-commerce'],
+  [/\b(solar|energy|climate|carbon|green|electric|sustain)\w*|\bev\b/i, 'Climate'],
+  [/\b(food|restaurant|meal|kitchen|recipe|cafe)\w*/i, 'Food & Bev'],
+  [/\b(saas|b2b|enterprise|workflow|crm|erp|sme|contract|software)\w*/i, 'SaaS'],
+  [/\b(ai|ml|gpt|llm|chatbot|automation)\b|machine learning|deep learning/i, 'AI / ML'],
+];
+
+/**
+ * Derives a startup category from raw idea text using Arena keyword heuristics.
+ * Falls back safely to 'General' for unrecognized or empty text.
+ */
+export const detectCategory = (text?: string): string => {
+  if (!text || typeof text !== 'string') return 'General';
+  const clean = text.trim();
+  if (!clean) return 'General';
+
+  for (const [re, name] of CATEGORY_RULES) {
+    if (re.test(clean)) return name;
+  }
+  return 'General';
+};
+
+/**
  * Extracts a sensible title and description from user-entered ideaText.
  * In PitchMint, users often type a title or header followed by details.
  */
