@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAppSafeArea } from '../../../utils/safeArea';
 import { colors, spacing, typography } from '../../../theme';
 import { Button, Input, GoogleSignInButton, Icon, AuthCard } from '../../../components';
 import { useAuth } from '../../../context/AuthContext';
@@ -38,6 +39,7 @@ type SignInRouteProp = RouteProp<AuthStackParamList, 'SignIn'>;
 export const SignInScreen: React.FC = () => {
   const navigation = useNavigation<SignInNavigationProp>();
   const route = useRoute<SignInRouteProp>();
+  const insets = useAppSafeArea();
   const { signIn, clearError } = useAuth();
 
   const [email, setEmail] = useState(route.params?.initialEmail ?? '');
@@ -113,7 +115,13 @@ export const SignInScreen: React.FC = () => {
       <View style={styles.ambientGlow} pointerEvents="none" />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 24),
+            paddingBottom: Math.max(insets.bottom, 24),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

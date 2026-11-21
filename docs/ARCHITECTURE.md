@@ -217,5 +217,5 @@ Native Google authentication is not currently implemented; the existing codebase
 Before implementing Google Sign-In:
 1. **Approach Investigation:** Evaluate supported authentication approaches for the current Expo SDK (SDK 58) and backend contract, comparing browser-based OAuth (e.g. `expo-auth-session`) and native SDK integration.
 2. **Native Build Modality:** A native SDK approach (such as `@react-native-google-signin/google-signin` or similar) may require a custom EAS development build (`expo-dev-client`).
-3. **Credentials & Artifacts:** If a native SDK is chosen, configuration will require a Google Cloud Console Web Client ID (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`), Android Client ID matching package `com.pitchmint.app` with SHA-1 fingerprint, and `google-services.json`.
+3. **Credentials & Artifacts:** Configuration requires a Google Cloud Console Web Client ID (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`) and Android Client ID matching package `com.pitchmint.app` with SHA-1 fingerprint (`google-services.json` is not required when supplying the explicit Web Client ID to `react-native-nitro-google-signin`).
 4. **Decision Criteria:** The authentication strategy must be selected based on a comprehensive evaluation of compatibility with Expo SDK 58, mobile security requirements, user experience, and backend session exchange.

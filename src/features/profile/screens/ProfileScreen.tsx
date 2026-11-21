@@ -8,6 +8,7 @@ import {
   Linking,
   Pressable,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import {
   ScreenContainer,
   Card,
@@ -16,6 +17,7 @@ import {
   Icon,
 } from '../../../components';
 import { colors } from '../../../theme';
+import { RootStackNavigationProp } from '../../../navigation/types';
 import { useAuth } from '../../../context/AuthContext';
 import { ideasApi } from '../../../services/api/ideasApi';
 import { creditsApi } from '../../../services/api/creditsApi';
@@ -34,6 +36,7 @@ import { LEGAL_URLS } from '../constants/profileConstants';
  * Decomposed in Stage 4.4 into modular components, styles, and constants.
  */
 export const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation<RootStackNavigationProp>();
   const { user, refreshUser, signOut, updateName } = useAuth();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -302,6 +305,14 @@ export const ProfileScreen: React.FC = () => {
         />
         <View style={styles.divider} />
         <SettingRow
+          icon="activity"
+          label="Activity history"
+          value="View log"
+          tone="emerald"
+          onPress={() => navigation.navigate('Activity')}
+        />
+        <View style={styles.divider} />
+        <SettingRow
           icon="bell"
           label="Push notifications"
           tone="blue"
@@ -337,21 +348,22 @@ export const ProfileScreen: React.FC = () => {
           icon="help"
           label="Help Center"
           tone="emerald"
-          onPress={() => Alert.alert('Help Center', 'PitchMint Knowledge Base & FAQs')}
+          onPress={() => handleOpenLegalUrl(LEGAL_URLS.helpCenter, 'Help Center')}
         />
         <View style={styles.divider} />
         <SettingRow
           icon="mail"
           label="Contact us"
           tone="cyan"
-          onPress={() => Alert.alert('Contact Support', 'Reach our team at support@pitchmint.app')}
+          onPress={() => handleOpenLegalUrl(LEGAL_URLS.contactUs, 'Contact Us')}
         />
         <View style={styles.divider} />
         <SettingRow
           icon="award"
           label="About PitchMint"
-          value="v1.0.0"
+          value="v1.0.2"
           tone="violet"
+          onPress={() => handleOpenLegalUrl(LEGAL_URLS.aboutUs, 'About PitchMint')}
         />
       </Card>
 
@@ -377,6 +389,13 @@ export const ProfileScreen: React.FC = () => {
           label="Refund Policy"
           tone="gray"
           onPress={() => handleOpenLegalUrl(LEGAL_URLS.refundPolicy, 'Refund Policy')}
+        />
+        <View style={styles.divider} />
+        <SettingRow
+          icon="fileText"
+          label="Shipping & Delivery"
+          tone="gray"
+          onPress={() => handleOpenLegalUrl(LEGAL_URLS.shippingPolicy, 'Shipping & Delivery')}
         />
       </Card>
 
@@ -411,7 +430,7 @@ export const ProfileScreen: React.FC = () => {
         />
       </Card>
 
-      <Text style={styles.versionFooter}>PitchMint for mobile · v1.0.0</Text>
+      <Text style={styles.versionFooter}>PitchMint for mobile · v1.0.2</Text>
     </ScreenContainer>
   );
 };

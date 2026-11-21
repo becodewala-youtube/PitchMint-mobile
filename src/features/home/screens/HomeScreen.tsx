@@ -168,6 +168,9 @@ export const HomeScreen: React.FC = () => {
         onNavigateToIdeas={() =>
           navigation.navigate('MainTabs', { screen: 'Ideas' })
         }
+        onNavigateToToolkit={() =>
+          navigation.navigate('MainTabs', { screen: 'Toolkit' } as any)
+        }
       />
 
       {/* 3. Section: Recent Ideas */}

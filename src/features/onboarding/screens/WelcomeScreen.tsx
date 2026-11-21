@@ -8,7 +8,7 @@ import {
   Animated,
   Easing,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppSafeArea } from '../../../utils/safeArea';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography } from '../../../theme';
@@ -30,7 +30,7 @@ type WelcomeNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Welc
  */
 export const WelcomeScreen: React.FC = () => {
   const navigation = useNavigation<WelcomeNavigationProp>();
-  const insets = useSafeAreaInsets();
+  const insets = useAppSafeArea();
 
   // Halo pulse animation matching Arena's pulse-ring keyframes
   const pulseAnim1 = useRef(new Animated.Value(0)).current;

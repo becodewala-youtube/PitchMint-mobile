@@ -1,9 +1,13 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';
 import { AppProviders } from './AppProviders';
 import { RootNavigator } from '../navigation/RootNavigator';
-import { navigationDarkTheme, colors } from '../theme';
+import { navigationDarkTheme } from '../theme';
+
+// Maintain native splash screen until secure storage & onboarding state settle
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 /**
  * Main application component.

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAppSafeArea } from '../../../utils/safeArea';
 import { colors, spacing, typography } from '../../../theme';
 import { Button, Input, Icon, AuthCard } from '../../../components';
 import { authApi } from '../../../services/api/authApi';
@@ -26,6 +27,7 @@ type ForgotPasswordRouteProp = RouteProp<AuthStackParamList, 'ForgotPassword'>;
 export const ForgotPasswordScreen: React.FC = () => {
   const navigation = useNavigation<ForgotPasswordNavigationProp>();
   const route = useRoute<ForgotPasswordRouteProp>();
+  const insets = useAppSafeArea();
 
   const [email, setEmail] = useState(route.params?.initialEmail ?? '');
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -68,7 +70,13 @@ export const ForgotPasswordScreen: React.FC = () => {
       <View style={styles.ambientGlow} pointerEvents="none" />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 24),
+            paddingBottom: Math.max(insets.bottom, 24),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

@@ -84,10 +84,14 @@ This document tracks verified limitations, technical debt, release prerequisites
 
 ### AUTH-03: Google Sign-In Status
 - **Category:** Feature Completeness & Authentication Architecture
-- **Status:** Implemented as Placeholder Stub (Investigation Pending)
-- **Evidence:** [`src/services/auth/googleAuthService.ts`](../src/services/auth/googleAuthService.ts) presents an informational dialog directing users to email/password authentication.
-- **Assessment:** Native Google authentication is not currently implemented; the existing flow is an informational placeholder stub per the Stage 1 audit. Before implementation, engineering must investigate supported authentication approaches for the active Expo SDK (SDK 58) and backend contract. Evaluation must consider browser-based OAuth (e.g. `expo-auth-session`) and native SDK integration where applicable. A native SDK approach may require a custom development build (`expo-dev-client` / EAS Build). The implementation should be selected only after evaluating compatibility, security, user experience, and backend integration.
-- **Required Action:** Evaluate supported Expo SDK 58 authentication options and backend integration requirements before selecting a library or build strategy.
+- **Status:** Implemented & Unit-Tested (Native Android Credential Manager via `react-native-nitro-google-signin`; Live Device Verification Pending Google Cloud Credentials)
+- **Evidence:**
+  - [`src/services/auth/googleAuthService.ts`](../src/services/auth/googleAuthService.ts) implements the native Android Credential Manager authentication flow using `react-native-nitro-google-signin` and `react-native-nitro-modules`.
+  - [`src/context/AuthContext.tsx`](../src/context/AuthContext.tsx) exposes `signInWithGoogle()`, exchanging Google ID tokens with `POST /api/auth/google`, securely persisting session JWTs via hardware-backed `tokenStorage`, and immediately establishing authenticated sessions without requiring `refreshUser()`.
+  - [`src/components/GoogleSignInButton.tsx`](../src/components/GoogleSignInButton.tsx) integrates `signInWithGoogle` with duplicate-tap protection, loading spinners, and graceful user-cancellation handling.
+  - Comprehensive unit test suites in [`src/services/auth/__tests__/googleAuthService.test.ts`](../src/services/auth/__tests__/googleAuthService.test.ts), [`src/context/__tests__/AuthContext.google.test.tsx`](../src/context/__tests__/AuthContext.google.test.tsx), and [`src/components/__tests__/GoogleSignInButton.test.tsx`](../src/components/__tests__/GoogleSignInButton.test.tsx).
+- **Assessment:** Native Google Sign-In is fully integrated and unit-tested on Android with fail-closed security and Credential Manager fallback chains. Client binaries do not embed private secrets and rely on `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`. Real end-to-end device authentication requires developer/project owner registration of the Android OAuth client (package `com.pitchmint.app` and Android signing SHA-1 fingerprint) in the Google Cloud Console.
+- **Required Action:** Provide `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in local `.env.local` and configure corresponding Android and Web OAuth clients in Google Cloud Console for physical/emulator device sign-in.
 
 ---
 

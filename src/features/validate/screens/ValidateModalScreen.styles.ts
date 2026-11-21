@@ -6,7 +6,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: spacing.xl,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.subtle,
@@ -413,5 +413,33 @@ export const styles = StyleSheet.create({
   },
   resultActions: {
     marginTop: spacing.md,
+  },
+  takeFurtherSection: {
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+  },
+  takeFurtherGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  takeFurtherCard: {
+    width: '48%',
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    padding: spacing.md,
+  },
+  takeFurtherTitle: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semiBold,
+    color: colors.text.primary,
+    marginBottom: 2,
+  },
+  takeFurtherSub: {
+    fontSize: typography.sizes.xs,
+    color: colors.brand.soft,
   },
 });

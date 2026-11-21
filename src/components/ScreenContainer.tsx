@@ -6,7 +6,7 @@ import {
   StyleProp,
   RefreshControlProps,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppSafeArea } from '../utils/safeArea';
 import { colors, spacing } from '../theme';
 
 interface ScreenContainerProps {
@@ -32,11 +32,11 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
   withTopGlow = true,
   refreshControl,
 }) => {
-  const insets = useSafeAreaInsets();
+  const insets = useAppSafeArea();
 
   const containerPaddingTop = withHeaderOffset
     ? Math.max(insets.top, spacing.md)
-    : 0;
+    : insets.top;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background.primary }, style]}>

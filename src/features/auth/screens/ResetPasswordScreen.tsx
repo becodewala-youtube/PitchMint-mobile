@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAppSafeArea } from '../../../utils/safeArea';
 import { colors, spacing, typography } from '../../../theme';
 import { Button, Input, Icon, AuthCard } from '../../../components';
 import { authApi } from '../../../services/api/authApi';
@@ -30,6 +31,7 @@ type ResetPasswordRouteProp = RouteProp<AuthStackParamList, 'ResetPassword'>;
 export const ResetPasswordScreen: React.FC = () => {
   const navigation = useNavigation<ResetPasswordNavigationProp>();
   const route = useRoute<ResetPasswordRouteProp>();
+  const insets = useAppSafeArea();
 
   const [email, setEmail] = useState(route.params?.email ?? '');
   const [token, setToken] = useState('');
@@ -103,7 +105,13 @@ export const ResetPasswordScreen: React.FC = () => {
       <View style={styles.ambientGlow} pointerEvents="none" />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 24),
+            paddingBottom: Math.max(insets.bottom, 24),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

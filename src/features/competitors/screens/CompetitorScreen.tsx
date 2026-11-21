@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
+  TextInput,
   Pressable,
   ActivityIndicator,
   RefreshControl,
@@ -33,10 +34,12 @@ export const CompetitorScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user, refreshUser } = useAuth();
 
-  const { ideaId, ideaTitle } = route.params;
+  const ideaId = route.params?.ideaId;
+  const ideaTitle = route.params?.ideaTitle;
+  const [standaloneText, setStandaloneText] = useState<string>(route.params?.ideaText || '');
 
   const [idea, setIdea] = useState<BackendIdea | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(Boolean(ideaId));
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'competitors' | 'swot'>('competitors');
@@ -48,6 +51,12 @@ export const CompetitorScreen: React.FC = () => {
 
   const loadData = useCallback(
     async (isPull = false) => {
+      if (!ideaId) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+        return;
+      }
+
       if (isPull) {
         setIsRefreshing(true);
       } else {
@@ -86,23 +95,54 @@ export const CompetitorScreen: React.FC = () => {
     loadData(false);
   }, [loadData]);
 
+  const handleAnalyzeStandalone = async () => {
+    if (!standaloneText.trim()) {
+      setError('Please provide your startup idea description.');
+      return;
+    }
+    setIsAnalyzing(true);
+    setError(null);
+    try {
+      const result = await ideasApi.analyzeCompetitorsStandalone(standaloneText.trim());
+      setIdea({
+        _id: 'standalone',
+        userId: (user as any)?._id || (user as any)?.id || '',
+        ideaText: standaloneText.trim(),
+        competitorAnalysis: result.competitorAnalysis,
+        createdAt: new Date().toISOString(),
+      });
+      await refreshUser().catch(() => {});
+    } catch (err: any) {
+      console.warn('[CompetitorScreen] Standalone analysis failed:', err);
+      setError(err?.message || 'Failed to analyze competitors.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleConfirmRegenerate = async () => {
     setShowRegenerateModal(false);
     setIsAnalyzing(true);
     setError(null);
 
-    if (!regenerateKeyRef.current) {
-      regenerateKeyRef.current = generateIdempotencyKey();
-    }
-
     try {
-      const response = await ideasApi.analyzeCompetitors(ideaId, true, {
-        idempotencyKey: regenerateKeyRef.current,
-      });
-      regenerateKeyRef.current = null;
-      setIdea((prev) =>
-        prev ? { ...prev, competitorAnalysis: response.competitorAnalysis } : prev
-      );
+      if (ideaId) {
+        if (!regenerateKeyRef.current) {
+          regenerateKeyRef.current = generateIdempotencyKey();
+        }
+        const response = await ideasApi.analyzeCompetitors(ideaId, true, {
+          idempotencyKey: regenerateKeyRef.current,
+        });
+        regenerateKeyRef.current = null;
+        setIdea((prev) =>
+          prev ? { ...prev, competitorAnalysis: response.competitorAnalysis } : prev
+        );
+      } else if (standaloneText.trim()) {
+        const response = await ideasApi.analyzeCompetitorsStandalone(standaloneText.trim());
+        setIdea((prev) =>
+          prev ? { ...prev, competitorAnalysis: response.competitorAnalysis } : prev
+        );
+      }
       await refreshUser().catch(() => {});
     } catch (err: any) {
       console.warn('[CompetitorScreen] Regeneration failed:', err);
@@ -238,81 +278,106 @@ export const CompetitorScreen: React.FC = () => {
         </Pressable>
       </View>
 
-      {/* 2. Status Banner */}
-      <View style={styles.statusCard}>
-        <IconBadge name="check" tone="emerald" size={36} />
-        <View style={styles.statusTitleCol}>
-          <Text style={styles.statusTitle}>Analysis Complete</Text>
-          <Text style={styles.statusSubtitle}>Competitive landscape & SWOT</Text>
-        </View>
-        <Pill label={`${competitors.length} found`} tone="gray" />
-      </View>
-
-      {/* 3. Market Overview Card */}
-      <Card style={styles.marketOverviewCard}>
-        <View style={styles.marketHeaderRow}>
-          <IconBadge name="trendingUp" tone="violet" size={28} />
-          <Text style={styles.marketTitle}>Market Overview</Text>
-        </View>
-        <Text style={styles.marketSummaryText}>{summary}</Text>
-      </Card>
-
-      {/* 4. Segmented Tabs: Competitors vs SWOT */}
-      <View style={styles.segmentedContainer}>
-        <Pressable
-          testID="competitor-tab-competitors"
-          onPress={() => setActiveTab('competitors')}
-          style={[
-            styles.segmentTab,
-            activeTab === 'competitors' && styles.segmentTabActive,
-          ]}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: activeTab === 'competitors' }}
-        >
-          <Text
-            style={[
-              styles.segmentTabText,
-              activeTab === 'competitors' && styles.segmentTabTextActive,
-            ]}
-          >
-            Competitors ({competitors.length})
-          </Text>
-        </Pressable>
-
-        <Pressable
-          testID="competitor-tab-swot"
-          onPress={() => setActiveTab('swot')}
-          style={[
-            styles.segmentTab,
-            activeTab === 'swot' && styles.segmentTabActive,
-          ]}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: activeTab === 'swot' }}
-        >
-          <Text
-            style={[
-              styles.segmentTabText,
-              activeTab === 'swot' && styles.segmentTabTextActive,
-            ]}
-          >
-            SWOT Matrix
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* 5. Tab Content: Competitor Cards vs SWOT Matrix Cards */}
-      {activeTab === 'competitors' ? (
-        <View testID="competitor-list-view">
-          {competitors.map((comp, idx) => (
-            <CompetitorCard
-              key={`${comp.name || 'comp'}-${idx}`}
-              competitor={comp}
-              rank={idx + 1}
-            />
-          ))}
-        </View>
+      {/* 2. Status Banner or Standalone Prompt */}
+      {competitors.length === 0 ? (
+        <Card style={styles.promptCard} testID="competitor-standalone-input-card">
+          <Text style={styles.promptLabel}>Startup Idea / Product Description</Text>
+          <TextInput
+            style={styles.promptTextArea}
+            multiline
+            numberOfLines={4}
+            placeholder="Describe your startup concept to discover direct and indirect competitors..."
+            placeholderTextColor={colors.text.muted}
+            value={standaloneText}
+            onChangeText={setStandaloneText}
+            testID="competitor-standalone-input"
+          />
+          <Button
+            title={isAnalyzing ? 'Analyzing Competitors...' : 'Analyze Competitors (1 Credit)'}
+            onPress={handleAnalyzeStandalone}
+            disabled={isAnalyzing || !standaloneText.trim()}
+            style={styles.promptButton}
+            testID="competitor-standalone-submit-btn"
+          />
+        </Card>
       ) : (
-        <SwotMatrixView competitors={competitors} />
+        <>
+          <View style={styles.statusCard}>
+            <IconBadge name="check" tone="emerald" size={36} />
+            <View style={styles.statusTitleCol}>
+              <Text style={styles.statusTitle}>Analysis Complete</Text>
+              <Text style={styles.statusSubtitle}>Competitive landscape & SWOT</Text>
+            </View>
+            <Pill label={`${competitors.length} found`} tone="gray" />
+          </View>
+
+          {/* 3. Market Overview Card */}
+          <Card style={styles.marketOverviewCard}>
+            <View style={styles.marketHeaderRow}>
+              <IconBadge name="trendingUp" tone="violet" size={28} />
+              <Text style={styles.marketTitle}>Market Overview</Text>
+            </View>
+            <Text style={styles.marketSummaryText}>{summary}</Text>
+          </Card>
+
+          {/* 4. Segmented Tabs: Competitors vs SWOT */}
+          <View style={styles.segmentedContainer}>
+            <Pressable
+              testID="competitor-tab-competitors"
+              onPress={() => setActiveTab('competitors')}
+              style={[
+                styles.segmentTab,
+                activeTab === 'competitors' && styles.segmentTabActive,
+              ]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeTab === 'competitors' }}
+            >
+              <Text
+                style={[
+                  styles.segmentTabText,
+                  activeTab === 'competitors' && styles.segmentTabTextActive,
+                ]}
+              >
+                Competitors ({competitors.length})
+              </Text>
+            </Pressable>
+
+            <Pressable
+              testID="competitor-tab-swot"
+              onPress={() => setActiveTab('swot')}
+              style={[
+                styles.segmentTab,
+                activeTab === 'swot' && styles.segmentTabActive,
+              ]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeTab === 'swot' }}
+            >
+              <Text
+                style={[
+                  styles.segmentTabText,
+                  activeTab === 'swot' && styles.segmentTabTextActive,
+                ]}
+              >
+                SWOT Matrix
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* 5. Tab Content: Competitor Cards vs SWOT Matrix Cards */}
+          {activeTab === 'competitors' ? (
+            <View testID="competitor-list-view">
+              {competitors.map((comp, idx) => (
+                <CompetitorCard
+                  key={`${comp.name || 'comp'}-${idx}`}
+                  competitor={comp}
+                  rank={idx + 1}
+                />
+              ))}
+            </View>
+          ) : (
+            <SwotMatrixView competitors={competitors} />
+          )}
+        </>
       )}
 
       {/* 6. Pre-flight 1-Credit Confirmation Modal */}

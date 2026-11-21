@@ -41,7 +41,9 @@ export type IconName =
   | 'eyeOff'
   | 'user'
   | 'trash'
-  | 'settings';
+  | 'settings'
+  | 'layers'
+  | 'rocket';
 
 export interface IconProps {
   name: IconName;

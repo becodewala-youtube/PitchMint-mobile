@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BottomTabNavigator } from './BottomTabNavigator';
 import { ValidateModalScreen } from '../features/validate/screens/ValidateModalScreen';
@@ -7,6 +8,10 @@ import { PitchDeckScreen } from '../features/pitch-deck';
 import { CanvasScreen } from '../features/canvas';
 import { CompetitorScreen } from '../features/competitors';
 import { PitchSimulatorScreen } from '../features/pitch-simulator';
+import { ToolkitScreen } from '../features/toolkit';
+import { ActivityScreen } from '../features/activity/screens/ActivityScreen';
+import { MarketResearchScreen } from '../features/market-research';
+import { InvestorDirectoryScreen, InvestorMatchScreen } from '../features/investors';
 import { AuthNavigator } from './AuthNavigator';
 import { AuthLoadingScreen } from '../features/auth/screens/AuthLoadingScreen';
 import { WelcomeScreen, OnboardingScreen } from '../features/onboarding';
@@ -23,6 +28,12 @@ export const RootNavigator: React.FC = () => {
 
   const isInitializing = isBootstrapping || isLoadingOnboarding;
   const isBootstrapBlocked = !isAuthenticated && !!bootstrapError;
+
+  useEffect(() => {
+    if (!isInitializing) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isInitializing]);
 
   return (
     <Stack.Navigator
@@ -85,6 +96,41 @@ export const RootNavigator: React.FC = () => {
           <Stack.Screen
             name="PitchSimulator"
             component={PitchSimulatorScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="Toolkit"
+            component={ToolkitScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="Activity"
+            component={ActivityScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="MarketResearch"
+            component={MarketResearchScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="InvestorDirectory"
+            component={InvestorDirectoryScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="InvestorMatchmaking"
+            component={InvestorMatchScreen}
             options={{
               animation: 'slide_from_right',
             }}

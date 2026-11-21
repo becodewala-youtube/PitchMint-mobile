@@ -56,7 +56,7 @@ export const CanvasEmptyState: React.FC<CanvasEmptyStateProps> = ({
             {displayTitle}
           </Text>
           <Text style={styles.topBarSubtitle}>
-            Business Model Canvas — Lean Startup Methodology
+            Lean Canvas — Lean Startup Methodology
           </Text>
         </View>
         <Badge label="NOT GENERATED" variant="gray" />
@@ -64,9 +64,9 @@ export const CanvasEmptyState: React.FC<CanvasEmptyStateProps> = ({
 
       <Card style={styles.emptyCard}>
         <IconBadge name="panelsTopLeft" tone="emerald" size={54} />
-        <Text style={styles.emptyTitle}>No Business Model Canvas Generated</Text>
+        <Text style={styles.emptyTitle}>No Lean Canvas Generated</Text>
         <Text style={styles.emptyBody}>
-          PitchMint AI uses lean startup methodology to produce a comprehensive 9-block business model canvas covering problem, solution, unique value proposition, metrics, and revenue streams.
+          PitchMint AI uses lean startup methodology to produce a comprehensive 9-block Lean Canvas covering problem, solution, unique value proposition, metrics, and revenue streams.
         </Text>
 
         <View style={styles.costBox}>
@@ -79,7 +79,7 @@ export const CanvasEmptyState: React.FC<CanvasEmptyStateProps> = ({
 
         <Button
           testID="canvas-empty-generate-button"
-          title={isSubmitting ? 'Generating Canvas…' : 'Generate Canvas (1 Credit)'}
+          title={isSubmitting ? 'Generating Lean Canvas…' : 'Generate Lean Canvas (1 Credit)'}
           variant="primary"
           onPress={onOpenConfirmModal}
           disabled={isSubmitting}
@@ -105,8 +105,8 @@ export const CanvasEmptyState: React.FC<CanvasEmptyStateProps> = ({
       {/* 1-Credit Pre-Flight Confirmation Modal */}
       <CreditConfirmationModal
         visible={showConfirmModal}
-        title="Generate Business Model Canvas?"
-        description="PitchMint AI will analyze this startup idea using lean startup principles to create a comprehensive 9-block model."
+        title="Generate Lean Canvas?"
+        description="PitchMint AI will analyze this startup idea using lean startup principles to create a comprehensive 9-block Lean Canvas."
         costCredits={1}
         currentCredits={currentCredits}
         confirmTestID="canvas-confirm-generate-button"

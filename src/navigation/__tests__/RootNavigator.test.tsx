@@ -65,6 +65,7 @@ const createMockAuthContext = (overrides: Partial<AuthContextType> = {}): AuthCo
   isBootstrapping: false,
   error: null,
   signIn: jest.fn(),
+  signInWithGoogle: jest.fn(),
   signUp: jest.fn(),
   verifyEmail: jest.fn(),
   resendVerification: jest.fn(),
@@ -123,7 +124,7 @@ describe('RootNavigator Integration Flow', () => {
       { isLoadingOnboarding: false }
     );
     let textNodes = rendererAuth.root.findAllByType(Text).map((t) => t.props.children).flat(Infinity);
-    expect(textNodes).toContain('AI Startup Copilot');
+    expect(textNodes).toContain('The AI Operating System for Modern Founders');
 
     // Onboarding loading
     const rendererOnboarding = await renderNavigator(
@@ -131,7 +132,7 @@ describe('RootNavigator Integration Flow', () => {
       { isLoadingOnboarding: true }
     );
     textNodes = rendererOnboarding.root.findAllByType(Text).map((t) => t.props.children).flat(Infinity);
-    expect(textNodes).toContain('AI Startup Copilot');
+    expect(textNodes).toContain('The AI Operating System for Modern Founders');
   });
 
   it('renders WelcomeScreen on first launch when signed out and onboarding has not been completed', async () => {

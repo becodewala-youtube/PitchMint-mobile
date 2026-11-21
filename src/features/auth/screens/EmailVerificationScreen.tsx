@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAppSafeArea } from '../../../utils/safeArea';
 import { colors, spacing, typography } from '../../../theme';
 import { Button, Input, Icon, AuthCard } from '../../../components';
 import { useAuth } from '../../../context/AuthContext';
@@ -27,6 +28,7 @@ type EmailVerificationRouteProp = RouteProp<AuthStackParamList, 'EmailVerificati
 export const EmailVerificationScreen: React.FC = () => {
   const navigation = useNavigation<EmailVerificationNavigationProp>();
   const route = useRoute<EmailVerificationRouteProp>();
+  const insets = useAppSafeArea();
   const { verifyEmail, resendVerification, clearError } = useAuth();
 
   const email = route.params?.email ?? '';
@@ -109,7 +111,13 @@ export const EmailVerificationScreen: React.FC = () => {
       <View style={styles.ambientGlow} pointerEvents="none" />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 24),
+            paddingBottom: Math.max(insets.bottom, 24),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

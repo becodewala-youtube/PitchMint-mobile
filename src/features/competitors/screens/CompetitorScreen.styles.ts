@@ -313,4 +313,29 @@ export const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     lineHeight: 20,
   },
+  promptCard: {
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  promptLabel: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semiBold,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  promptTextArea: {
+    minHeight: 100,
+    backgroundColor: colors.background.card2,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    color: colors.text.primary,
+    fontSize: typography.sizes.sm,
+    textAlignVertical: 'top',
+    marginBottom: spacing.md,
+  },
+  promptButton: {
+    marginTop: spacing.xs,
+  },
 });
