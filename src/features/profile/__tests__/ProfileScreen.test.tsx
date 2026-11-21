@@ -14,6 +14,7 @@ import { LEGAL_URLS } from '../constants/profileConstants';
 const mockSignOut = jest.fn();
 const mockRefreshUser = jest.fn().mockResolvedValue(undefined);
 const mockUpdateName = jest.fn().mockResolvedValue({ name: 'Aarav Sharma' });
+const mockNavigate = jest.fn();
 
 let mockUser: any = {
   _id: 'usr-1',
@@ -23,6 +24,13 @@ let mockUser: any = {
   plan: 'pro',
   isPremium: true,
 };
+
+jest.mock('@react-navigation/native', () => ({
+  ...jest.requireActual('@react-navigation/native'),
+  useNavigation: () => ({
+    navigate: mockNavigate,
+  }),
+}));
 
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 44, bottom: 34, left: 0, right: 0 }),
@@ -424,5 +432,21 @@ describe('ProfileScreen Integration (Phase 3B.1)', () => {
       'Unable to Open Link',
       expect.stringContaining('Could not open Privacy Policy')
     );
+  });
+
+  it('navigates to Activity tab when Activity history is pressed', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<ProfileScreen />);
+    });
+
+    const root = renderer!.root;
+    const activityRow = root.findByProps({ accessibilityLabel: 'Activity history' });
+
+    await act(async () => {
+      activityRow.props.onPress();
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith('Activity');
   });
 });
