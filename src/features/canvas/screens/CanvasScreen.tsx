@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   Pressable,
   ActivityIndicator,
   RefreshControl,
+  Alert,
+  Platform,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../../navigation/types';
@@ -30,6 +32,8 @@ import { useCanvas } from '../hooks/useCanvas';
 import { CanvasBlockViewer } from '../components/CanvasBlockViewer';
 import { CanvasBlockSelector } from '../components/CanvasBlockSelector';
 import { CanvasEmptyState } from '../components/CanvasEmptyState';
+import { CanvasGridOverview } from '../components/CanvasGridOverview';
+import { exportCanvasPdf } from '../utils/canvasPdfExport';
 
 export { CANVAS_BLOCK_DEFINITIONS, CanvasBlockDefinition, formatCanvasAsMarkdown };
 
@@ -74,6 +78,40 @@ export const CanvasScreen: React.FC = () => {
 
   const handleBack = () => {
     navigation.goBack();
+  };
+
+  const [viewMode, setViewMode] = useState<'overview' | 'detail'>('detail');
+  const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
+
+  const displayTitle = ideaTitle || (idea ? parseIdeaTitleAndDesc(idea.ideaText).title : 'Startup Idea');
+
+  const handleExportPdf = async () => {
+    if (isExportingPdf) return;
+    setIsExportingPdf(true);
+    try {
+      const result = await exportCanvasPdf(displayTitle, idea?.canvasContent, {
+        onDownloadSuccess: (info) => {
+          Alert.alert(
+            'Canvas PDF Saved',
+            `Landscape Business Model Canvas saved successfully!\n\n${info.location}`
+          );
+        },
+      });
+      if (Platform.OS !== 'android') {
+        Alert.alert(
+          'Canvas PDF Exported',
+          'Business Model Canvas landscape PDF generated successfully.'
+        );
+      }
+    } catch (err: any) {
+      console.warn('[CanvasScreen] PDF export error:', err);
+      Alert.alert(
+        'Export Failed',
+        err?.message || 'Unable to generate or download Canvas PDF.'
+      );
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   // -----------------------------------------------------------------
@@ -153,7 +191,6 @@ export const CanvasScreen: React.FC = () => {
     );
   }
 
-  const displayTitle = ideaTitle || parseIdeaTitleAndDesc(idea.ideaText).title;
   const currentCredits = user?.credits ?? 0;
 
   // -----------------------------------------------------------------
@@ -218,24 +255,77 @@ export const CanvasScreen: React.FC = () => {
         <Pill label={`${currentBlockIndex + 1}/9`} tone="violet" />
       </View>
 
-      {/* Block Navigation Header Card and Content Card */}
-      <CanvasBlockViewer
-        currentDef={currentDef}
-        currentBlockIndex={currentBlockIndex}
-        totalBlocks={CANVAS_BLOCK_DEFINITIONS.length}
-        blockContent={blockContent}
-        copiedSection={copiedSection}
-        onPrevBlock={handlePrevBlock}
-        onNextBlock={handleNextBlock}
-        onCopyCurrentSection={handleCopyCurrentSection}
-      />
+      {/* View Mode Toggle: Overview Grid vs Block Detail */}
+      <View style={styles.modeToggleRow}>
+        <Pressable
+          testID="canvas-view-mode-overview"
+          onPress={() => setViewMode('overview')}
+          style={[
+            styles.modeToggleBtn,
+            viewMode === 'overview' && styles.modeToggleBtnActive,
+          ]}
+          accessibilityRole="tab"
+          accessibilityLabel="9-Block Overview Grid mode"
+        >
+          <Text
+            style={[
+              styles.modeToggleText,
+              viewMode === 'overview' && styles.modeToggleTextActive,
+            ]}
+          >
+            Overview Grid
+          </Text>
+        </Pressable>
+        <Pressable
+          testID="canvas-view-mode-detail"
+          onPress={() => setViewMode('detail')}
+          style={[
+            styles.modeToggleBtn,
+            viewMode === 'detail' && styles.modeToggleBtnActive,
+          ]}
+          accessibilityRole="tab"
+          accessibilityLabel="Block Detail mode"
+        >
+          <Text
+            style={[
+              styles.modeToggleText,
+              viewMode === 'detail' && styles.modeToggleTextActive,
+            ]}
+          >
+            Block Detail
+          </Text>
+        </Pressable>
+      </View>
 
-      {/* 9-Block Quick-Jump Selector */}
-      <CanvasBlockSelector
-        blocks={CANVAS_BLOCK_DEFINITIONS}
-        currentBlockIndex={currentBlockIndex}
-        onSelectBlock={handleSelectBlock}
-      />
+      {/* Mode Body: 9-Block Grid Overview or Detail Block Viewer */}
+      {viewMode === 'overview' ? (
+        <CanvasGridOverview
+          canvasContent={idea.canvasContent}
+          onSelectBlock={(idx) => {
+            handleSelectBlock(idx);
+            setViewMode('detail');
+          }}
+        />
+      ) : (
+        <>
+          <CanvasBlockViewer
+            currentDef={currentDef}
+            currentBlockIndex={currentBlockIndex}
+            totalBlocks={CANVAS_BLOCK_DEFINITIONS.length}
+            blockContent={blockContent}
+            copiedSection={copiedSection}
+            onPrevBlock={handlePrevBlock}
+            onNextBlock={handleNextBlock}
+            onCopyCurrentSection={handleCopyCurrentSection}
+          />
+
+          <CanvasBlockSelector
+            blocks={CANVAS_BLOCK_DEFINITIONS}
+            currentBlockIndex={currentBlockIndex}
+            onSelectBlock={handleSelectBlock}
+          />
+        </>
+      )}
 
       {/* Export / Copy Entire Canvas Card */}
       <Card style={styles.exportCard}>
@@ -244,10 +334,28 @@ export const CanvasScreen: React.FC = () => {
           <View style={styles.exportTitleCol}>
             <Text style={styles.exportTitle}>Export Canvas</Text>
             <Text style={styles.exportSubtitle}>
-              Copy the complete 9-block canvas formatted as Markdown to your clipboard.
+              Download landscape Business Model Canvas PDF or copy complete Markdown.
             </Text>
           </View>
         </View>
+
+        <Button
+          testID="canvas-export-pdf-button"
+          title={
+            isExportingPdf ? 'Generating Landscape PDF…' : 'Export Canvas (PDF)'
+          }
+          variant="primary"
+          onPress={handleExportPdf}
+          disabled={isExportingPdf}
+          leftIcon={
+            isExportingPdf ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Icon name="fileText" size={16} color="#FFFFFF" />
+            )
+          }
+          style={styles.exportPdfBtn}
+        />
 
         <Button
           testID="canvas-copy-all-button"

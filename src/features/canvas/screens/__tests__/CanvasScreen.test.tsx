@@ -432,6 +432,30 @@ describe('CanvasScreen Component (Phase 4B)', () => {
     });
   });
 
+  it('switches between overview grid and detail viewer modes', async () => {
+    jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(sampleIdeaWithCanvas);
+
+    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<CanvasScreen />);
+    });
+
+    const root = renderer.root;
+    const overviewToggle = root.findByProps({ testID: 'canvas-view-mode-overview' });
+    await act(async () => {
+      overviewToggle.props.onPress();
+    });
+
+    expect(root.findByProps({ testID: 'canvas-grid-overview' })).toBeTruthy();
+
+    const uvpCard = root.findByProps({ testID: 'canvas-grid-card-uniqueValueProposition' });
+    await act(async () => {
+      uvpCard.props.onPress();
+    });
+
+    expect(root.findByProps({ testID: 'canvas-view-mode-detail' })).toBeTruthy();
+  });
+
   it('handles back button navigation', async () => {
     jest.spyOn(ideasApi, 'getIdeaById').mockResolvedValue(sampleIdeaWithCanvas);
 
