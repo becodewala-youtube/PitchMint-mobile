@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { StyleSheet, View, Text, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, ActivityIndicator, Image } from 'react-native';
 import { colors, spacing, typography, borderRadius } from '../../../theme';
 import { Button, Icon } from '../../../components';
 import { AuthContext } from '../../../context/AuthContext';
@@ -21,14 +21,22 @@ export const AuthLoadingScreen: React.FC = () => {
     <View style={styles.container}>
       <View style={styles.content}>
         <View style={styles.iconCircle}>
-          <Icon
-            name={showRecovery ? 'alertCircle' : 'sparkles'}
-            size={28}
-            color={showRecovery ? colors.tones.red.text : colors.brand.soft}
-          />
+          {showRecovery ? (
+            <Icon
+              name="alertCircle"
+              size={32}
+              color={colors.tones.red.text}
+            />
+          ) : (
+            <Image
+              source={require('../../../../assets/android-icon-foreground.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+          )}
         </View>
         <Text style={styles.appName}>PitchMint</Text>
-        <Text style={styles.tagline}>AI Startup Copilot</Text>
+        <Text style={styles.tagline}>The AI Operating System for Modern Founders</Text>
         {showRecovery ? (
           <View style={styles.errorBox} testID="auth-bootstrap-error">
             <Text style={styles.errorTitle}>Session Unavailable</Text>
@@ -61,7 +69,7 @@ export const AuthLoadingScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#07090E',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
@@ -73,15 +81,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconCircle: {
-    width: 64,
-    height: 64,
+    width: 72,
+    height: 72,
     borderRadius: borderRadius.card,
-    backgroundColor: colors.background.card2,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
-    borderColor: colors.border.brandSoft,
+    borderColor: 'rgba(124, 58, 237, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
+    overflow: 'hidden',
+  },
+  logoImage: {
+    width: 56,
+    height: 56,
   },
   appName: {
     fontSize: typography.sizes.xxl,
@@ -92,8 +105,9 @@ const styles = StyleSheet.create({
   tagline: {
     fontSize: typography.sizes.sm,
     color: colors.text.secondary,
-    marginTop: 4,
+    marginTop: 6,
     marginBottom: spacing.xxl,
+    textAlign: 'center',
   },
   spinner: {
     marginTop: spacing.md,

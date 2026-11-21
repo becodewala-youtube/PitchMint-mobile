@@ -1,5 +1,6 @@
 import { apiClient, ApiError, AI_GENERATION_TIMEOUT_MS, RequestOptions, generateRequestId } from './apiClient';
 import { parseIdeaTitleAndDesc, hasSubDocument, detectCategory, ParsedIdeaCard } from '../../utils/ideaParser';
+import { toolkitApi } from './toolkitApi';
 
 export * from './ideasApi.types';
 import {
@@ -435,4 +436,14 @@ export const ideasApi = {
 
     return response;
   },
+
+  /**
+   * Standalone toolkit delegations
+   */
+  analyzeCompetitorsStandalone: toolkitApi.analyzeCompetitorsStandalone,
+  simulatePitchStandalone: toolkitApi.simulatePitchStandalone,
+  evaluateAnswerStandalone: toolkitApi.evaluateAnswerStandalone,
+  analyzeMarketResearch: toolkitApi.analyzeMarketResearch,
+  getInvestors: toolkitApi.getInvestors,
+  matchInvestors: toolkitApi.matchInvestors,
 };

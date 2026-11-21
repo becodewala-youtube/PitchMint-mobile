@@ -139,3 +139,76 @@ export interface EvaluateAnswerResponse {
     additionalAdvice?: string;
   };
 }
+
+export interface CompetitorStandaloneRequest {
+  ideaText: string;
+}
+
+export interface PitchSimulatorStandaloneRequest {
+  pitch: string;
+}
+
+export interface PitchSimulatorEvaluateStandaloneRequest {
+  pitch: string;
+  question: string;
+  answer: string;
+}
+
+export interface MarketResearchRequest {
+  ideaText: string;
+  industry: string;
+  targetRegion: string;
+}
+
+export interface MarketResearchResponse {
+  tam?: { value?: number | string; description?: string; sources?: string[] };
+  sam?: { value?: number | string; description?: string; sources?: string[] };
+  som?: { value?: number | string; description?: string; sources?: string[] };
+  marketGrowthRate?: string;
+  targetAudience?: Array<{ segment?: string; description?: string; painPoints?: string[] } | string>;
+  competitorLandscape?: Array<{ name?: string; description?: string } | string>;
+  trends?: string[];
+  userCredits?: number;
+  [key: string]: any;
+}
+
+export interface InvestorItem {
+  _id: string;
+  name: string;
+  type: string;
+  industryFocus: string[];
+  contactLink: string;
+  description: string;
+  location: string;
+  investmentRange?: {
+    min?: number;
+    max?: number;
+  };
+  createdAt?: string;
+  [key: string]: any;
+}
+
+export interface InvestorMatchCriteria {
+  industry: string;
+  stage: string;
+  fundingAmount?: string;
+  location?: string;
+  businessModel?: string;
+  description?: string;
+}
+
+export interface MatchedInvestor {
+  name: string;
+  type: string;
+  industryFocus: string[];
+  description: string;
+  stage?: string;
+  ticketSize?: string;
+  matchReason?: string;
+  [key: string]: any;
+}
+
+export interface InvestorMatchResponse {
+  matches: MatchedInvestor[];
+  userCredits?: number;
+}

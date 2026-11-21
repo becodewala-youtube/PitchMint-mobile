@@ -1,9 +1,15 @@
 import { Tone } from '../../../theme';
 import { IconName } from '../../../components';
 
-export type ToolActionKind = 'validate' | 'pick-idea' | 'coming-soon';
+export type ToolActionKind = 'validate' | 'dual-choice' | 'directory';
 
-export type PickIdeaTarget = 'deck' | 'canvas' | 'competitors' | 'simulator';
+export type PickIdeaTarget =
+  | 'deck'
+  | 'canvas'
+  | 'competitors'
+  | 'simulator'
+  | 'market'
+  | 'matchmaking';
 
 export interface ToolDefinition {
   id: string;
@@ -34,7 +40,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     icon: 'fileText',
     tone: 'blue',
     cost: '1 credit',
-    actionKind: 'pick-idea',
+    actionKind: 'dual-choice',
     targetTool: 'deck',
   },
   {
@@ -44,7 +50,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     icon: 'panelsTopLeft',
     tone: 'emerald',
     cost: '1 credit',
-    actionKind: 'pick-idea',
+    actionKind: 'dual-choice',
     targetTool: 'canvas',
   },
   {
@@ -54,7 +60,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     icon: 'users',
     tone: 'orange',
     cost: '1 credit',
-    actionKind: 'pick-idea',
+    actionKind: 'dual-choice',
     targetTool: 'competitors',
   },
   {
@@ -64,7 +70,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     icon: 'messageSquare',
     tone: 'pink',
     cost: '1 credit',
-    actionKind: 'pick-idea',
+    actionKind: 'dual-choice',
     targetTool: 'simulator',
   },
   {
@@ -73,9 +79,9 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     desc: 'TAM · SAM · SOM and personas',
     icon: 'target',
     tone: 'cyan',
-    badge: 'Coming Soon',
-    cost: 'Coming Soon',
-    actionKind: 'coming-soon',
+    cost: '2 credits',
+    actionKind: 'dual-choice',
+    targetTool: 'market',
   },
   {
     id: 'investors',
@@ -83,9 +89,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     desc: 'Curated VCs, angels & accelerators',
     icon: 'crown',
     tone: 'amber',
-    badge: 'Coming Soon',
-    cost: 'Coming Soon',
-    actionKind: 'coming-soon',
+    cost: 'Free',
+    actionKind: 'directory',
   },
   {
     id: 'matchmaking',
@@ -93,9 +98,9 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     desc: 'Find investors that fit your idea',
     icon: 'sparkles',
     tone: 'violet',
-    badge: 'Coming Soon',
-    cost: 'Coming Soon',
-    actionKind: 'coming-soon',
+    cost: '2 credits',
+    actionKind: 'dual-choice',
+    targetTool: 'matchmaking',
   },
 ];
 
@@ -104,4 +109,6 @@ export const TARGET_TOOL_LABELS: Record<PickIdeaTarget, string> = {
   canvas: 'Lean Canvas',
   competitors: 'Competitor Analysis',
   simulator: 'Pitch Simulator',
+  market: 'Market Research',
+  matchmaking: 'AI Matchmaking',
 };

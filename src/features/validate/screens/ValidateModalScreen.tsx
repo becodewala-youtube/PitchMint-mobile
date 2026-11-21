@@ -52,6 +52,22 @@ export const ValidateModalScreen: React.FC = () => {
     navigation.navigate('MainTabs', { screen: 'Home' } as any);
   };
 
+  const handleNavigateToCanvas = (ideaId: string) => {
+    navigation.navigate('Canvas', { ideaId });
+  };
+
+  const handleNavigateToPitchDeck = (ideaId: string) => {
+    navigation.navigate('PitchDeck', { ideaId });
+  };
+
+  const handleNavigateToCompetitor = (ideaId: string) => {
+    navigation.navigate('Competitor', { ideaId });
+  };
+
+  const handleNavigateToSimulator = (ideaId: string) => {
+    navigation.navigate('PitchSimulator', { ideaId });
+  };
+
   const handleNavigateToProfile = () => {
     navigation.navigate('MainTabs', { screen: 'Profile' } as any);
   };
@@ -102,6 +118,10 @@ export const ValidateModalScreen: React.FC = () => {
           onNavigateToHome={handleNavigateToHome}
           onCreditInfo={handleCreditInfo}
           onClose={handleClose}
+          onNavigateToCanvas={handleNavigateToCanvas}
+          onNavigateToPitchDeck={handleNavigateToPitchDeck}
+          onNavigateToCompetitor={handleNavigateToCompetitor}
+          onNavigateToSimulator={handleNavigateToSimulator}
         />
       </ScreenContainer>
     );

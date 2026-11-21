@@ -4,7 +4,6 @@ import {
   View,
   Text,
   Pressable,
-  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ScreenContainer, IconBadge } from '../../../components';
@@ -16,11 +15,14 @@ import {
 } from '../constants/toolkitConstants';
 import { ToolkitHeader } from '../components/ToolkitHeader';
 import { PickIdeaModal } from '../components/PickIdeaModal';
+import { ToolStartingChoiceModal } from '../components/ToolStartingChoiceModal';
 import { styles } from './ToolkitScreen.styles';
 
 export const ToolkitScreen: React.FC = () => {
   const navigation = useNavigation<RootStackNavigationProp>();
+  const [choiceModalVisible, setChoiceModalVisible] = useState<boolean>(false);
   const [pickModalVisible, setPickModalVisible] = useState<boolean>(false);
+  const [activeTool, setActiveTool] = useState<ToolDefinition | null>(null);
   const [activeTargetTool, setActiveTargetTool] = useState<PickIdeaTarget | null>(null);
 
   const handleToolPress = (tool: ToolDefinition) => {
@@ -29,21 +31,49 @@ export const ToolkitScreen: React.FC = () => {
         navigation.navigate('ValidateModal');
         break;
 
-      case 'pick-idea':
-        if (tool.targetTool) {
-          setActiveTargetTool(tool.targetTool);
-          setPickModalVisible(true);
-        }
+      case 'directory':
+        navigation.navigate('InvestorDirectory');
         break;
 
-      case 'coming-soon':
-        Alert.alert(
-          'Coming Soon',
-          `${tool.name} is currently under development and will be available in an upcoming release.`,
-          [{ text: 'OK' }]
-        );
+      case 'dual-choice':
+        setActiveTool(tool);
+        setActiveTargetTool(tool.targetTool || null);
+        setChoiceModalVisible(true);
         break;
     }
+  };
+
+  const handleSelectStandalone = () => {
+    setChoiceModalVisible(false);
+    if (!activeTargetTool) return;
+
+    switch (activeTargetTool) {
+      case 'deck':
+      case 'canvas':
+        navigation.navigate('ValidateModal');
+        break;
+
+      case 'competitors':
+        navigation.navigate('Competitor', {});
+        break;
+
+      case 'simulator':
+        navigation.navigate('PitchSimulator', {});
+        break;
+
+      case 'market':
+        navigation.navigate('MarketResearch', {});
+        break;
+
+      case 'matchmaking':
+        navigation.navigate('InvestorMatchmaking', {});
+        break;
+    }
+  };
+
+  const handleSelectImportIdea = () => {
+    setChoiceModalVisible(false);
+    setPickModalVisible(true);
   };
 
   const handleSelectIdeaForTool = (idea: { id: string; title: string }) => {
@@ -78,6 +108,20 @@ export const ToolkitScreen: React.FC = () => {
           ideaTitle: idea.title,
         });
         break;
+
+      case 'market':
+        navigation.navigate('MarketResearch', {
+          ideaId: idea.id,
+          ideaTitle: idea.title,
+        });
+        break;
+
+      case 'matchmaking':
+        navigation.navigate('InvestorMatchmaking', {
+          ideaId: idea.id,
+          ideaTitle: idea.title,
+        });
+        break;
     }
   };
 
@@ -91,7 +135,6 @@ export const ToolkitScreen: React.FC = () => {
 
         <View style={styles.grid}>
           {TOOL_DEFINITIONS.map((tool) => {
-            const isComingSoon = tool.actionKind === 'coming-soon';
             return (
               <Pressable
                 key={tool.id}
@@ -99,25 +142,14 @@ export const ToolkitScreen: React.FC = () => {
                 onPress={() => handleToolPress(tool)}
                 style={({ pressed }) => [
                   styles.toolCard,
-                  isComingSoon && styles.toolCardComingSoon,
                   pressed && styles.toolCardPressed,
                 ]}
                 accessibilityRole="button"
                 accessibilityLabel={`${tool.name}${tool.badge ? ` (${tool.badge})` : ''}: ${tool.desc}`}
               >
                 {tool.badge && (
-                  <View
-                    style={[
-                      styles.premiumPill,
-                      tool.badge === 'Coming Soon' && styles.comingSoonPill,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.premiumPillText,
-                        tool.badge === 'Coming Soon' && styles.comingSoonPillText,
-                      ]}
-                    >
+                  <View style={styles.premiumPill}>
+                    <Text style={styles.premiumPillText}>
                       {tool.badge}
                     </Text>
                   </View>
@@ -135,12 +167,7 @@ export const ToolkitScreen: React.FC = () => {
                 </View>
 
                 <View style={styles.cardBottom}>
-                  <Text
-                    style={[
-                      styles.costText,
-                      isComingSoon && styles.comingSoonCostText,
-                    ]}
-                  >
+                  <Text style={styles.costText}>
                     {tool.cost ?? '1 credit'}
                   </Text>
                 </View>
@@ -149,6 +176,14 @@ export const ToolkitScreen: React.FC = () => {
           })}
         </View>
       </ScrollView>
+
+      <ToolStartingChoiceModal
+        visible={choiceModalVisible}
+        tool={activeTool}
+        onClose={() => setChoiceModalVisible(false)}
+        onSelectStandalone={handleSelectStandalone}
+        onSelectImportIdea={handleSelectImportIdea}
+      />
 
       <PickIdeaModal
         visible={pickModalVisible}

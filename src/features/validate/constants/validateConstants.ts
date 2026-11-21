@@ -9,7 +9,7 @@ export interface ValidateTip {
 export const TIPS: ValidateTip[] = [
   { icon: 'target', title: 'Problem & Solution', desc: 'Name the pain point and who feels it.' },
   { icon: 'users', title: 'Target Audience', desc: 'Describe your core customer segment.' },
-  { icon: 'trendingUp', title: 'Unique Value', desc: 'Why is it 10× better than alternatives?' },
+  { icon: 'trendingUp', title: 'Unique Value', desc: 'Why is it 10x better than alternatives?' },
   { icon: 'dollarSign', title: 'Business Model', desc: 'How will you make money?' },
 ];
 

@@ -20,6 +20,7 @@ import {
 import { colors } from '../../../theme';
 import {
   ideasApi,
+  toolkitApi,
   BackendIdea,
   PitchSimulationQuestion,
   generateIdempotencyKey,
@@ -38,14 +39,16 @@ export const PitchSimulatorScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user, refreshUser } = useAuth();
 
-  const { ideaId, ideaTitle } = route.params;
+  const ideaId = route.params?.ideaId;
+  const ideaTitle = route.params?.ideaTitle;
+  const [standalonePitch, setStandalonePitch] = useState<string>(route.params?.ideaText || '');
 
   const [idea, setIdea] = useState<BackendIdea | null>(null);
   const [stage, setStage] = useState<'intro' | 'qa' | 'results'>('intro');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [questions, setQuestions] = useState<PitchSimulationQuestion[]>([]);
 
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(Boolean(ideaId));
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isStarting, setIsStarting] = useState<boolean>(false);
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState<boolean>(false);
@@ -55,6 +58,12 @@ export const PitchSimulatorScreen: React.FC = () => {
 
   const loadIdea = useCallback(
     async (isPull = false) => {
+      if (!ideaId) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+        setStage('intro');
+        return;
+      }
       if (isPull) {
         setIsRefreshing(true);
       } else {
@@ -111,11 +120,20 @@ export const PitchSimulatorScreen: React.FC = () => {
     }
 
     try {
-      const response = await ideasApi.simulatePitch(ideaId, true, {
-        idempotencyKey: simIdempotencyKeyRef.current,
-      });
+      let newQuestions: PitchSimulationQuestion[] = [];
+      if (ideaId) {
+        const response = await ideasApi.simulatePitch(ideaId, true, {
+          idempotencyKey: simIdempotencyKeyRef.current,
+        });
+        newQuestions = response.pitchSimulation?.questions || [];
+      } else {
+        const response = await toolkitApi.simulatePitchStandalone(
+          standalonePitch.trim() || 'Interactive AI pitch practice',
+          { idempotencyKey: simIdempotencyKeyRef.current }
+        );
+        newQuestions = (response as any).questions || response.pitchSimulation?.questions || [];
+      }
       simIdempotencyKeyRef.current = null;
-      const newQuestions = response.pitchSimulation?.questions || [];
       setQuestions(newQuestions);
       setCurrentQuestionIndex(0);
       setStage('qa');
@@ -130,13 +148,20 @@ export const PitchSimulatorScreen: React.FC = () => {
 
   const handleSubmitAnswer = async (answer: string) => {
     const q = questions[currentQuestionIndex];
-    if (!q || !q.id || isSubmittingAnswer) return;
+    if (!q || isSubmittingAnswer) return;
 
     setIsSubmittingAnswer(true);
     setError(null);
 
     try {
-      const result = await ideasApi.evaluateAnswer(ideaId, q.id, answer);
+      const result = ideaId
+        ? await ideasApi.evaluateAnswer(ideaId, q.id || String(currentQuestionIndex), answer)
+        : await toolkitApi.evaluateAnswerStandalone(
+            standalonePitch || 'Startup elevator pitch',
+            q.question || '',
+            answer
+          );
+
       const updatedQuestions = [...questions];
       updatedQuestions[currentQuestionIndex] = {
         ...q,

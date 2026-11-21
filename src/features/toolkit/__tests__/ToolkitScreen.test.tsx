@@ -63,7 +63,7 @@ describe('ToolkitScreen Component', () => {
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   });
 
-  it('renders all tool cards cleanly', async () => {
+  it('renders all 8 tool cards cleanly', async () => {
     let renderer!: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = ReactTestRenderer.create(<ToolkitScreen />);
@@ -93,7 +93,21 @@ describe('ToolkitScreen Component', () => {
     expect(mockNavigate).toHaveBeenCalledWith('ValidateModal');
   });
 
-  it('opens PickIdeaModal and navigates to PitchDeck upon idea selection', async () => {
+  it('navigates directly to InvestorDirectory when Investor Directory is pressed', async () => {
+    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<ToolkitScreen />);
+    });
+
+    const invCard = renderer.root.findByProps({ testID: 'toolkit-card-investors' });
+    await act(async () => {
+      invCard.props.onPress();
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith('InvestorDirectory');
+  });
+
+  it('opens ToolStartingChoiceModal and navigates to PitchDeck upon idea selection', async () => {
     let renderer!: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = ReactTestRenderer.create(<ToolkitScreen />);
@@ -102,6 +116,13 @@ describe('ToolkitScreen Component', () => {
     const deckCard = renderer.root.findByProps({ testID: 'toolkit-card-deck' });
     await act(async () => {
       deckCard.props.onPress();
+    });
+
+    const importChoice = renderer.root.findByProps({ testID: 'choice-import' });
+    expect(importChoice).toBeTruthy();
+
+    await act(async () => {
+      importChoice.props.onPress();
     });
 
     const item = renderer.root.findByProps({ testID: 'pick-idea-item-idea-123' });
@@ -117,29 +138,7 @@ describe('ToolkitScreen Component', () => {
     });
   });
 
-  it('navigates to Canvas upon selecting an idea for Lean Canvas', async () => {
-    let renderer!: ReactTestRenderer.ReactTestRenderer;
-    await act(async () => {
-      renderer = ReactTestRenderer.create(<ToolkitScreen />);
-    });
-
-    const canvasCard = renderer.root.findByProps({ testID: 'toolkit-card-canvas' });
-    await act(async () => {
-      canvasCard.props.onPress();
-    });
-
-    const item = renderer.root.findByProps({ testID: 'pick-idea-item-idea-123' });
-    await act(async () => {
-      item.props.onPress();
-    });
-
-    expect(mockNavigate).toHaveBeenCalledWith('Canvas', {
-      ideaId: 'idea-123',
-      ideaTitle: 'AI Dental Copilot',
-    });
-  });
-
-  it('navigates to Competitor upon selecting an idea for Competitors', async () => {
+  it('navigates to Competitor standalone when Start with New Input is chosen', async () => {
     let renderer!: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = ReactTestRenderer.create(<ToolkitScreen />);
@@ -150,18 +149,15 @@ describe('ToolkitScreen Component', () => {
       compCard.props.onPress();
     });
 
-    const item = renderer.root.findByProps({ testID: 'pick-idea-item-idea-123' });
+    const standaloneChoice = renderer.root.findByProps({ testID: 'choice-standalone' });
     await act(async () => {
-      item.props.onPress();
+      standaloneChoice.props.onPress();
     });
 
-    expect(mockNavigate).toHaveBeenCalledWith('Competitor', {
-      ideaId: 'idea-123',
-      ideaTitle: 'AI Dental Copilot',
-    });
+    expect(mockNavigate).toHaveBeenCalledWith('Competitor', {});
   });
 
-  it('navigates to PitchSimulator upon selecting an idea for Pitch Simulator', async () => {
+  it('navigates to PitchSimulator standalone when Start with New Input is chosen', async () => {
     let renderer!: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = ReactTestRenderer.create(<ToolkitScreen />);
@@ -172,18 +168,15 @@ describe('ToolkitScreen Component', () => {
       simCard.props.onPress();
     });
 
-    const item = renderer.root.findByProps({ testID: 'pick-idea-item-idea-123' });
+    const standaloneChoice = renderer.root.findByProps({ testID: 'choice-standalone' });
     await act(async () => {
-      item.props.onPress();
+      standaloneChoice.props.onPress();
     });
 
-    expect(mockNavigate).toHaveBeenCalledWith('PitchSimulator', {
-      ideaId: 'idea-123',
-      ideaTitle: 'AI Dental Copilot',
-    });
+    expect(mockNavigate).toHaveBeenCalledWith('PitchSimulator', {});
   });
 
-  it('displays Coming Soon alert when Market Research is pressed', async () => {
+  it('navigates to MarketResearch standalone when Start with New Input is chosen', async () => {
     let renderer!: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = ReactTestRenderer.create(<ToolkitScreen />);
@@ -194,32 +187,15 @@ describe('ToolkitScreen Component', () => {
       marketCard.props.onPress();
     });
 
-    expect(Alert.alert).toHaveBeenCalledWith(
-      'Coming Soon',
-      expect.stringContaining('Market Research is currently under development'),
-      expect.any(Array)
-    );
-  });
-
-  it('displays Coming Soon alert when Investor Directory is pressed', async () => {
-    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    const standaloneChoice = renderer.root.findByProps({ testID: 'choice-standalone' });
     await act(async () => {
-      renderer = ReactTestRenderer.create(<ToolkitScreen />);
+      standaloneChoice.props.onPress();
     });
 
-    const invCard = renderer.root.findByProps({ testID: 'toolkit-card-investors' });
-    await act(async () => {
-      invCard.props.onPress();
-    });
-
-    expect(Alert.alert).toHaveBeenCalledWith(
-      'Coming Soon',
-      expect.stringContaining('Investor Directory is currently under development'),
-      expect.any(Array)
-    );
+    expect(mockNavigate).toHaveBeenCalledWith('MarketResearch', {});
   });
 
-  it('displays Coming Soon alert when AI Matchmaking is pressed', async () => {
+  it('navigates to InvestorMatchmaking standalone when Start with New Input is chosen', async () => {
     let renderer!: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = ReactTestRenderer.create(<ToolkitScreen />);
@@ -230,14 +206,15 @@ describe('ToolkitScreen Component', () => {
       matchCard.props.onPress();
     });
 
-    expect(Alert.alert).toHaveBeenCalledWith(
-      'Coming Soon',
-      expect.stringContaining('AI Matchmaking is currently under development'),
-      expect.any(Array)
-    );
+    const standaloneChoice = renderer.root.findByProps({ testID: 'choice-standalone' });
+    await act(async () => {
+      standaloneChoice.props.onPress();
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith('InvestorMatchmaking', {});
   });
 
-  it('displays 1 credit cost for Pitch Deck and Lean Canvas and Coming Soon badge for unsupported tools', async () => {
+  it('displays accurate credit costs across all 8 tools', async () => {
     let renderer!: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = ReactTestRenderer.create(<ToolkitScreen />);
@@ -246,7 +223,7 @@ describe('ToolkitScreen Component', () => {
     const allText = renderer.root.findAllByType(Text).map((t) => t.props.children);
     const flatText = allText.flat();
     expect(flatText).toContain('1 credit');
-    expect(flatText).toContain('Coming Soon');
-    expect(flatText).not.toContain('Included');
+    expect(flatText).toContain('2 credits');
+    expect(flatText).toContain('Free');
   });
 });

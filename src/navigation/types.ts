@@ -29,8 +29,11 @@ export type RootStackParamList = {
   IdeaDetails: { ideaId: string };
   PitchDeck: { ideaId: string; ideaTitle?: string; initialSlideIndex?: number };
   Canvas: { ideaId: string; ideaTitle?: string; initialBlockIndex?: number };
-  Competitor: { ideaId: string; ideaTitle?: string };
-  PitchSimulator: { ideaId: string; ideaTitle?: string };
+  Competitor: { ideaId?: string; ideaTitle?: string; ideaText?: string } | undefined;
+  PitchSimulator: { ideaId?: string; ideaTitle?: string; ideaText?: string } | undefined;
+  MarketResearch?: { ideaId?: string; ideaTitle?: string; ideaText?: string };
+  InvestorDirectory?: undefined;
+  InvestorMatchmaking?: { ideaId?: string; ideaTitle?: string; ideaText?: string };
   Toolkit: undefined;
   Activity: undefined;
 };

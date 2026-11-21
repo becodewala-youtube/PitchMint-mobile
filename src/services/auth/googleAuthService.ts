@@ -199,7 +199,14 @@ export const googleAuthService = {
       }
 
       const rawMessage = err instanceof Error ? err.message : String(err);
-      if (rawMessage.includes('DEVELOPER_ERROR')) {
+      const isOAuthConfigError =
+        (isErrorWithCode(err) && err.code === statusCodes.DEVELOPER_ERROR) ||
+        rawMessage.includes('DEVELOPER_ERROR') ||
+        rawMessage.includes('verify the Android OAuth client') ||
+        rawMessage.includes('package name and SHA-1') ||
+        rawMessage.includes('OAuth client has the correct package name');
+
+      if (isOAuthConfigError) {
         Alert.alert(
           'OAuth Configuration Error',
           'Google Sign-In failed due to an OAuth configuration mismatch (DEVELOPER_ERROR).\n\nPlease verify that the package name (com.pitchmint.app), Android signing SHA-1 fingerprint, and Web Client ID match your Google Cloud Console setup.',
@@ -208,6 +215,23 @@ export const googleAuthService = {
         throw new GoogleAuthError(
           'OAuth configuration mismatch (DEVELOPER_ERROR). Check package name, SHA-1, and Web Client ID.',
           statusCodes.DEVELOPER_ERROR,
+          true
+        );
+      }
+
+      if (
+        rawMessage.toLowerCase().includes('network') ||
+        rawMessage.includes('TIMEOUT') ||
+        rawMessage.includes('ECONN')
+      ) {
+        Alert.alert(
+          'Network Error',
+          'Unable to communicate with Google authentication servers. Please check your internet connection and try again.',
+          [{ text: 'OK' }]
+        );
+        throw new GoogleAuthError(
+          'Network connection error during Google Sign-In.',
+          'NETWORK_ERROR',
           true
         );
       }

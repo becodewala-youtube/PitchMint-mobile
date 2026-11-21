@@ -26,10 +26,14 @@ export const DEMO_PLANS = [
 ];
 
 /**
- * Authoritative public URLs for legal documentation.
+ * Authoritative public URLs matching the live PitchMint web application.
  */
 export const LEGAL_URLS = {
-  privacyPolicy: 'https://pitchmint.app/privacy',
-  termsOfService: 'https://pitchmint.app/terms',
-  refundPolicy: 'https://pitchmint.app/refund',
+  privacyPolicy: 'https://pitch-mint-frontend.vercel.app/privacy',
+  termsOfService: 'https://pitch-mint-frontend.vercel.app/terms',
+  refundPolicy: 'https://pitch-mint-frontend.vercel.app/refund',
+  shippingPolicy: 'https://pitch-mint-frontend.vercel.app/shipping',
+  helpCenter: 'https://pitch-mint-frontend.vercel.app/help',
+  contactUs: 'https://pitch-mint-frontend.vercel.app/contact',
+  aboutUs: 'https://pitch-mint-frontend.vercel.app/about',
 } as const;

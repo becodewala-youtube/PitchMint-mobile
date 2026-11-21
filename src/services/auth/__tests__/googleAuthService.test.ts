@@ -220,7 +220,39 @@ describe('GoogleAuthService', () => {
 
       expect(alertSpy).toHaveBeenCalledWith(
         'OAuth Configuration Error',
-        expect.stringContaining('package name (com.pitchmint.app)'),
+        expect.stringContaining('package name (com.pitchmint.app), Android signing SHA-1 fingerprint'),
+        expect.any(Array)
+      );
+    });
+
+    it('identifies Credential Manager cancellation mentioning SHA-1 / package name as OAuth config error', async () => {
+      const alertSpy = jest.spyOn(Alert, 'alert');
+      (GoogleOneTapSignIn.signIn as jest.Mock).mockRejectedValueOnce(
+        new Error(
+          'Credential Manager cancellation after getCredential: verify the Android OAuth client has the correct package name and SHA-1... Message: [16] Cancelled by user.'
+        )
+      );
+
+      await expect(googleAuthService.signIn()).rejects.toThrow(GoogleAuthError);
+
+      expect(alertSpy).toHaveBeenCalledWith(
+        'OAuth Configuration Error',
+        expect.stringContaining('package name (com.pitchmint.app), Android signing SHA-1 fingerprint'),
+        expect.any(Array)
+      );
+    });
+
+    it('identifies network failures during Google Sign-In and alerts user', async () => {
+      const alertSpy = jest.spyOn(Alert, 'alert');
+      (GoogleOneTapSignIn.signIn as jest.Mock).mockRejectedValueOnce(
+        new Error('Network error: connection timed out')
+      );
+
+      await expect(googleAuthService.signIn()).rejects.toThrow(GoogleAuthError);
+
+      expect(alertSpy).toHaveBeenCalledWith(
+        'Network Error',
+        expect.stringContaining('Unable to communicate with Google authentication servers'),
         expect.any(Array)
       );
     });

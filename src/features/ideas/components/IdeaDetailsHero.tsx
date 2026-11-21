@@ -64,7 +64,7 @@ export const IdeaDetailsHero: React.FC<IdeaDetailsHeroProps> = ({
 
       {/* Hero Score Box */}
       <View style={styles.heroScoreCard}>
-        <ScoreRing value={overallScore} size={96} />
+        <ScoreRing value={overallScore} size={112} />
         <View style={styles.heroScoreTextCol}>
           <Text style={styles.heroScoreCategory}>Overall Validation Score</Text>
           <Text style={[styles.heroVerdictText, { color: verdictColor }]}>{verdictText}</Text>

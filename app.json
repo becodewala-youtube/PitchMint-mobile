@@ -28,7 +28,15 @@
     "plugins": [
       "expo-secure-store",
       "./plugins/withCleartextTraffic",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#07090E"
+        }
+      ]
     ],
     "extra": {
       "eas": {

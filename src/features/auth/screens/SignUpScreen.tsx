@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAppSafeArea } from '../../../utils/safeArea';
 import { colors, spacing, typography } from '../../../theme';
 import { Button, Input, GoogleSignInButton, Icon, AuthCard } from '../../../components';
 import { useAuth } from '../../../context/AuthContext';
@@ -25,6 +26,7 @@ type SignUpNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'SignU
 
 export const SignUpScreen: React.FC = () => {
   const navigation = useNavigation<SignUpNavigationProp>();
+  const insets = useAppSafeArea();
   const { signUp, clearError } = useAuth();
 
   const [name, setName] = useState('');
@@ -97,7 +99,13 @@ export const SignUpScreen: React.FC = () => {
       <View style={styles.ambientGlow} pointerEvents="none" />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 24),
+            paddingBottom: Math.max(insets.bottom, 24),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

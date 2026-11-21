@@ -9,7 +9,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppSafeArea } from '../../../utils/safeArea';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { Button, Icon } from '../../../components';
 import { spacing } from '../../../theme';
@@ -51,7 +51,7 @@ const SLIDES: SlideData[] = [
  */
 export const OnboardingScreen: React.FC = () => {
   const { completeOnboarding } = useOnboarding();
-  const insets = useSafeAreaInsets();
+  const insets = useAppSafeArea();
   const { width: screenWidth } = useWindowDimensions();
 
   const [currentIndex, setCurrentIndex] = useState(0);

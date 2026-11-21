@@ -24,6 +24,10 @@ export interface ValidateResultsStageProps {
   onNavigateToHome: () => void;
   onCreditInfo: () => void;
   onClose: () => void;
+  onNavigateToCanvas?: (ideaId: string) => void;
+  onNavigateToPitchDeck?: (ideaId: string) => void;
+  onNavigateToCompetitor?: (ideaId: string) => void;
+  onNavigateToSimulator?: (ideaId: string) => void;
 }
 
 export const ValidateResultsStage: React.FC<ValidateResultsStageProps> = ({
@@ -36,6 +40,10 @@ export const ValidateResultsStage: React.FC<ValidateResultsStageProps> = ({
   onNavigateToHome,
   onCreditInfo,
   onClose,
+  onNavigateToCanvas,
+  onNavigateToPitchDeck,
+  onNavigateToCompetitor,
+  onNavigateToSimulator,
 }) => {
   const overallScore =
     typeof validationResult.overallScore === 'number'
@@ -137,7 +145,7 @@ export const ValidateResultsStage: React.FC<ValidateResultsStageProps> = ({
 
       {/* Hero Score Box */}
       <View style={styles.heroScoreCard}>
-        <ScoreRing value={overallScore} size={96} />
+        <ScoreRing value={overallScore} size={112} />
         <View style={styles.heroScoreTextCol}>
           <Text style={styles.heroScoreCategory}>Overall Score</Text>
           <Text style={[styles.heroVerdictText, { color: verdictColor }]}>
@@ -182,6 +190,72 @@ export const ValidateResultsStage: React.FC<ValidateResultsStageProps> = ({
         tone="cyan"
         icon="dollarSign"
       />
+
+      {/* Take It Further 2-Column Action Grid */}
+      <View style={styles.takeFurtherSection}>
+        <Text style={styles.detailedSectionTitle}>Take it further</Text>
+        <View style={styles.takeFurtherGrid}>
+          <Pressable
+            testID="take-further-pitch-deck"
+            onPress={() => onNavigateToPitchDeck?.((validationResult as any)._id || (validationResult as any).ideaId)}
+            style={({ pressed }) => [
+              styles.takeFurtherCard,
+              pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Generate Pitch Deck"
+          >
+            <IconBadge name="fileText" tone="blue" size={36} style={{ marginBottom: 8 }} />
+            <Text style={styles.takeFurtherTitle}>Pitch Deck</Text>
+            <Text style={styles.takeFurtherSub}>Generate 10 slides →</Text>
+          </Pressable>
+
+          <Pressable
+            testID="take-further-lean-canvas"
+            onPress={() => onNavigateToCanvas?.((validationResult as any)._id || (validationResult as any).ideaId)}
+            style={({ pressed }) => [
+              styles.takeFurtherCard,
+              pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Build Lean Canvas"
+          >
+            <IconBadge name="layers" tone="emerald" size={36} style={{ marginBottom: 8 }} />
+            <Text style={styles.takeFurtherTitle}>Lean Canvas</Text>
+            <Text style={styles.takeFurtherSub}>9-box model →</Text>
+          </Pressable>
+
+          <Pressable
+            testID="take-further-competitors"
+            onPress={() => onNavigateToCompetitor?.((validationResult as any)._id || (validationResult as any).ideaId)}
+            style={({ pressed }) => [
+              styles.takeFurtherCard,
+              pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Analyze Competitors"
+          >
+            <IconBadge name="users" tone="amber" size={36} style={{ marginBottom: 8 }} />
+            <Text style={styles.takeFurtherTitle}>Competitors</Text>
+            <Text style={styles.takeFurtherSub}>Market radar →</Text>
+          </Pressable>
+
+          <Pressable
+            testID="take-further-simulator"
+            onPress={() => onNavigateToSimulator?.((validationResult as any)._id || (validationResult as any).ideaId)}
+            style={({ pressed }) => [
+              styles.takeFurtherCard,
+              pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Practice Pitch Simulator"
+          >
+            <IconBadge name="messageSquare" tone="violet" size={36} style={{ marginBottom: 8 }} />
+            <Text style={styles.takeFurtherTitle}>Simulator</Text>
+            <Text style={styles.takeFurtherSub}>Practice VC Q&A →</Text>
+          </Pressable>
+        </View>
+      </View>
 
       {/* Detailed Analysis Accordions */}
       <Text style={styles.detailedSectionTitle}>Detailed Analysis</Text>

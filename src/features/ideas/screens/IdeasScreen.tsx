@@ -175,6 +175,12 @@ export const IdeasScreen: React.FC = () => {
     setSearchQuery('');
     setDebouncedSearch('');
     setActiveFilter('all');
+    setCurrentPage(1);
+  };
+
+  const handleSelectFilter = (filter: FilterType) => {
+    setActiveFilter(filter);
+    setCurrentPage(1);
   };
 
   const handleOpenDelete = (idea: ParsedIdeaCard) => {
@@ -279,7 +285,7 @@ export const IdeasScreen: React.FC = () => {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         activeFilter={activeFilter}
-        onSelectFilter={setActiveFilter}
+        onSelectFilter={handleSelectFilter}
         totalIdeas={totalCount}
       />
 
