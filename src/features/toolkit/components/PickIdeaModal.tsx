@@ -3,6 +3,7 @@ import {
   Modal,
   View,
   Text,
+  TextInput,
   Pressable,
   FlatList,
   ActivityIndicator,
@@ -27,6 +28,8 @@ export interface PickIdeaModalProps {
   onLaunchValidate: () => void;
 }
 
+const PAGE_LIMIT = 10;
+
 export const PickIdeaModal: React.FC<PickIdeaModalProps> = ({
   visible,
   targetTool,
@@ -35,43 +38,100 @@ export const PickIdeaModal: React.FC<PickIdeaModalProps> = ({
   onLaunchValidate,
 }) => {
   const [ideas, setIdeas] = useState<ParsedIdeaCard[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalCount, setTotalCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
   const hasNavigatedRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
+  const requestIdRef = useRef<number>(0);
+  const inFlightRef = useRef<boolean>(false);
 
   const toolTitle = targetTool ? TARGET_TOOL_LABELS[targetTool] : 'Tool';
 
-  const loadIdeas = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await ideasApi.getSavedIdeas({ page: 1, limit: 20 });
-      if (isMountedRef.current) {
-        const parsed = (response.ideas || []).map(mapBackendIdeaToCard);
-        setIdeas(parsed);
-      }
-    } catch (err: any) {
-      if (isMountedRef.current) {
-        setError(err?.message || 'Unable to load saved ideas. Please try again.');
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false);
-      }
-    }
-  }, []);
+  // Debounce search input (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
+  const fetchIdeas = useCallback(
+    async (
+      page: number = 1,
+      search: string = debouncedSearch,
+      isAppend: boolean = false
+    ) => {
+      const currentReqId = ++requestIdRef.current;
+      inFlightRef.current = true;
+
+      if (isAppend) {
+        setIsLoadingMore(true);
+      } else {
+        setIsLoading(true);
+        setError(null);
+      }
+
+      try {
+        const response = await ideasApi.getSavedIdeas({
+          page,
+          limit: PAGE_LIMIT,
+          search: search.trim() || undefined,
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+        });
+
+        // Stale response or unmounted protection
+        if (!isMountedRef.current || currentReqId !== requestIdRef.current) {
+          return;
+        }
+
+        const parsedCards = (response.ideas || []).map(mapBackendIdeaToCard);
+
+        if (isAppend) {
+          setIdeas((prev) => [...prev, ...parsedCards]);
+        } else {
+          setIdeas(parsedCards);
+        }
+
+        setCurrentPage(response.currentPage || page);
+        setTotalPages(response.totalPages || 1);
+        setTotalCount(response.total ?? (parsedCards.length + (isAppend ? ideas.length : 0)));
+        setError(null);
+      } catch (err: any) {
+        if (!isMountedRef.current || currentReqId !== requestIdRef.current) {
+          return;
+        }
+        setError(err?.message || 'Unable to load saved ideas. Please try again.');
+      } finally {
+        if (isMountedRef.current && currentReqId === requestIdRef.current) {
+          setIsLoading(false);
+          setIsLoadingMore(false);
+          inFlightRef.current = false;
+        }
+      }
+    },
+    [debouncedSearch, ideas.length]
+  );
+
+  // Re-fetch whenever modal opens or debounced search query changes
   useEffect(() => {
     isMountedRef.current = true;
     if (visible) {
       hasNavigatedRef.current = false;
-      loadIdeas();
+      setCurrentPage(1);
+      fetchIdeas(1, debouncedSearch, false);
     }
     return () => {
       isMountedRef.current = false;
     };
-  }, [visible, loadIdeas]);
+  }, [visible, debouncedSearch]);
 
   // Handle Android hardware back button
   useEffect(() => {
@@ -95,6 +155,19 @@ export const PickIdeaModal: React.FC<PickIdeaModalProps> = ({
     onClose();
     onLaunchValidate();
   };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setDebouncedSearch('');
+  };
+
+  const handleLoadMore = () => {
+    if (currentPage < totalPages && !isLoading && !isLoadingMore && !inFlightRef.current) {
+      fetchIdeas(currentPage + 1, debouncedSearch, true);
+    }
+  };
+
+  const isSearchActive = Boolean(debouncedSearch.trim().length > 0 || searchQuery.trim().length > 0);
 
   return (
     <Modal
@@ -138,6 +211,33 @@ export const PickIdeaModal: React.FC<PickIdeaModalProps> = ({
             </Pressable>
           </View>
 
+          {/* Search Input Bar */}
+          <View style={styles.searchContainer}>
+            <Icon name="search" size={16} color={colors.text.muted} />
+            <TextInput
+              testID="pick-idea-search-input"
+              style={styles.searchInput}
+              placeholder="Search ideas, categories…"
+              placeholderTextColor={colors.text.muted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <Pressable
+                testID="pick-idea-clear-search-button"
+                onPress={handleClearSearch}
+                style={styles.clearSearchBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+              >
+                <Icon name="close" size={14} color={colors.text.muted} />
+              </Pressable>
+            )}
+          </View>
+
           {/* Body Content */}
           {isLoading ? (
             <View style={styles.loadingContainer}>
@@ -149,7 +249,7 @@ export const PickIdeaModal: React.FC<PickIdeaModalProps> = ({
               <Text style={styles.errorText}>{error}</Text>
               <Pressable
                 testID="pick-idea-retry-button"
-                onPress={loadIdeas}
+                onPress={() => fetchIdeas(1, debouncedSearch, false)}
                 style={styles.retryBtn}
                 accessibilityRole="button"
                 accessibilityLabel="Retry loading ideas"
@@ -158,22 +258,41 @@ export const PickIdeaModal: React.FC<PickIdeaModalProps> = ({
               </Pressable>
             </View>
           ) : ideas.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <IconBadge name="lightbulb" tone="violet" size={48} />
-              <Text style={styles.emptyTitle}>No validated ideas yet</Text>
-              <Text style={styles.emptyDesc}>
-                Validate your first startup idea to unlock Pitch Decks, Lean Canvases, and Competitor Reports.
-              </Text>
-              <Pressable
-                testID="pick-idea-empty-validate-button"
-                onPress={handleValidateNew}
-                style={styles.retryBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Validate a new idea"
-              >
-                <Text style={styles.retryBtnText}>+ Validate a new idea</Text>
-              </Pressable>
-            </View>
+            isSearchActive ? (
+              <View style={styles.emptyContainer}>
+                <IconBadge name="search" tone="gray" size={48} />
+                <Text style={styles.emptyTitle}>No matching ideas found</Text>
+                <Text style={styles.emptyDesc}>
+                  {`No saved ideas found matching "${searchQuery || debouncedSearch}". Try a different search term or clear the search.`}
+                </Text>
+                <Pressable
+                  testID="pick-idea-clear-search-empty-button"
+                  onPress={handleClearSearch}
+                  style={styles.retryBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear search query"
+                >
+                  <Text style={styles.retryBtnText}>Clear Search</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.emptyContainer}>
+                <IconBadge name="lightbulb" tone="violet" size={48} />
+                <Text style={styles.emptyTitle}>No validated ideas yet</Text>
+                <Text style={styles.emptyDesc}>
+                  Validate your first startup idea to unlock Pitch Decks, Lean Canvases, and Competitor Reports.
+                </Text>
+                <Pressable
+                  testID="pick-idea-empty-validate-button"
+                  onPress={handleValidateNew}
+                  style={styles.retryBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Validate a new idea"
+                >
+                  <Text style={styles.retryBtnText}>+ Validate a new idea</Text>
+                </Pressable>
+              </View>
+            )
           ) : (
             <>
               <FlatList
@@ -182,8 +301,11 @@ export const PickIdeaModal: React.FC<PickIdeaModalProps> = ({
                 data={ideas}
                 keyExtractor={(item) => item.id}
                 showsVerticalScrollIndicator={false}
+                onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.3}
                 renderItem={({ item }) => (
                   <Pressable
+                    key={item.id}
                     testID={`pick-idea-item-${item.id}`}
                     onPress={() => handleSelectIdea(item)}
                     style={({ pressed }) => [
@@ -205,6 +327,28 @@ export const PickIdeaModal: React.FC<PickIdeaModalProps> = ({
                     <Icon name="chevronRight" size={16} color={colors.text.muted} />
                   </Pressable>
                 )}
+                ListFooterComponent={
+                  isLoadingMore ? (
+                    <View style={styles.paginationFooter}>
+                      <ActivityIndicator size="small" color={colors.brand.primary} />
+                      <Text style={styles.paginationText}>Loading more ideas…</Text>
+                    </View>
+                  ) : currentPage < totalPages ? (
+                    <View style={styles.paginationFooter}>
+                      <Pressable
+                        testID="pick-idea-load-more-button"
+                        onPress={handleLoadMore}
+                        style={styles.loadMoreBtn}
+                        accessibilityRole="button"
+                        accessibilityLabel="Load more ideas"
+                      >
+                        <Text style={styles.loadMoreBtnText}>
+                          {`Load more (${ideas.length} of ${totalCount})`}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ) : undefined
+                }
               />
 
               <Pressable

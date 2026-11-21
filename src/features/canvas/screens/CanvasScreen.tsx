@@ -92,15 +92,15 @@ export const CanvasScreen: React.FC = () => {
       const result = await exportCanvasPdf(displayTitle, idea?.canvasContent, {
         onDownloadSuccess: (info) => {
           Alert.alert(
-            'Canvas PDF Saved',
-            `Landscape Business Model Canvas saved successfully!\n\n${info.location}`
+            'Lean Canvas PDF Saved',
+            `Landscape Lean Canvas saved successfully!\n\n${info.location}`
           );
         },
       });
       if (Platform.OS !== 'android') {
         Alert.alert(
-          'Canvas PDF Exported',
-          'Business Model Canvas landscape PDF generated successfully.'
+          'Lean Canvas PDF Exported',
+          'Lean Canvas landscape PDF generated successfully.'
         );
       }
     } catch (err: any) {
@@ -130,15 +130,15 @@ export const CanvasScreen: React.FC = () => {
           >
             <Icon name="chevronLeft" size={20} color={colors.text.primary} />
           </Pressable>
-          <Text style={styles.topBarTitle}>Business Model Canvas</Text>
+          <Text style={styles.topBarTitle}>Lean Canvas</Text>
           <View style={styles.backBtnPlaceholder} />
         </View>
 
         <View style={styles.centerBox}>
           <ActivityIndicator size="large" color={colors.brand.primary} />
-          <Text style={styles.stateTitle}>Loading business canvas…</Text>
+          <Text style={styles.stateTitle}>Loading Lean Canvas…</Text>
           <Text style={styles.stateSubtitle}>
-            Retrieving lean startup model from PitchMint cloud
+            Retrieving Lean Canvas model from PitchMint cloud
           </Text>
         </View>
       </ScreenContainer>
@@ -161,7 +161,7 @@ export const CanvasScreen: React.FC = () => {
           >
             <Icon name="chevronLeft" size={20} color={colors.text.primary} />
           </Pressable>
-          <Text style={styles.topBarTitle}>Business Model Canvas</Text>
+          <Text style={styles.topBarTitle}>Lean Canvas</Text>
           <View style={styles.backBtnPlaceholder} />
         </View>
 
@@ -249,7 +249,7 @@ export const CanvasScreen: React.FC = () => {
             {displayTitle}
           </Text>
           <Text style={styles.topBarSubtitle}>
-            Business Model Canvas — Lean Startup Methodology
+            Lean Canvas — Lean Startup Methodology
           </Text>
         </View>
         <Pill label={`${currentBlockIndex + 1}/9`} tone="violet" />
@@ -332,9 +332,9 @@ export const CanvasScreen: React.FC = () => {
         <View style={styles.exportHeaderRow}>
           <IconBadge name="fileText" tone="cyan" size={32} />
           <View style={styles.exportTitleCol}>
-            <Text style={styles.exportTitle}>Export Canvas</Text>
+            <Text style={styles.exportTitle}>Export Lean Canvas</Text>
             <Text style={styles.exportSubtitle}>
-              Download landscape Business Model Canvas PDF or copy complete Markdown.
+              Download landscape Lean Canvas PDF or copy complete Markdown.
             </Text>
           </View>
         </View>
@@ -342,7 +342,7 @@ export const CanvasScreen: React.FC = () => {
         <Button
           testID="canvas-export-pdf-button"
           title={
-            isExportingPdf ? 'Generating Landscape PDF…' : 'Export Canvas (PDF)'
+            isExportingPdf ? 'Generating Landscape PDF…' : 'Export Lean Canvas (PDF)'
           }
           variant="primary"
           onPress={handleExportPdf}
@@ -360,7 +360,7 @@ export const CanvasScreen: React.FC = () => {
         <Button
           testID="canvas-copy-all-button"
           title={
-            copiedAll ? 'Canvas Copied to Clipboard!' : 'Copy Entire Canvas (Markdown)'
+            copiedAll ? 'Lean Canvas Copied to Clipboard!' : 'Copy Entire Canvas (Markdown)'
           }
           variant="secondary"
           onPress={() => handleCopyEntireCanvas(displayTitle)}
@@ -380,7 +380,7 @@ export const CanvasScreen: React.FC = () => {
         <View style={styles.footerTextRow}>
           <IconBadge name="sparkles" tone="violet" size={32} />
           <View style={styles.footerTextCol}>
-            <Text style={styles.footerTitle}>Want to refine this canvas?</Text>
+            <Text style={styles.footerTitle}>Want to refine this Lean Canvas?</Text>
             <Text style={styles.footerSubtitle}>
               Re-runs Gemini 2.5 Flash to generate fresh lean startup building blocks.
             </Text>
@@ -389,7 +389,7 @@ export const CanvasScreen: React.FC = () => {
 
         <Button
           testID="canvas-regenerate-button"
-          title={isSubmitting ? 'Regenerating Canvas…' : 'Regenerate Canvas (1 Credit)'}
+          title={isSubmitting ? 'Regenerating Lean Canvas…' : 'Regenerate Lean Canvas (1 Credit)'}
           variant="secondary"
           onPress={handleOpenConfirmModal}
           disabled={isSubmitting}
@@ -411,8 +411,8 @@ export const CanvasScreen: React.FC = () => {
       {/* 1-Credit Pre-Flight Confirmation Modal */}
       <CreditConfirmationModal
         visible={showConfirmModal}
-        title="Regenerate Business Model Canvas?"
-        description="PitchMint AI will re-analyze your startup idea and produce a fresh 9-block lean canvas."
+        title="Regenerate Lean Canvas?"
+        description="PitchMint AI will re-analyze your startup idea and produce a fresh 9-block Lean Canvas."
         costCredits={1}
         currentCredits={currentCredits}
         confirmTestID="canvas-confirm-generate-button"

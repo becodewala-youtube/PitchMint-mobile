@@ -75,7 +75,7 @@ describe('CanvasScreen Component (Phase 4B)', () => {
       .flat(Infinity)
       .filter(Boolean)
       .join(' ');
-    expect(textNodes).toContain('Loading business canvas…');
+    expect(textNodes).toContain('Loading Lean Canvas…');
 
     await act(async () => {
       renderer.unmount();
@@ -126,7 +126,7 @@ describe('CanvasScreen Component (Phase 4B)', () => {
       .flat(Infinity)
       .filter(Boolean)
       .join(' ');
-    expect(textNodes).toContain('No Business Model Canvas Generated');
+    expect(textNodes).toContain('No Lean Canvas Generated');
     expect(textNodes).toContain('1 Credit');
     expect(textNodes).toContain('Your Available Balance: 5 Credits');
   });
@@ -423,9 +423,9 @@ describe('CanvasScreen Component (Phase 4B)', () => {
     });
 
     expect(Clipboard.setStringAsync).toHaveBeenCalledWith(
-      expect.stringContaining('# AI Dental Recall — Business Model Canvas')
+      expect.stringContaining('# AI Dental Recall — Lean Canvas')
     );
-    expect(copyAllBtn.props.title).toBe('Canvas Copied to Clipboard!');
+    expect(copyAllBtn.props.title).toBe('Lean Canvas Copied to Clipboard!');
 
     await act(async () => {
       renderer.unmount();

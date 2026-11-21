@@ -1,7 +1,7 @@
 import { Tone } from '../../../theme';
 import { IconName } from '../../../components';
 
-export type ToolActionKind = 'validate' | 'pick-idea' | 'info' | 'premium-info';
+export type ToolActionKind = 'validate' | 'pick-idea' | 'coming-soon';
 
 export type PickIdeaTarget = 'deck' | 'canvas' | 'competitors' | 'simulator';
 
@@ -33,7 +33,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     desc: 'Investor-ready slides in minutes',
     icon: 'fileText',
     tone: 'blue',
-    cost: 'Included',
+    cost: '1 credit',
     actionKind: 'pick-idea',
     targetTool: 'deck',
   },
@@ -43,13 +43,13 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     desc: 'One-page business model',
     icon: 'panelsTopLeft',
     tone: 'emerald',
-    cost: 'Included',
+    cost: '1 credit',
     actionKind: 'pick-idea',
     targetTool: 'canvas',
   },
   {
     id: 'competitors',
-    name: 'Competitors',
+    name: 'Competitor Analysis',
     desc: 'Landscape, gaps and SWOT',
     icon: 'users',
     tone: 'orange',
@@ -73,18 +73,19 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     desc: 'TAM · SAM · SOM and personas',
     icon: 'target',
     tone: 'cyan',
-    cost: '2 credits',
-    actionKind: 'info',
+    badge: 'Coming Soon',
+    cost: 'Coming Soon',
+    actionKind: 'coming-soon',
   },
   {
     id: 'investors',
     name: 'Investor Directory',
-    desc: '500+ VCs, angels, accelerators',
+    desc: 'Curated VCs, angels & accelerators',
     icon: 'crown',
     tone: 'amber',
-    badge: 'Premium',
-    cost: 'Included',
-    actionKind: 'premium-info',
+    badge: 'Coming Soon',
+    cost: 'Coming Soon',
+    actionKind: 'coming-soon',
   },
   {
     id: 'matchmaking',
@@ -92,9 +93,9 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     desc: 'Find investors that fit your idea',
     icon: 'sparkles',
     tone: 'violet',
-    badge: 'Premium',
-    cost: 'Included',
-    actionKind: 'premium-info',
+    badge: 'Coming Soon',
+    cost: 'Coming Soon',
+    actionKind: 'coming-soon',
   },
 ];
 

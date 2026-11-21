@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { Alert } from 'react-native';
+import { Alert, Text } from 'react-native';
 import { ToolkitScreen } from '../screens/ToolkitScreen';
 import { ideasApi } from '../../../services/api/ideasApi';
 
@@ -183,7 +183,7 @@ describe('ToolkitScreen Component', () => {
     });
   });
 
-  it('displays informational alert when Market Research is pressed', async () => {
+  it('displays Coming Soon alert when Market Research is pressed', async () => {
     let renderer!: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = ReactTestRenderer.create(<ToolkitScreen />);
@@ -195,13 +195,13 @@ describe('ToolkitScreen Component', () => {
     });
 
     expect(Alert.alert).toHaveBeenCalledWith(
-      'Market Research',
-      expect.stringContaining('market research'),
+      'Coming Soon',
+      expect.stringContaining('Market Research is currently under development'),
       expect.any(Array)
     );
   });
 
-  it('displays premium alert when Investor Directory is pressed', async () => {
+  it('displays Coming Soon alert when Investor Directory is pressed', async () => {
     let renderer!: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = ReactTestRenderer.create(<ToolkitScreen />);
@@ -213,9 +213,40 @@ describe('ToolkitScreen Component', () => {
     });
 
     expect(Alert.alert).toHaveBeenCalledWith(
-      'PitchMint Premium',
-      expect.stringContaining('PitchMint Premium unlocks'),
+      'Coming Soon',
+      expect.stringContaining('Investor Directory is currently under development'),
       expect.any(Array)
     );
+  });
+
+  it('displays Coming Soon alert when AI Matchmaking is pressed', async () => {
+    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<ToolkitScreen />);
+    });
+
+    const matchCard = renderer.root.findByProps({ testID: 'toolkit-card-matchmaking' });
+    await act(async () => {
+      matchCard.props.onPress();
+    });
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Coming Soon',
+      expect.stringContaining('AI Matchmaking is currently under development'),
+      expect.any(Array)
+    );
+  });
+
+  it('displays 1 credit cost for Pitch Deck and Lean Canvas and Coming Soon badge for unsupported tools', async () => {
+    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<ToolkitScreen />);
+    });
+
+    const allText = renderer.root.findAllByType(Text).map((t) => t.props.children);
+    const flatText = allText.flat();
+    expect(flatText).toContain('1 credit');
+    expect(flatText).toContain('Coming Soon');
+    expect(flatText).not.toContain('Included');
   });
 });

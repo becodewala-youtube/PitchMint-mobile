@@ -19,13 +19,23 @@ export const CanvasGridOverview: React.FC<CanvasGridOverviewProps> = ({
   canvasContent,
   onSelectBlock,
 }) => {
+  const completedCount = blocks.filter((b) => {
+    const val = canvasContent?.[b.key];
+    return typeof val === 'string' && val.trim().length > 0;
+  }).length;
+
   return (
     <View style={styles.container} testID="canvas-grid-overview">
       <View style={styles.headerRow}>
         <View style={styles.headerTitleCol}>
-          <Text style={styles.headerTitle}>9-Block Canvas Overview</Text>
+          <Text style={styles.headerTitle}>9-Block Lean Canvas Overview</Text>
           <Text style={styles.headerSubtitle}>
             Tap any block to inspect full details or edit
+          </Text>
+        </View>
+        <View style={styles.counterBadge} testID="canvas-completion-counter">
+          <Text style={styles.counterText}>
+            {`${completedCount} of ${blocks.length} filled`}
           </Text>
         </View>
       </View>

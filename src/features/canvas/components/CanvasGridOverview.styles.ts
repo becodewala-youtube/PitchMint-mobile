@@ -19,6 +19,21 @@ export const styles = StyleSheet.create({
   headerTitleCol: {
     flex: 1,
   },
+  counterBadge: {
+    backgroundColor: 'rgba(124, 58, 237, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(124, 58, 237, 0.35)',
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginLeft: spacing.sm,
+  },
+  counterText: {
+    fontSize: typography.sizes.micro,
+    fontWeight: typography.weights.bold,
+    color: colors.brand.light,
+    letterSpacing: 0.3,
+  },
   headerTitle: {
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,

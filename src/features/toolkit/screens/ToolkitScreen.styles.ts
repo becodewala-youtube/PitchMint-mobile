@@ -84,4 +84,18 @@ export const styles = StyleSheet.create({
     fontWeight: typography.weights.semiBold,
     color: colors.brand.light,
   },
+  toolCardComingSoon: {
+    borderColor: colors.border.subtle,
+  },
+  comingSoonPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  comingSoonPillText: {
+    color: colors.text.secondary,
+  },
+  comingSoonCostText: {
+    color: colors.text.muted,
+    fontWeight: typography.weights.medium,
+  },
 });

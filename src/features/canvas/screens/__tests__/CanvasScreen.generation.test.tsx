@@ -91,7 +91,7 @@ describe('CanvasScreen Generation & Credit Modals (Phase 4B)', () => {
       .flat(Infinity)
       .filter(Boolean)
       .join(' ');
-    expect(textNodes).toContain('Generate Business Model Canvas?');
+    expect(textNodes).toContain('Generate Lean Canvas?');
     expect(textNodes).toContain('1 Credit');
     expect(textNodes).toContain('5 Credits');
     expect(textNodes).toContain('4 Credits');
@@ -171,7 +171,7 @@ describe('CanvasScreen Generation & Credit Modals (Phase 4B)', () => {
     });
 
     let text = root.findAllByType(Text).map((t) => t.props.children).flat(Infinity).filter(Boolean).join(' ');
-    expect(text).toContain('Regenerate Business Model Canvas?');
+    expect(text).toContain('Regenerate Lean Canvas?');
     expect(text).toContain('1 Credit');
 
     // Confirm

@@ -36,18 +36,10 @@ export const ToolkitScreen: React.FC = () => {
         }
         break;
 
-      case 'info':
+      case 'coming-soon':
         Alert.alert(
-          tool.name,
-          'In-depth market research, TAM · SAM · SOM, and persona analysis are being prepared for an upcoming release. Validate your idea or generate your Lean Canvas and Pitch Deck today!',
-          [{ text: 'OK' }]
-        );
-        break;
-
-      case 'premium-info':
-        Alert.alert(
-          'PitchMint Premium',
-          'PitchMint Premium unlocks the curated Investor Directory, AI Matchmaking, and full exports.\n\nIn-app subscriptions will be available via Google Play Billing in an upcoming release.',
+          'Coming Soon',
+          `${tool.name} is currently under development and will be available in an upcoming release.`,
           [{ text: 'OK' }]
         );
         break;
@@ -98,40 +90,63 @@ export const ToolkitScreen: React.FC = () => {
         <ToolkitHeader />
 
         <View style={styles.grid}>
-          {TOOL_DEFINITIONS.map((tool) => (
-            <Pressable
-              key={tool.id}
-              testID={`toolkit-card-${tool.id}`}
-              onPress={() => handleToolPress(tool)}
-              style={({ pressed }) => [
-                styles.toolCard,
-                pressed && styles.toolCardPressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={`${tool.name}: ${tool.desc}`}
-            >
-              {tool.badge && (
-                <View style={styles.premiumPill}>
-                  <Text style={styles.premiumPillText}>{tool.badge}</Text>
+          {TOOL_DEFINITIONS.map((tool) => {
+            const isComingSoon = tool.actionKind === 'coming-soon';
+            return (
+              <Pressable
+                key={tool.id}
+                testID={`toolkit-card-${tool.id}`}
+                onPress={() => handleToolPress(tool)}
+                style={({ pressed }) => [
+                  styles.toolCard,
+                  isComingSoon && styles.toolCardComingSoon,
+                  pressed && styles.toolCardPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={`${tool.name}${tool.badge ? ` (${tool.badge})` : ''}: ${tool.desc}`}
+              >
+                {tool.badge && (
+                  <View
+                    style={[
+                      styles.premiumPill,
+                      tool.badge === 'Coming Soon' && styles.comingSoonPill,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.premiumPillText,
+                        tool.badge === 'Coming Soon' && styles.comingSoonPillText,
+                      ]}
+                    >
+                      {tool.badge}
+                    </Text>
+                  </View>
+                )}
+
+                <View style={styles.cardTopRow}>
+                  <IconBadge name={tool.icon} tone={tool.tone} size={40} />
                 </View>
-              )}
 
-              <View style={styles.cardTopRow}>
-                <IconBadge name={tool.icon} tone={tool.tone} size={40} />
-              </View>
+                <View style={styles.cardMiddle}>
+                  <Text style={styles.toolName}>{tool.name}</Text>
+                  <Text style={styles.toolDesc} numberOfLines={2}>
+                    {tool.desc}
+                  </Text>
+                </View>
 
-              <View style={styles.cardMiddle}>
-                <Text style={styles.toolName}>{tool.name}</Text>
-                <Text style={styles.toolDesc} numberOfLines={2}>
-                  {tool.desc}
-                </Text>
-              </View>
-
-              <View style={styles.cardBottom}>
-                <Text style={styles.costText}>{tool.cost ?? 'Included'}</Text>
-              </View>
-            </Pressable>
-          ))}
+                <View style={styles.cardBottom}>
+                  <Text
+                    style={[
+                      styles.costText,
+                      isComingSoon && styles.comingSoonCostText,
+                    ]}
+                  >
+                    {tool.cost ?? '1 credit'}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
       </ScrollView>
 

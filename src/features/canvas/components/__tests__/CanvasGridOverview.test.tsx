@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text } from 'react-native';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { CanvasGridOverview } from '../CanvasGridOverview';
 import { CANVAS_BLOCK_DEFINITIONS } from '../../constants/blockDefinitions';
@@ -84,5 +85,45 @@ describe('CanvasGridOverview Component', () => {
       );
       expect(emptyText.length).toBeGreaterThan(0);
     });
+  });
+
+  it('renders Lean Canvas title and dynamic completion counter', () => {
+    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = ReactTestRenderer.create(
+        <CanvasGridOverview
+          canvasContent={mockContent}
+          onSelectBlock={mockOnSelectBlock}
+        />
+      );
+    });
+
+    const root = renderer.root;
+    const headerTitle = root.findAll((n) => n.props.children === '9-Block Lean Canvas Overview');
+    expect(headerTitle.length).toBeGreaterThan(0);
+
+    const counter = root.findByProps({ testID: 'canvas-completion-counter' });
+    expect(counter).toBeTruthy();
+    const counterText = counter.findByType(Text).props.children;
+    expect(counterText).toBe('9 of 9 filled');
+  });
+
+  it('calculates partial completion count correctly', () => {
+    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = ReactTestRenderer.create(
+        <CanvasGridOverview
+          canvasContent={{
+            problem: 'Some problem',
+            solution: 'Some solution',
+          }}
+          onSelectBlock={mockOnSelectBlock}
+        />
+      );
+    });
+
+    const counter = renderer.root.findByProps({ testID: 'canvas-completion-counter' });
+    const counterText = counter.findByType(Text).props.children;
+    expect(counterText).toBe('2 of 9 filled');
   });
 });

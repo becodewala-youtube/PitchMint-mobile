@@ -95,21 +95,37 @@ describe('canvasPdfExport Utilities', () => {
     Object.defineProperty(Platform, 'OS', { value: originalPlatform });
   });
 
-  describe('Filename sanitization', () => {
-    it('generates safe lowercase filename with business-model-canvas suffix', () => {
+  describe('Filename sanitization & extension guarantees', () => {
+    it('generates safe lowercase filename with lean-canvas suffix ending in .pdf', () => {
       expect(sanitizeCanvasPdfFilename('AI Dental Copilot!')).toBe(
-        'ai-dental-copilot-business-model-canvas.pdf'
+        'ai-dental-copilot-lean-canvas.pdf'
       );
       expect(sanitizeCanvasPdfFilename('')).toBe(
-        'pitchmint-business-model-canvas.pdf'
+        'pitchmint-lean-canvas.pdf'
       );
     });
 
     it('generates descriptive timestamped download filename for permanent storage', () => {
       const fixedDate = new Date('2026-11-20T12:00:00Z');
       expect(generateCanvasDownloadFilename('AI Dental Copilot', fixedDate)).toBe(
-        'PitchMint_AI_Dental_Copilot_Canvas_2026-11-20'
+        'PitchMint_AI_Dental_Copilot_Lean_Canvas_2026-11-20'
       );
+    });
+
+    it('ensures Android saved filename ends with .pdf extension even if SAF returns bare name', async () => {
+      (pdfExportModule.getOrRequestDownloadsDirectoryUri as jest.Mock).mockResolvedValue(
+        'content://downloads/tree'
+      );
+      const legacyFS = require('expo-file-system/legacy');
+      // Simulate SAF returning a URI without extension
+      legacyFS.StorageAccessFramework.createFileAsync.mockResolvedValue(
+        'content://downloads/tree/PitchMint_AI_Dental_Copilot_Lean_Canvas_2026-11-20'
+      );
+      legacyFS.getInfoAsync.mockResolvedValue({ exists: true, size: 2048 });
+
+      const downloadInfo = await saveCanvasToDownloads('base64...', 'AI Dental Copilot');
+      expect(downloadInfo.filename.endsWith('.pdf')).toBe(true);
+      expect(downloadInfo.filename).toBe('PitchMint_AI_Dental_Copilot_Lean_Canvas_2026-11-20.pdf');
     });
   });
 
@@ -128,12 +144,24 @@ describe('canvasPdfExport Utilities', () => {
           base64: true,
         })
       );
-      expect(pdfExportModule.validatePdfFile).toHaveBeenCalled();
+      expect(pdfExportModule.validatePdfFile).toHaveBeenCalledWith(expect.anything(), 1);
       expect(Sharing.shareAsync).toHaveBeenCalled();
-      expect(result.uri).toContain('ai-dental-copilot-business-model-canvas.pdf');
+      expect(result.uri).toContain('ai-dental-copilot-lean-canvas.pdf');
     });
 
-    it('saves permanently to Downloads and invokes onDownloadSuccess on Android', async () => {
+    it('validates 2 pages when content has extended text requiring continuation', async () => {
+      Object.defineProperty(Platform, 'OS', { value: 'ios' });
+
+      const longText = 'Line 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6 with lots of additional details';
+      await exportCanvasPdf('AI Dental Copilot', {
+        problem: longText,
+      });
+
+      // Validates that expected page count of 2 was passed to validatePdfFile
+      expect(pdfExportModule.validatePdfFile).toHaveBeenCalledWith(expect.anything(), 2);
+    });
+
+    it('saves permanently to Downloads and invokes onDownloadSuccess on Android before sharing', async () => {
       Object.defineProperty(Platform, 'OS', { value: 'android' });
 
       (pdfExportModule.getOrRequestDownloadsDirectoryUri as jest.Mock).mockResolvedValue(
@@ -141,11 +169,17 @@ describe('canvasPdfExport Utilities', () => {
       );
       const legacyFS = require('expo-file-system/legacy');
       legacyFS.StorageAccessFramework.createFileAsync.mockResolvedValue(
-        'content://downloads/tree/PitchMint_AI_Dental_Copilot_Canvas_2026-11-20.pdf'
+        'content://downloads/tree/PitchMint_AI_Dental_Copilot_Lean_Canvas_2026-11-20.pdf'
       );
       legacyFS.getInfoAsync.mockResolvedValue({ exists: true, size: 2048 });
 
-      const mockOnDownloadSuccess = jest.fn();
+      const callOrder: string[] = [];
+      const mockOnDownloadSuccess = jest.fn(() => {
+        callOrder.push('onDownloadSuccess');
+      });
+      (Sharing.shareAsync as jest.Mock).mockImplementation(async () => {
+        callOrder.push('shareAsync');
+      });
 
       const result = await exportCanvasPdf(
         'AI Dental Copilot',
@@ -160,6 +194,8 @@ describe('canvasPdfExport Utilities', () => {
           location: expect.stringContaining('Saved to Downloads'),
         })
       );
+      // Confirmed: onDownloadSuccess fired before shareAsync!
+      expect(callOrder).toEqual(['onDownloadSuccess', 'shareAsync']);
       expect(result.download).toBeDefined();
     });
 
@@ -192,7 +228,7 @@ describe('canvasPdfExport Utilities', () => {
       );
       const legacyFS = require('expo-file-system/legacy');
       legacyFS.StorageAccessFramework.createFileAsync.mockResolvedValue(
-        'content://downloads/tree/PitchMint_AI_Dental_Copilot_Canvas.pdf'
+        'content://downloads/tree/PitchMint_AI_Dental_Copilot_Lean_Canvas.pdf'
       );
       legacyFS.getInfoAsync.mockResolvedValue({ exists: true, size: 2048 });
 

@@ -3,7 +3,7 @@ import { CANVAS_BLOCK_DEFINITIONS } from '../constants/blockDefinitions';
 
 export const formatCanvasAsMarkdown = (title: string, canvas?: CanvasContentData): string => {
   const lines: string[] = [
-    `# ${title} — Business Model Canvas`,
+    `# ${title} — Lean Canvas`,
     `*Lean Startup Methodology Visualization*`,
     '',
   ];

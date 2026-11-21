@@ -12,6 +12,7 @@ import {
 } from '../../pitch-deck/utils/pdfExport';
 import {
   generateCanvasPdfHtml,
+  getCanvasPdfExpectedPageCount,
   PDF_CANVAS_PAGE_WIDTH,
   PDF_CANVAS_PAGE_HEIGHT,
 } from './canvasPdfTemplate';
@@ -43,7 +44,7 @@ export function sanitizeCanvasPdfFilename(title: string): string {
     .replace(/-+$/, '');
 
   const base = sanitized || 'pitchmint';
-  return `${base}-business-model-canvas.pdf`;
+  return `${base}-lean-canvas.pdf`;
 }
 
 export function generateCanvasDownloadFilename(
@@ -58,7 +59,7 @@ export function generateCanvasDownloadFilename(
     .replace(/_+$/, '');
 
   const baseTitle = cleanTitle || 'Startup';
-  return `PitchMint_${baseTitle}_Canvas_${dateStr}`;
+  return `PitchMint_${baseTitle}_Lean_Canvas_${dateStr}`;
 }
 
 export async function saveCanvasToDownloads(
@@ -84,7 +85,10 @@ export async function saveCanvasToDownloads(
   }
 
   const decodedUri = decodeURIComponent(safFileUri);
-  const actualFilename = decodedUri.split(/%2F|\//).pop() || `${baseFilename}.pdf`;
+  let actualFilename = decodedUri.split(/%2F|\//).pop() || `${baseFilename}.pdf`;
+  if (!actualFilename.toLowerCase().endsWith('.pdf')) {
+    actualFilename = `${actualFilename}.pdf`;
+  }
   const location = formatDownloadLocation(directoryUri, actualFilename);
 
   return {
@@ -123,8 +127,9 @@ export async function exportCanvasPdf(
   }
   sourceFile.copy(targetFile);
 
-  // Validate PDF integrity
-  const validation: PdfValidationResult = await validatePdfFile(targetFile, 1);
+  // Validate PDF integrity with dynamically calculated actual page count
+  const expectedPageCount = getCanvasPdfExpectedPageCount(canvasContent);
+  const validation: PdfValidationResult = await validatePdfFile(targetFile, expectedPageCount);
   if (!validation.isValid) {
     throw new Error(
       `Canvas PDF validation failed: ${validation.error || 'file is invalid or corrupted'}`
@@ -153,7 +158,7 @@ export async function exportCanvasPdf(
     try {
       await Sharing.shareAsync(targetFile.uri, {
         mimeType: 'application/pdf',
-        dialogTitle: `${ideaTitle || 'PitchMint'} — Business Model Canvas`,
+        dialogTitle: `${ideaTitle || 'PitchMint'} — Lean Canvas`,
         UTI: 'com.adobe.pdf',
       });
     } catch (errorObj: any) {

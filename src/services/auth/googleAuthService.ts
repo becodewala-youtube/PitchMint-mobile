@@ -98,7 +98,7 @@ export const googleAuthService = {
     if (!status.isConfigured || !status.webClientId) {
       Alert.alert(
         'Google Sign-In Setup Required',
-        'Google Sign-In requires Google Cloud OAuth credentials (web client ID, Android SHA-1 fingerprint, and google-services.json) which are not yet configured.\n\nPlease use email and password to sign in.',
+        'Google Sign-In requires Google Cloud OAuth credentials (Web Client ID and Android SHA-1 fingerprint) which are not yet configured.\n\nPlease use email and password to sign in.',
         [{ text: 'OK' }]
       );
       throw new GoogleAuthError(
@@ -227,7 +227,7 @@ export const googleAuthService = {
     if (!status.isConfigured) {
       Alert.alert(
         'Google Sign-In Setup Required',
-        'Google Sign-In requires Google Cloud OAuth credentials (web client ID, Android SHA-1 fingerprint, and google-services.json) which are not yet configured.\n\nPlease use email and password to sign in.',
+        'Google Sign-In requires Google Cloud OAuth credentials (Web Client ID and Android SHA-1 fingerprint) which are not yet configured.\n\nPlease use email and password to sign in.',
         [{ text: 'OK' }]
       );
       return null;

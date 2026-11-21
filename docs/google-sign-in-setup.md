@@ -47,7 +47,7 @@ Native Google Sign-In requires **two distinct client IDs** in the same Google Cl
 6. Click **Create**.
 7. Copy the generated **Client ID** (format: `<PROJECT_NUMBER>-<HASH>.apps.googleusercontent.com`).
 
-> **Note:** The backend environment variable `GOOGLE_CLIENT_ID` must match this exact Web Client ID.
+> **Note:** The backend environment variable `GOOGLE_CLIENT_ID` must match this exact Web Client ID. Note that a `google-services.json` file is **not required** when supplying the explicit Web Client ID to `react-native-nitro-google-signin`.
 
 ### Client 2: Android Application Client ID
 1. In **APIs & Services** > **Credentials**, click **Create Credentials** > **OAuth client ID**.

@@ -285,7 +285,7 @@ describe('GoogleAuthService', () => {
       expect(result).toBeNull();
       expect(alertSpy).toHaveBeenCalledWith(
         'Google Sign-In Setup Required',
-        expect.stringContaining('web client ID, Android SHA-1 fingerprint, and google-services.json'),
+        expect.stringContaining('Web Client ID and Android SHA-1 fingerprint'),
         expect.any(Array)
       );
     });
