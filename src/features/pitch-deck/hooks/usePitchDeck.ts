@@ -68,11 +68,11 @@ export const usePitchDeck = ({
   }, [fetchIdeaData]);
 
   const handleNextSlide = () => {
-    setCurrentSlideIndex((prev) => (prev + 1) % SLIDE_DEFINITIONS.length);
+    setCurrentSlideIndex((prev) => Math.min(SLIDE_DEFINITIONS.length - 1, prev + 1));
   };
 
   const handlePrevSlide = () => {
-    setCurrentSlideIndex((prev) => (prev - 1 + SLIDE_DEFINITIONS.length) % SLIDE_DEFINITIONS.length);
+    setCurrentSlideIndex((prev) => Math.max(0, prev - 1));
   };
 
   const handleSelectSlide = (index: number) => {

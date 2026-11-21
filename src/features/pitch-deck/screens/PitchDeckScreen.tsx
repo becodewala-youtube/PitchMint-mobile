@@ -184,6 +184,7 @@ export const PitchDeckScreen: React.FC = () => {
         slideContent={slideContent}
         onPrevSlide={handlePrevSlide}
         onNextSlide={handleNextSlide}
+        onSelectSlide={handleSelectSlide}
       />
 
       {/* 10-Slide Thumbnail / Chip Selector */}

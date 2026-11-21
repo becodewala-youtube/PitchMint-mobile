@@ -96,15 +96,6 @@ export const styles = StyleSheet.create({
   errorBackBtn: {
     width: '100%',
   },
-  slideHeaderCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-  },
-  slideHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   navArrowBtn: {
     width: touchTargets.minTouchSize,
     height: touchTargets.minTouchSize,
@@ -115,36 +106,64 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  slideHeaderCenter: {
+  navArrowBtnDisabled: {
+    opacity: 0.3,
+  },
+  navArrowBtnNext: {
+    width: touchTargets.minTouchSize,
+    height: touchTargets.minTouchSize,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.brand.primary,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderBottomWidth: 3,
+    borderBottomColor: '#4C1D95',
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'center',
+    shadowColor: colors.brand.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: touchTargets.minTouchSize,
+    paddingHorizontal: spacing.xs,
+  },
+  paginationDotTouchable: {
+    paddingVertical: 12,
+    paddingHorizontal: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dotActivePill: {
+    width: 24,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.brand.primary,
+  },
+  dotInactive: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.20)',
   },
   slideCounterText: {
     fontSize: typography.sizes.xs,
     color: colors.text.muted,
-    marginBottom: 4,
+    marginTop: 2,
     fontWeight: typography.weights.medium,
-  },
-  slideCategoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressBarBg: {
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 2,
-    marginTop: spacing.md,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: colors.brand.primary,
-    borderRadius: 2,
-  },
-  slideContentCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.lg,
-    minHeight: 280,
   },
   slidePresentationCard: {
     borderRadius: 22,
@@ -187,21 +206,6 @@ export const styles = StyleSheet.create({
     color: colors.text.muted,
     letterSpacing: 0.5,
   },
-  slideTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  accentIndicator: {
-    width: 4,
-    height: 24,
-    borderRadius: 2,
-    marginTop: 2,
-  },
-  slideTitleCol: {
-    flex: 1,
-  },
   slideTitleText: {
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
@@ -220,11 +224,6 @@ export const styles = StyleSheet.create({
   },
   slideScrollContent: {
     paddingBottom: spacing.sm,
-  },
-  slideBodyText: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.secondary,
-    lineHeight: 22,
   },
   bulletRow: {
     flexDirection: 'row',
@@ -280,6 +279,61 @@ export const styles = StyleSheet.create({
   thumbnailHeaderHint: {
     fontSize: typography.sizes.micro,
     color: colors.text.muted,
+  },
+  filmstripScrollContent: {
+    gap: 10,
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  thumbItem: {
+    width: 86,
+    height: 60,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    padding: spacing.xs + 2,
+    justifyContent: 'space-between',
+    opacity: 0.7,
+  },
+  thumbItemActive: {
+    borderColor: colors.brand.primary,
+    borderWidth: 2,
+    opacity: 1.0,
+    shadowColor: colors.brand.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  thumbTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  thumbNumberText: {
+    fontSize: 10,
+    fontWeight: typography.weights.bold,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  thumbToneDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  thumbBottomCol: {
+    marginTop: 'auto',
+  },
+  thumbTitleText: {
+    fontSize: 11,
+    fontWeight: typography.weights.semiBold,
+    color: '#FFFFFF',
+  },
+  thumbCategoryText: {
+    fontSize: 8,
+    color: colors.text.muted,
+    fontWeight: typography.weights.medium,
+    marginTop: 1,
   },
   chipsGrid: {
     flexDirection: 'row',

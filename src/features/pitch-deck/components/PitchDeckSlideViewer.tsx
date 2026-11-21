@@ -1,10 +1,18 @@
-import React from 'react';
-import { View, Text, Pressable, ScrollView, Image } from 'react-native';
-import { Card, Badge, Icon } from '../../../components';
+import React, { useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  Image,
+  Animated,
+  PanResponder,
+  useWindowDimensions,
+} from 'react-native';
 import { colors } from '../../../theme';
 import { SlideDefinition } from '../constants/slideDefinitions';
 import { styles, SLIDE_TONE_BACKGROUNDS } from '../screens/PitchDeckScreen.styles';
 import { formatSlideContent } from '../utils/slideContentFormatter';
+import { PitchDeckControls } from './PitchDeckControls';
 
 export interface PitchDeckSlideViewerProps {
   currentDef: SlideDefinition;
@@ -13,7 +21,12 @@ export interface PitchDeckSlideViewerProps {
   slideContent: string;
   onPrevSlide: () => void;
   onNextSlide: () => void;
+  onSelectSlide?: (index: number) => void;
 }
+
+const SWIPE_THRESHOLD_RATIO = 0.22;
+const SWIPE_VELOCITY_THRESHOLD = 0.45;
+const TOUCH_SLOP = 12;
 
 export const PitchDeckSlideViewer: React.FC<PitchDeckSlideViewerProps> = ({
   currentDef,
@@ -22,19 +35,122 @@ export const PitchDeckSlideViewer: React.FC<PitchDeckSlideViewerProps> = ({
   slideContent,
   onPrevSlide,
   onNextSlide,
+  onSelectSlide,
 }) => {
-  const badgeVariant =
-    currentDef.tone === 'red'
-      ? 'red'
-      : currentDef.tone === 'emerald'
-      ? 'emerald'
-      : currentDef.tone === 'blue'
-      ? 'blue'
-      : currentDef.tone === 'orange'
-      ? 'amber'
-      : 'violet';
+  const { width: windowWidth } = useWindowDimensions();
+  const translateX = useRef(new Animated.Value(0)).current;
 
-  const progressPercent = ((currentSlideIndex + 1) / totalSlides) * 100;
+  const navStateRef = useRef({
+    currentSlideIndex,
+    totalSlides,
+    onPrevSlide,
+    onNextSlide,
+    windowWidth,
+  });
+
+  useEffect(() => {
+    navStateRef.current = {
+      currentSlideIndex,
+      totalSlides,
+      onPrevSlide,
+      onNextSlide,
+      windowWidth,
+    };
+  }, [currentSlideIndex, totalSlides, onPrevSlide, onNextSlide, windowWidth]);
+
+  useEffect(() => {
+    translateX.setValue(0);
+  }, [currentSlideIndex, translateX]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
+
+      onMoveShouldSetPanResponderCapture: (_evt, gestureState) => {
+        const { dx, dy } = gestureState;
+        const isHorizontal = Math.abs(dx) > Math.abs(dy) * 1.25;
+        const hasPassedSlop = Math.abs(dx) > TOUCH_SLOP;
+        return isHorizontal && hasPassedSlop;
+      },
+
+      onMoveShouldSetPanResponder: (_evt, gestureState) => {
+        const { dx, dy } = gestureState;
+        return Math.abs(dx) > Math.abs(dy) * 1.25 && Math.abs(dx) > TOUCH_SLOP;
+      },
+
+      onPanResponderGrant: () => {
+        translateX.stopAnimation();
+      },
+
+      onPanResponderMove: (_evt, gestureState) => {
+        const { currentSlideIndex, totalSlides } = navStateRef.current;
+        const isFirstSlide = currentSlideIndex === 0;
+        const isLastSlide = currentSlideIndex === totalSlides - 1;
+
+        if ((isFirstSlide && gestureState.dx > 0) || (isLastSlide && gestureState.dx < 0)) {
+          translateX.setValue(gestureState.dx * 0.25);
+        } else {
+          translateX.setValue(gestureState.dx);
+        }
+      },
+
+      onPanResponderTerminationRequest: () => false,
+
+      onPanResponderRelease: (_evt, gestureState) => {
+        const { currentSlideIndex, totalSlides, onPrevSlide, onNextSlide, windowWidth } =
+          navStateRef.current;
+
+        const swipeThreshold = windowWidth * SWIPE_THRESHOLD_RATIO;
+        const isFirstSlide = currentSlideIndex === 0;
+        const isLastSlide = currentSlideIndex === totalSlides - 1;
+
+        const hasDistanceNext = gestureState.dx < -swipeThreshold;
+        const hasVelocityNext = gestureState.vx < -SWIPE_VELOCITY_THRESHOLD;
+        const isNextSwipe = (hasDistanceNext || hasVelocityNext) && !isLastSlide;
+
+        const hasDistancePrev = gestureState.dx > swipeThreshold;
+        const hasVelocityPrev = gestureState.vx > SWIPE_VELOCITY_THRESHOLD;
+        const isPrevSwipe = (hasDistancePrev || hasVelocityPrev) && !isFirstSlide;
+
+        if (isNextSwipe) {
+          Animated.timing(translateX, {
+            toValue: -windowWidth * 0.75,
+            duration: 150,
+            useNativeDriver: true,
+          }).start(() => {
+            onNextSlide();
+            translateX.setValue(0);
+          });
+        } else if (isPrevSwipe) {
+          Animated.timing(translateX, {
+            toValue: windowWidth * 0.75,
+            duration: 150,
+            useNativeDriver: true,
+          }).start(() => {
+            onPrevSlide();
+            translateX.setValue(0);
+          });
+        } else {
+          Animated.spring(translateX, {
+            toValue: 0,
+            friction: 7,
+            tension: 40,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+
+      onPanResponderTerminate: () => {
+        Animated.spring(translateX, {
+          toValue: 0,
+          friction: 7,
+          tension: 40,
+          useNativeDriver: true,
+        }).start();
+      },
+    })
+  ).current;
 
   const tone = currentDef.tone;
   const toneText = colors.tones[tone]?.text || colors.brand.soft;
@@ -47,69 +163,46 @@ export const PitchDeckSlideViewer: React.FC<PitchDeckSlideViewerProps> = ({
 
   return (
     <>
-      {/* Slide Navigation Header Card */}
-      <Card style={styles.slideHeaderCard}>
-        <View style={styles.slideHeaderRow}>
-          <Pressable
-            testID="pitch-deck-prev-slide-button"
-            onPress={onPrevSlide}
-            style={styles.navArrowBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Previous slide"
-          >
-            <Icon name="chevronLeft" size={18} color={colors.text.primary} />
-          </Pressable>
-
-          <View style={styles.slideHeaderCenter}>
-            <Text style={styles.slideCounterText}>
-              {`Slide ${currentSlideIndex + 1} of ${totalSlides}`}
-            </Text>
-            <View style={styles.slideCategoryRow}>
-              <Badge label={currentDef.category} variant={badgeVariant} />
-            </View>
-          </View>
-
-          <Pressable
-            testID="pitch-deck-next-slide-button"
-            onPress={onNextSlide}
-            style={styles.navArrowBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Next slide"
-          >
-            <Icon name="chevronRight" size={18} color={colors.text.primary} />
-          </Pressable>
-        </View>
-
-        {/* Progress Tracker Bar */}
-        <View style={styles.progressBarBg}>
-          <View
-            style={[
-              styles.progressBarFill,
-              { width: `${progressPercent}%` },
-            ]}
-          />
-        </View>
-      </Card>
-
-      {/* Unified Slide Presentation Card */}
-      <View
+      {/* Unified Slide Presentation Card with Horizontal Gesture Support */}
+      <Animated.View
+        {...panResponder.panHandlers}
         testID="pitch-deck-slide-card"
+        accessible={true}
+        accessibilityRole="adjustable"
+        accessibilityLabel={`Slide ${currentSlideIndex + 1} of ${totalSlides}: ${currentDef.title}`}
+        accessibilityActions={[
+          { name: 'increment', label: 'Next slide' },
+          { name: 'decrement', label: 'Previous slide' },
+        ]}
+        onAccessibilityAction={(event) => {
+          if (event.nativeEvent.actionName === 'increment' && currentSlideIndex < totalSlides - 1) {
+            onNextSlide();
+          } else if (event.nativeEvent.actionName === 'decrement' && currentSlideIndex > 0) {
+            onPrevSlide();
+          }
+        }}
         style={[
           styles.slidePresentationCard,
           {
             borderColor: toneBorder,
             backgroundColor: toneBg,
+            transform: [{ translateX }],
           },
         ]}
       >
-        {/* Slide Header: 01 · CATEGORY + PitchMint Brand Mark */}
+        {/* Slide Header: 01 · CATEGORY + Slide Counter + Brand Mark */}
         <View style={styles.slideCardHeader}>
-          <Text
-            testID="pitch-deck-slide-category-kicker"
-            style={[styles.slideCategoryKicker, { color: toneText }]}
-          >
-            {`${slideNumber} · ${currentDef.category.toUpperCase()}`}
-          </Text>
+          <View>
+            <Text
+              testID="pitch-deck-slide-category-kicker"
+              style={[styles.slideCategoryKicker, { color: toneText }]}
+            >
+              {`${slideNumber} · ${currentDef.category.toUpperCase()}`}
+            </Text>
+            <Text style={styles.slideCounterText}>
+              {`Slide ${currentSlideIndex + 1} of ${totalSlides}`}
+            </Text>
+          </View>
 
           <View style={styles.slideBrandMark}>
             <Image
@@ -134,6 +227,7 @@ export const PitchDeckSlideViewer: React.FC<PitchDeckSlideViewerProps> = ({
           contentContainerStyle={styles.slideScrollContent}
           showsVerticalScrollIndicator={true}
           nestedScrollEnabled={true}
+          directionalLockEnabled={true}
         >
           {contentBlocks.length === 0 ? (
             <Text style={styles.slideFallbackText}>
@@ -165,7 +259,16 @@ export const PitchDeckSlideViewer: React.FC<PitchDeckSlideViewerProps> = ({
             })
           )}
         </ScrollView>
-      </View>
+      </Animated.View>
+
+      {/* Ergonomic Navigation Controls & Dot/Pill Pagination */}
+      <PitchDeckControls
+        currentSlideIndex={currentSlideIndex}
+        totalSlides={totalSlides}
+        onPrevSlide={onPrevSlide}
+        onNextSlide={onNextSlide}
+        onSelectSlide={onSelectSlide}
+      />
     </>
   );
 };
