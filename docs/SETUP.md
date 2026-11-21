@@ -39,6 +39,9 @@
    - **Android Emulator:** Press `a` in the terminal while an Android emulator is running.
    - **Web Sandbox:** Run `npm run web` (requires `@expo/metro-runtime` if running on desktop browser).
 
+### Native Google Sign-In Setup
+Native Google Sign-In uses Android Credential Manager and requires a custom development client (`expo-dev-client`) rather than standard Expo Go. See the detailed setup guide in [`docs/google-sign-in-setup.md`](google-sign-in-setup.md) for Google Cloud Console configuration, SHA-1 registration, and running custom development builds.
+
 ---
 
 ## Available Scripts

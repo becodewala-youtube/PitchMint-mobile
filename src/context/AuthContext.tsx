@@ -18,40 +18,10 @@ import {
 } from '../services/api/authApi';
 import { tokenStorage, TokenStorageError } from '../services/storage/tokenStorage';
 import { setUnauthorizedHandler, ApiError } from '../services/api/apiClient';
+import { googleAuthService } from '../services/auth/googleAuthService';
+import { logAuthWarning, AuthContextType } from './authContextUtils';
 
-export interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isBootstrapping: boolean;
-  bootstrapError?: string | null;
-  error: string | null;
-  signIn: (params: SignInParams) => Promise<User>;
-  signUp: (params: RegisterParams) => Promise<RegisterResponse>;
-  verifyEmail: (params: VerifyEmailParams) => Promise<User>;
-  resendVerification: (email: string) => Promise<MessageResponse>;
-  forgotPassword: (email: string) => Promise<MessageResponse>;
-  resetPassword: (params: ResetPasswordParams) => Promise<MessageResponse>;
-  signOut: () => Promise<void>;
-  refreshUser: () => Promise<void>;
-  updateName: (name: string) => Promise<User>;
-  retryBootstrap?: () => Promise<void>;
-  clearError: () => void;
-}
-
-const logAuthWarning = (context: string, err: unknown): void => {
-  if (__DEV__) {
-    let summary = 'UnknownError';
-    if (err instanceof TokenStorageError) {
-      summary = err.code;
-    } else if (err instanceof ApiError) {
-      summary = `HTTP_${err.status}`;
-    } else if (err instanceof Error) {
-      summary = err.name;
-    }
-    console.warn(`[AuthProvider] ${context} (${summary})`);
-  }
-};
+export type { AuthContextType };
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -84,6 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
         setBootstrapError(null);
       }
+      void googleAuthService.signOut();
     } catch (err: unknown) {
       logAuthWarning('Error removing stored token during sign out', err);
       const storageError =
@@ -132,6 +103,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         err instanceof ApiError || err instanceof TokenStorageError
           ? err.message
           : 'Sign in failed. Please try again.';
+      setError(message);
+      throw err;
+    }
+  };
+
+  /**
+   * Authenticates user via Google Sign-In and exchanges ID token with PitchMint backend.
+   * Persists returned JWT to hardware-backed token storage and hydrates authenticated state immediately.
+   * Secure storage failure halts login and never results in a false-success authenticated state.
+   * Returns null if the user cancelled sign-in.
+   */
+  const signInWithGoogle = async (): Promise<User | null> => {
+    setError(null);
+    try {
+      const credentials = await googleAuthService.signIn();
+      if (!credentials) {
+        return null;
+      }
+      const response = await authApi.googleAuth({ credential: credentials.idToken });
+      await tokenStorage.setToken(response.token);
+      pendingTokenCleanupRef.current = false;
+      setToken(response.token);
+      setUser(response.user);
+      setBootstrapError(null);
+      return response.user;
+    } catch (err: unknown) {
+      const message =
+        err instanceof ApiError || err instanceof TokenStorageError
+          ? err.message
+          : err instanceof Error
+          ? err.message
+          : 'Google sign in failed. Please try again.';
       setError(message);
       throw err;
     }
@@ -360,7 +363,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   /**
    * Updates user display name via PUT /api/auth/user.
-   * Updates state only on confirmed server success; never exposes sensitive data.
    */
   const updateName = useCallback(async (name: string): Promise<User> => {
     const trimmed = name?.trim();
@@ -446,6 +448,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     bootstrapError,
     error,
     signIn,
+    signInWithGoogle,
     signUp,
     verifyEmail,
     resendVerification,
