@@ -1,12 +1,28 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { Text, Pressable } from 'react-native';
+import { Text, Pressable, PanResponder } from 'react-native';
 import { PitchDeckSlideViewer } from '../PitchDeckSlideViewer';
 import { SLIDE_DEFINITIONS } from '../../constants/slideDefinitions';
 import { colors } from '../../../../theme';
 import { SLIDE_TONE_BACKGROUNDS } from '../../screens/PitchDeckScreen.styles';
 
 (global as any).IS_REACT_ACT_ENVIRONMENT = true;
+
+// Mock PanResponder.create to bridge gestureState directly in unit tests without native TouchHistoryMath
+jest.spyOn(PanResponder, 'create').mockImplementation((config: any) => {
+  return {
+    panHandlers: {
+      onMoveShouldSetResponderCapture: (e: any, gs: any) =>
+        config.onMoveShouldSetPanResponderCapture ? config.onMoveShouldSetPanResponderCapture(e, gs) : false,
+      onMoveShouldSetResponder: (e: any, gs: any) =>
+        config.onMoveShouldSetPanResponder ? config.onMoveShouldSetPanResponder(e, gs) : false,
+      onResponderGrant: (e: any, gs: any) => config.onPanResponderGrant?.(e, gs),
+      onResponderMove: (e: any, gs: any) => config.onPanResponderMove?.(e, gs),
+      onResponderRelease: (e: any, gs: any) => config.onPanResponderRelease?.(e, gs),
+      onResponderTerminate: (e: any, gs: any) => config.onPanResponderTerminate?.(e, gs),
+    },
+  } as any;
+});
 
 describe('PitchDeckSlideViewer (Phase 2C.1)', () => {
   const defaultProps = {
@@ -235,5 +251,175 @@ describe('PitchDeckSlideViewer (Phase 2C.1)', () => {
       nextBtn.props.onPress();
     });
     expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Horizontal Swipe Gestures (Stage 2C.3)', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('captures horizontal gestures and rejects vertical gestures or micro-tremors', () => {
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(<PitchDeckSlideViewer {...defaultProps} />);
+      });
+      const card = renderer!.root.findByProps({ testID: 'pitch-deck-slide-card' });
+
+      // Valid horizontal swipe -> captures
+      const isHorizontal = card.props.onMoveShouldSetResponderCapture(
+        { nativeEvent: {} },
+        { dx: -100, dy: 10 }
+      );
+      expect(isHorizontal).toBe(true);
+
+      // Dominant vertical gesture -> rejected (falls through to inner content ScrollView)
+      const isVertical = card.props.onMoveShouldSetResponderCapture(
+        { nativeEvent: {} },
+        { dx: 10, dy: 100 }
+      );
+      expect(isVertical).toBe(false);
+
+      // Micro-movement within 12px deadzone -> rejected
+      const isDeadzone = card.props.onMoveShouldSetResponderCapture(
+        { nativeEvent: {} },
+        { dx: 8, dy: 2 }
+      );
+      expect(isDeadzone).toBe(false);
+    });
+
+    it('triggers onNextSlide on valid horizontal left swipe', () => {
+      const onNext = jest.fn();
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <PitchDeckSlideViewer {...defaultProps} currentSlideIndex={2} onNextSlide={onNext} />
+        );
+      });
+      const card = renderer!.root.findByProps({ testID: 'pitch-deck-slide-card' });
+
+      act(() => {
+        card.props.onResponderGrant({ nativeEvent: {} }, { dx: 0, dy: 0 });
+        card.props.onResponderMove({ nativeEvent: {} }, { dx: -150, dy: 5 });
+        card.props.onResponderRelease({ nativeEvent: {} }, { dx: -150, dy: 5, vx: -0.6 });
+        jest.advanceTimersByTime(200);
+      });
+
+      expect(onNext).toHaveBeenCalledTimes(1);
+    });
+
+    it('triggers onPrevSlide on valid horizontal right swipe', () => {
+      const onPrev = jest.fn();
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <PitchDeckSlideViewer {...defaultProps} currentSlideIndex={2} onPrevSlide={onPrev} />
+        );
+      });
+      const card = renderer!.root.findByProps({ testID: 'pitch-deck-slide-card' });
+
+      act(() => {
+        card.props.onResponderGrant({ nativeEvent: {} }, { dx: 0, dy: 0 });
+        card.props.onResponderMove({ nativeEvent: {} }, { dx: 150, dy: 5 });
+        card.props.onResponderRelease({ nativeEvent: {} }, { dx: 150, dy: 5, vx: 0.6 });
+        jest.advanceTimersByTime(200);
+      });
+
+      expect(onPrev).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not trigger onPrevSlide when swiping right on first slide (boundary 0)', () => {
+      const onPrev = jest.fn();
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <PitchDeckSlideViewer {...defaultProps} currentSlideIndex={0} onPrevSlide={onPrev} />
+        );
+      });
+      const card = renderer!.root.findByProps({ testID: 'pitch-deck-slide-card' });
+
+      act(() => {
+        card.props.onResponderGrant({ nativeEvent: {} }, { dx: 0, dy: 0 });
+        card.props.onResponderMove({ nativeEvent: {} }, { dx: 150, dy: 0 });
+        card.props.onResponderRelease({ nativeEvent: {} }, { dx: 150, dy: 0, vx: 0.6 });
+      });
+
+      expect(onPrev).not.toHaveBeenCalled();
+    });
+
+    it('does not trigger onNextSlide when swiping left on last slide (boundary 9)', () => {
+      const onNext = jest.fn();
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <PitchDeckSlideViewer {...defaultProps} currentSlideIndex={9} onNextSlide={onNext} />
+        );
+      });
+      const card = renderer!.root.findByProps({ testID: 'pitch-deck-slide-card' });
+
+      act(() => {
+        card.props.onResponderGrant({ nativeEvent: {} }, { dx: 0, dy: 0 });
+        card.props.onResponderMove({ nativeEvent: {} }, { dx: -150, dy: 0 });
+        card.props.onResponderRelease({ nativeEvent: {} }, { dx: -150, dy: 0, vx: -0.6 });
+      });
+
+      expect(onNext).not.toHaveBeenCalled();
+    });
+
+    it('does not trigger navigation on sub-threshold swipe and resets cleanly', () => {
+      const onNext = jest.fn();
+      const onPrev = jest.fn();
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <PitchDeckSlideViewer
+            {...defaultProps}
+            currentSlideIndex={3}
+            onNextSlide={onNext}
+            onPrevSlide={onPrev}
+          />
+        );
+      });
+      const card = renderer!.root.findByProps({ testID: 'pitch-deck-slide-card' });
+
+      act(() => {
+        card.props.onResponderGrant({ nativeEvent: {} }, { dx: 0, dy: 0 });
+        card.props.onResponderMove({ nativeEvent: {} }, { dx: -25, dy: 0 });
+        card.props.onResponderRelease({ nativeEvent: {} }, { dx: -25, dy: 0, vx: -0.1 });
+      });
+
+      expect(onNext).not.toHaveBeenCalled();
+      expect(onPrev).not.toHaveBeenCalled();
+    });
+
+    it('supports adjustable accessibility actions on the presentation card', () => {
+      const onNext = jest.fn();
+      const onPrev = jest.fn();
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <PitchDeckSlideViewer
+            {...defaultProps}
+            currentSlideIndex={4}
+            onNextSlide={onNext}
+            onPrevSlide={onPrev}
+          />
+        );
+      });
+      const card = renderer!.root.findByProps({ testID: 'pitch-deck-slide-card' });
+
+      act(() => {
+        card.props.onAccessibilityAction({ nativeEvent: { actionName: 'increment' } });
+      });
+      expect(onNext).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        card.props.onAccessibilityAction({ nativeEvent: { actionName: 'decrement' } });
+      });
+      expect(onPrev).toHaveBeenCalledTimes(1);
+    });
   });
 });
