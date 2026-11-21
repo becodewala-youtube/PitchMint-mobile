@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, Image } from 'react-native';
 import { Card, Badge, Icon } from '../../../components';
 import { colors } from '../../../theme';
 import { SlideDefinition } from '../constants/slideDefinitions';
-import { styles } from '../screens/PitchDeckScreen.styles';
+import { styles, SLIDE_TONE_BACKGROUNDS } from '../screens/PitchDeckScreen.styles';
+import { formatSlideContent } from '../utils/slideContentFormatter';
 
 export interface PitchDeckSlideViewerProps {
   currentDef: SlideDefinition;
@@ -34,6 +35,15 @@ export const PitchDeckSlideViewer: React.FC<PitchDeckSlideViewerProps> = ({
       : 'violet';
 
   const progressPercent = ((currentSlideIndex + 1) / totalSlides) * 100;
+
+  const tone = currentDef.tone;
+  const toneText = colors.tones[tone]?.text || colors.brand.soft;
+  const toneDot = colors.tones[tone]?.dot || colors.brand.primary;
+  const toneBorder = colors.tones[tone]?.border || 'rgba(255, 255, 255, 0.12)';
+  const toneBg = SLIDE_TONE_BACKGROUNDS[tone] || colors.background.card;
+  const slideNumber = String(currentSlideIndex + 1).padStart(2, '0');
+
+  const contentBlocks = formatSlideContent(slideContent);
 
   return (
     <>
@@ -81,35 +91,81 @@ export const PitchDeckSlideViewer: React.FC<PitchDeckSlideViewerProps> = ({
         </View>
       </Card>
 
-      {/* Main Slide Card with Scrollable Text */}
-      <Card style={styles.slideContentCard}>
-        <View style={styles.slideTitleRow}>
-          <View
-            style={[
-              styles.accentIndicator,
-              {
-                backgroundColor:
-                  colors.tones[currentDef.tone]?.text || colors.brand.primary,
-              },
-            ]}
-          />
-          <View style={styles.slideTitleCol}>
-            <Text style={styles.slideTitleText}>
-              {`${currentSlideIndex + 1}. ${currentDef.title}`}
-            </Text>
-            <Text style={styles.slideSubtitleText}>{currentDef.subtitle}</Text>
+      {/* Unified Slide Presentation Card */}
+      <View
+        testID="pitch-deck-slide-card"
+        style={[
+          styles.slidePresentationCard,
+          {
+            borderColor: toneBorder,
+            backgroundColor: toneBg,
+          },
+        ]}
+      >
+        {/* Slide Header: 01 · CATEGORY + PitchMint Brand Mark */}
+        <View style={styles.slideCardHeader}>
+          <Text
+            testID="pitch-deck-slide-category-kicker"
+            style={[styles.slideCategoryKicker, { color: toneText }]}
+          >
+            {`${slideNumber} · ${currentDef.category.toUpperCase()}`}
+          </Text>
+
+          <View style={styles.slideBrandMark}>
+            <Image
+              source={require('../../../../assets/logo.png')}
+              style={styles.slideBrandLogo}
+              resizeMode="contain"
+              accessibilityLabel="PitchMint Logo"
+            />
+            <Text style={styles.slideBrandText}>PitchMint</Text>
           </View>
         </View>
 
+        {/* Slide Title & Subtitle */}
+        <Text style={styles.slideTitleText}>
+          {`${currentSlideIndex + 1}. ${currentDef.title}`}
+        </Text>
+        <Text style={styles.slideSubtitleText}>{currentDef.subtitle}</Text>
+
+        {/* Scrollable Formatted Content Area */}
         <ScrollView
           style={styles.slideScrollBox}
           contentContainerStyle={styles.slideScrollContent}
           showsVerticalScrollIndicator={true}
           nestedScrollEnabled={true}
         >
-          <Text style={styles.slideBodyText}>{slideContent}</Text>
+          {contentBlocks.length === 0 ? (
+            <Text style={styles.slideFallbackText}>
+              No content persisted for this slide. Tap Regenerate to generate complete investor slides.
+            </Text>
+          ) : (
+            contentBlocks.map((block, index) => {
+              if (block.type === 'bullet') {
+                return (
+                  <View key={`bullet-${index}`} style={styles.bulletRow}>
+                    <View style={[styles.bulletDot, { backgroundColor: toneDot }]} />
+                    <Text style={styles.bulletText}>
+                      {block.marker ? (
+                        <Text style={[styles.bulletMarkerText, { color: toneText }]}>
+                          {`${block.marker} `}
+                        </Text>
+                      ) : null}
+                      {block.text}
+                    </Text>
+                  </View>
+                );
+              }
+
+              return (
+                <Text key={`para-${index}`} style={styles.paragraphText}>
+                  {block.text}
+                </Text>
+              );
+            })
+          )}
         </ScrollView>
-      </Card>
+      </View>
     </>
   );
 };

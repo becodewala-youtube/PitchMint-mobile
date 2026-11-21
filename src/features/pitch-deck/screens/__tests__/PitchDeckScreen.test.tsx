@@ -141,9 +141,13 @@ describe('PitchDeckScreen Component (Phase 4A)', () => {
     expect(regenerateSpy).not.toHaveBeenCalled();
 
     const root = renderer!.root;
+    const slideCard = root.findByProps({ testID: 'pitch-deck-slide-card' });
+    expect(slideCard).toBeDefined();
+
     const textNodes = root.findAllByType(Text).map((t) => t.props.children).flat(Infinity).filter(Boolean).join(' ');
     expect(textNodes).toContain('Slide 1 of 10');
     expect(textNodes).toContain('1. Problem');
+    expect(textNodes).toContain('01 · MARKET PAIN POINT');
     expect(textNodes).toContain('Dental clinics lose 20% of revenue to missed recall appointments.');
   });
 
