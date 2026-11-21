@@ -47,7 +47,7 @@ This document captures the verified technical facts, architecture, dependencies,
 | Feature Module | Implementation Status | Test Coverage | Readiness Classification | Notes & Gaps |
 | :--- | :--- | :--- | :--- | :--- |
 | **Email Auth Flow** | Implemented | Unit-tested (Jest) | Unit-tested | Live registration, verification, sign-in, reset. Backend lacks account deletion. |
-| **Google Auth Flow** | Implemented (Stub) | Unit-tested (Jest) | Implemented | Informational dialog placeholder only per Stage 1 audit. Requires evaluating supported Expo SDK 58 approaches (browser-based vs. native SDK) and backend contract. |
+| **Google Auth Flow** | Implemented | Unit-tested (Jest) | Unit-tested | Native Android Credential Manager flow implemented via react-native-nitro-google-signin. Unit-tested (36 tests). Device verification pending Google Cloud credentials. |
 | **Idea Validation** | Implemented | Unit-tested (Jest) | Unit-tested | 5-step heuristic screen with 1-credit pre-flight confirmation modal. UI balance is not guaranteed; backend is authoritative for deduction and refunds. |
 | **Saved Ideas Catalog**| Implemented | Unit-tested (Jest) | Unit-tested | Server-side debounced search, filtering (All, Top, Has Deck, Not Explored), server pagination, and secure idea deletion with confirmation modal. |
 | **Idea Details** | Implemented | Unit-tested (Jest) | Unit-tested | Multi-score rings, breakdown bars, accordion explanations, Action Hub with deletion, competitor launcher, and simulation launcher. |

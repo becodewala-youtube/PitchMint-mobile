@@ -8,6 +8,7 @@ import {
   Linking,
   Pressable,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import {
   ScreenContainer,
   Card,
@@ -16,6 +17,7 @@ import {
   Icon,
 } from '../../../components';
 import { colors } from '../../../theme';
+import { RootStackNavigationProp } from '../../../navigation/types';
 import { useAuth } from '../../../context/AuthContext';
 import { ideasApi } from '../../../services/api/ideasApi';
 import { creditsApi } from '../../../services/api/creditsApi';
@@ -34,6 +36,7 @@ import { LEGAL_URLS } from '../constants/profileConstants';
  * Decomposed in Stage 4.4 into modular components, styles, and constants.
  */
 export const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation<RootStackNavigationProp>();
   const { user, refreshUser, signOut, updateName } = useAuth();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -299,6 +302,14 @@ export const ProfileScreen: React.FC = () => {
                 : `You have ${displayCredits} validation credit${displayCredits === 1 ? '' : 's'} available.\nDigital top-ups will be available via native store billing.`
             )
           }
+        />
+        <View style={styles.divider} />
+        <SettingRow
+          icon="activity"
+          label="Activity history"
+          value="View log"
+          tone="emerald"
+          onPress={() => navigation.navigate('Activity')}
         />
         <View style={styles.divider} />
         <SettingRow

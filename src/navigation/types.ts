@@ -6,8 +6,9 @@ export type MainTabParamList = {
   Home: undefined;
   Ideas: undefined;
   ValidateTab: undefined;
-  Activity: undefined;
+  Toolkit: undefined;
   Profile: undefined;
+  Activity?: undefined;
 };
 
 export type AuthStackParamList = {
@@ -30,6 +31,8 @@ export type RootStackParamList = {
   Canvas: { ideaId: string; ideaTitle?: string; initialBlockIndex?: number };
   Competitor: { ideaId: string; ideaTitle?: string };
   PitchSimulator: { ideaId: string; ideaTitle?: string };
+  Toolkit: undefined;
+  Activity: undefined;
 };
 
 export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;

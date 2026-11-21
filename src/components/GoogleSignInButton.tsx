@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,10 +7,11 @@ import {
   ActivityIndicator,
   ViewStyle,
   StyleProp,
+  Alert,
 } from 'react-native';
 import { spacing, typography } from '../theme';
-import { googleAuthService } from '../services/auth/googleAuthService';
 import { useAuth } from '../context/AuthContext';
+import { GoogleAuthError } from '../services/auth/googleAuthService';
 
 export interface GoogleSignInButtonProps {
   style?: StyleProp<ViewStyle>;
@@ -76,24 +77,41 @@ const GoogleLogo: React.FC<{ size?: number }> = ({ size = 18 }) => {
  * - Authentic 4-color Google "G" vector
  * - Dark 600 weight label ("Continue with Google")
  * - 0.98 scale tactile press feedback
+ * - Duplicate tap prevention and integrated Credential Manager auth flow
  */
 export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   style,
   disabled = false,
 }) => {
   const [loading, setLoading] = useState(false);
-  const { refreshUser } = useAuth();
+  const isPressingRef = useRef(false);
+  const { signInWithGoogle } = useAuth();
 
   const handlePress = async () => {
-    if (disabled || loading) return;
+    if (disabled || loading || isPressingRef.current) {
+      return;
+    }
+
+    isPressingRef.current = true;
     setLoading(true);
+
     try {
-      const result = await googleAuthService.promptGoogleSignIn();
-      if (result) {
-        await refreshUser();
+      await signInWithGoogle();
+    } catch (err: unknown) {
+      // If service already alerted the user (e.g. config or play services), avoid double alerts
+      if (err instanceof GoogleAuthError && err.alertShown) {
+        return;
       }
+
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Google sign-in could not be completed. Please try again.';
+
+      Alert.alert('Sign-In Failed', message, [{ text: 'OK' }]);
     } finally {
       setLoading(false);
+      isPressingRef.current = false;
     }
   };
 
@@ -104,14 +122,15 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
       style={({ pressed }) => [
         styles.button,
         pressed && styles.buttonPressed,
-        disabled && styles.buttonDisabled,
+        (disabled || loading) && styles.buttonDisabled,
         style,
       ]}
       accessibilityRole="button"
       accessibilityLabel="Continue with Google"
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
     >
       {loading ? (
-        <ActivityIndicator size="small" color="#111827" />
+        <ActivityIndicator size="small" color="#111827" testID="google-sign-in-loading-indicator" />
       ) : (
         <View style={styles.content}>
           <GoogleLogo size={18} />

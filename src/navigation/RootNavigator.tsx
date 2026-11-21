@@ -7,6 +7,8 @@ import { PitchDeckScreen } from '../features/pitch-deck';
 import { CanvasScreen } from '../features/canvas';
 import { CompetitorScreen } from '../features/competitors';
 import { PitchSimulatorScreen } from '../features/pitch-simulator';
+import { ToolkitScreen } from '../features/toolkit';
+import { ActivityScreen } from '../features/activity/screens/ActivityScreen';
 import { AuthNavigator } from './AuthNavigator';
 import { AuthLoadingScreen } from '../features/auth/screens/AuthLoadingScreen';
 import { WelcomeScreen, OnboardingScreen } from '../features/onboarding';
@@ -85,6 +87,20 @@ export const RootNavigator: React.FC = () => {
           <Stack.Screen
             name="PitchSimulator"
             component={PitchSimulatorScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="Toolkit"
+            component={ToolkitScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="Activity"
+            component={ActivityScreen}
             options={{
               animation: 'slide_from_right',
             }}

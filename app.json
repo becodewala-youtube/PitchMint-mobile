@@ -2,7 +2,7 @@
   "expo": {
     "name": "PitchMint",
     "slug": "PitchMint-mobile",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -13,8 +13,9 @@
     },
     "android": {
       "package": "com.pitchmint.app",
+      "versionCode": 3,
       "adaptiveIcon": {
-        "backgroundColor": "#000000",
+        "backgroundColor": "#07090E",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"

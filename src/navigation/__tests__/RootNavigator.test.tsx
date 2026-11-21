@@ -65,6 +65,7 @@ const createMockAuthContext = (overrides: Partial<AuthContextType> = {}): AuthCo
   isBootstrapping: false,
   error: null,
   signIn: jest.fn(),
+  signInWithGoogle: jest.fn(),
   signUp: jest.fn(),
   verifyEmail: jest.fn(),
   resendVerification: jest.fn(),

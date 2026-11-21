@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
 import { IdeasScreen } from '../features/ideas/screens/IdeasScreen';
 import { ActivityScreen } from '../features/activity/screens/ActivityScreen';
+import { ToolkitScreen } from '../features/toolkit/screens/ToolkitScreen';
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
 import { Icon } from '../components/Icon';
 import { colors, spacing, typography, borderRadius } from '../theme';
@@ -47,7 +48,7 @@ const CenterValidateButton: React.FC = () => {
 };
 
 interface TabIconWithDotProps {
-  name: 'home' | 'ideas' | 'activity' | 'profile';
+  name: 'home' | 'ideas' | 'layers' | 'profile' | 'activity';
   focused: boolean;
   label: string;
 }
@@ -142,13 +143,13 @@ export const BottomTabNavigator: React.FC = () => {
         })}
       />
 
-      {/* 4. Activity Tab (Replaces deferred Toolkit destination) */}
+      {/* 4. Toolkit Tab (Arena Design Parity) */}
       <Tab.Screen
-        name="Activity"
-        component={ActivityScreen}
+        name="Toolkit"
+        component={ToolkitScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabItem name="activity" focused={focused} label="Activity" />
+            <TabItem name="layers" focused={focused} label="Toolkit" />
           ),
         }}
       />
@@ -161,6 +162,16 @@ export const BottomTabNavigator: React.FC = () => {
           tabBarIcon: ({ focused }) => (
             <TabItem name="profile" focused={focused} label="Profile" />
           ),
+        }}
+      />
+
+      {/* 6. Activity Tab (Preserved route for direct navigation and deep links) */}
+      <Tab.Screen
+        name="Activity"
+        component={ActivityScreen}
+        options={{
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
         }}
       />
     </Tab.Navigator>

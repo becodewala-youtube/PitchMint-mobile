@@ -328,6 +328,38 @@ export const styles = StyleSheet.create({
   copyAllBtn: {
     width: '100%',
   },
+  exportPdfBtn: {
+    width: '100%',
+    marginBottom: spacing.sm,
+  },
+  modeToggleRow: {
+    flexDirection: 'row',
+    backgroundColor: colors.background.card2,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    padding: 3,
+    marginBottom: spacing.md,
+  },
+  modeToggleBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: borderRadius.sm,
+  },
+  modeToggleBtnActive: {
+    backgroundColor: colors.brand.primary,
+  },
+  modeToggleText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
+    color: colors.text.muted,
+  },
+  modeToggleTextActive: {
+    color: '#FFFFFF',
+    fontWeight: typography.weights.semiBold,
+  },
   footerActionCard: {
     marginBottom: spacing.lg,
     padding: spacing.md,
