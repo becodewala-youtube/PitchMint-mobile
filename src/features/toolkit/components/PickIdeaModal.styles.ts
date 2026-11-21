@@ -1,0 +1,179 @@
+import { StyleSheet, Dimensions } from 'react-native';
+import { colors, spacing, borderRadius, typography } from '../../../theme';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+export const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'flex-end',
+  },
+  backdropTouchable: {
+    flex: 1,
+  },
+  sheetContainer: {
+    backgroundColor: '#0E0E0E',
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.border.subtle,
+    maxHeight: SCREEN_HEIGHT * 0.82,
+    minHeight: 340,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xl,
+  },
+  dragHandleContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  dragHandle: {
+    width: 38,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border.medium,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  headerTextCol: {
+    flex: 1,
+    paddingRight: spacing.sm,
+  },
+  headerTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.semiBold,
+    color: colors.text.primary,
+    letterSpacing: -0.3,
+  },
+  headerSubtitle: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.muted,
+    marginTop: 2,
+  },
+  closeBtn: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background.card2,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+  },
+  listContainer: {
+    maxHeight: SCREEN_HEIGHT * 0.52,
+  },
+  listContent: {
+    paddingVertical: spacing.xs,
+    gap: spacing.sm,
+  },
+  ideaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: '#141414',
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    minHeight: 64,
+    gap: spacing.md,
+  },
+  ideaItemPressed: {
+    backgroundColor: '#1C1C1C',
+    borderColor: colors.brand.primary,
+    transform: [{ scale: 0.99 }],
+  },
+  ideaTextCol: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  ideaTitle: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semiBold,
+    color: colors.text.primary,
+    lineHeight: 20,
+  },
+  ideaMeta: {
+    fontSize: typography.sizes.micro,
+    color: colors.text.muted,
+    marginTop: 2,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.md,
+  },
+  emptyTitle: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semiBold,
+    color: colors.text.primary,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  emptyDesc: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.muted,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: spacing.lg,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xxl,
+    gap: spacing.sm,
+  },
+  loadingText: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.muted,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.lg,
+    gap: spacing.sm,
+  },
+  errorText: {
+    fontSize: typography.sizes.xs,
+    color: colors.tones.red.text,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    minHeight: 48,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background.card2,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryBtnText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semiBold,
+    color: colors.brand.light,
+  },
+  footerActionBtn: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.subtle,
+    paddingTop: spacing.sm,
+  },
+  footerActionText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semiBold,
+    color: colors.brand.light,
+  },
+});

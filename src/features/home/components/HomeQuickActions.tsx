@@ -7,11 +7,13 @@ import { styles } from '../screens/HomeScreen.styles';
 export interface HomeQuickActionsProps {
   onLaunchValidate: () => void;
   onNavigateToIdeas: () => void;
+  onNavigateToToolkit?: () => void;
 }
 
 export const HomeQuickActions: React.FC<HomeQuickActionsProps> = ({
   onLaunchValidate,
   onNavigateToIdeas,
+  onNavigateToToolkit,
 }) => {
   return (
     <>
@@ -70,6 +72,31 @@ export const HomeQuickActions: React.FC<HomeQuickActionsProps> = ({
           <Icon name="chevronRight" size={16} color={colors.text.muted} />
         </View>
       </Pressable>
+
+      {/* Tertiary Quick Action: Explore Startup Toolkit */}
+      {onNavigateToToolkit && (
+        <Pressable
+          testID="home-view-toolkit-card"
+          onPress={onNavigateToToolkit}
+          style={({ pressed }) => [
+            styles.secondaryActionCard,
+            pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Explore Startup Toolkit"
+        >
+          <View style={styles.secondaryRow}>
+            <IconBadge name="layers" tone="violet" size={42} />
+            <View style={styles.secondaryTextCol}>
+              <Text style={styles.secondaryTitle}>Startup Toolkit</Text>
+              <Text style={styles.secondaryDesc}>
+                Pitch decks, lean canvas, simulators & research
+              </Text>
+            </View>
+            <Icon name="chevronRight" size={16} color={colors.text.muted} />
+          </View>
+        </Pressable>
+      )}
     </>
   );
 };

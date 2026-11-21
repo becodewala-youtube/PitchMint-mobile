@@ -52,6 +52,8 @@ const LUCIDE_NAME_MAP: Record<IconName, string> = {
   user: 'user',
   trash: 'trash-2',
   settings: 'settings',
+  layers: 'layers',
+  rocket: 'rocket',
 };
 
 /**
