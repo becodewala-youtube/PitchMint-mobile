@@ -305,4 +305,95 @@ describe('IdeasScreen Integration (Phase 3A)', () => {
     expect(textNodes).not.toContain('AI Dental Clinic');
     expect(textNodes).toContain('Sub-lease Marketplace');
   });
+
+  it('renders detected category and relative timestamps on cards', async () => {
+    const recentDate = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(); // 2 hours ago
+    const datedIdeas = [
+      {
+        _id: 'id-cat-1',
+        userId: 'usr-1',
+        ideaText: 'Doctor Patient Wellness App\nMedical therapy tracking',
+        overallScore: 85,
+        createdAt: recentDate,
+      },
+    ];
+
+    jest.spyOn(ideasApi, 'getSavedIdeas').mockResolvedValue({
+      success: true,
+      ideas: datedIdeas,
+      total: 42,
+      totalPages: 5,
+      currentPage: 1,
+    });
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<IdeasScreen />);
+    });
+    activeRenderer = renderer!;
+
+    const root = renderer!.root;
+    const textNodes = root
+      .findAllByType(Text)
+      .map((t) => t.props.children)
+      .flat(Infinity)
+      .filter(Boolean);
+
+    // Detected category should be Healthcare, not 'Validation'
+    expect(textNodes).toContain('Healthcare');
+    expect(textNodes).not.toContain('Validation');
+
+    // Relative timestamp should be rendered
+    expect(textNodes).toContain('2h ago');
+
+    // All filter chip should reflect global totalCount (42) rather than current page size (1)
+    expect(textNodes).toContain('All (42)');
+  });
+
+  it('handles invalid or future timestamps gracefully', async () => {
+    const futureDate = new Date(Date.now() + 100000).toISOString();
+    const edgeIdeas = [
+      {
+        _id: 'id-edge-1',
+        userId: 'usr-1',
+        ideaText: 'Decentralized Energy Grid\nSolar micro-generation',
+        overallScore: 78,
+        createdAt: futureDate,
+      },
+      {
+        _id: 'id-edge-2',
+        userId: 'usr-1',
+        ideaText: 'Retail Delivery App\nGrocery shopping',
+        overallScore: 70,
+        createdAt: 'invalid-date-string',
+      },
+    ];
+
+    jest.spyOn(ideasApi, 'getSavedIdeas').mockResolvedValue({
+      success: true,
+      ideas: edgeIdeas,
+      total: 2,
+      totalPages: 1,
+      currentPage: 1,
+    });
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<IdeasScreen />);
+    });
+    activeRenderer = renderer!;
+
+    const root = renderer!.root;
+    const textNodes = root
+      .findAllByType(Text)
+      .map((t) => t.props.children)
+      .flat(Infinity)
+      .filter(Boolean);
+
+    // Future timestamp formats as 'Just now'
+    expect(textNodes).toContain('Just now');
+    // Categories correctly detected
+    expect(textNodes).toContain('Climate');
+    expect(textNodes).toContain('E-commerce');
+  });
 });

@@ -20,7 +20,7 @@ import { colors } from '../../../theme';
 import { RootStackParamList } from '../../../navigation/types';
 import { ideasApi, mapBackendIdeaToCard } from '../../../services/api/ideasApi';
 import { ParsedIdeaCard } from '../../../utils/ideaParser';
-import { formatDisplayDate } from '../../../utils/date';
+import { formatRelativeTime } from '../../../utils/date';
 import { styles } from './IdeasScreen.styles';
 import { IdeasSearchBar, FilterType } from '../components/IdeasSearchBar';
 import { IdeasPagination } from '../components/IdeasPagination';
@@ -280,7 +280,7 @@ export const IdeasScreen: React.FC = () => {
         onSearchChange={setSearchQuery}
         activeFilter={activeFilter}
         onSelectFilter={setActiveFilter}
-        totalIdeas={ideas.length}
+        totalIdeas={totalCount}
       />
 
       {/* 4. Loading State */}
@@ -371,7 +371,7 @@ export const IdeasScreen: React.FC = () => {
         !isRetrying &&
         !error &&
         displayedIdeas.map((idea) => {
-          const dateStr = formatDisplayDate(idea.createdAt);
+          const dateStr = formatRelativeTime(idea.createdAt);
 
           return (
             <IdeaCard

@@ -24,3 +24,12 @@ export const DEMO_PLANS = [
     description: '500 idea validations + full export',
   },
 ];
+
+/**
+ * Authoritative public URLs for legal documentation.
+ */
+export const LEGAL_URLS = {
+  privacyPolicy: 'https://pitchmint.app/privacy',
+  termsOfService: 'https://pitchmint.app/terms',
+  refundPolicy: 'https://pitchmint.app/refund',
+} as const;
