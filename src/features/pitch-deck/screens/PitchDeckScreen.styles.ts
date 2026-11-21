@@ -1,5 +1,20 @@
 import { StyleSheet } from 'react-native';
-import { colors, spacing, typography, borderRadius, touchTargets } from '../../../theme';
+import { colors, spacing, typography, borderRadius, touchTargets, Tone } from '../../../theme';
+
+/**
+ * Deep restrained tone-tinted card background map matching Arena's dark palette.
+ */
+export const SLIDE_TONE_BACKGROUNDS: Record<Tone, string> = {
+  violet: '#0E0A1E',
+  red: '#160A0E',
+  emerald: '#081611',
+  blue: '#08101E',
+  orange: '#160E08',
+  cyan: '#07161A',
+  pink: '#160A16',
+  amber: '#161208',
+  gray: '#0D0D0E',
+};
 
 export const styles = StyleSheet.create({
   topBar: {
@@ -131,6 +146,47 @@ export const styles = StyleSheet.create({
     padding: spacing.lg,
     minHeight: 280,
   },
+  slidePresentationCard: {
+    borderRadius: 22,
+    borderWidth: 1.5,
+    padding: spacing.lg,
+    marginBottom: spacing.sm,
+    minHeight: 280,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  slideCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm + 2,
+    paddingBottom: spacing.xs,
+  },
+  slideCategoryKicker: {
+    fontSize: 10,
+    fontWeight: typography.weights.bold,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  slideBrandMark: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    opacity: 0.85,
+  },
+  slideBrandLogo: {
+    width: 18,
+    height: 18,
+  },
+  slideBrandText: {
+    fontSize: 11,
+    fontWeight: typography.weights.bold,
+    color: colors.text.muted,
+    letterSpacing: 0.5,
+  },
   slideTitleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -147,23 +203,20 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   slideTitleText: {
-    fontSize: typography.sizes.lg,
+    fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
     color: colors.text.primary,
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
+    lineHeight: 26,
+    marginBottom: 2,
   },
   slideSubtitleText: {
     fontSize: typography.sizes.xs,
     color: colors.text.muted,
-    marginTop: 2,
+    marginBottom: spacing.md,
   },
   slideScrollBox: {
-    maxHeight: 280,
-    backgroundColor: colors.background.card2,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-    padding: spacing.md,
+    maxHeight: 300,
   },
   slideScrollContent: {
     paddingBottom: spacing.sm,
@@ -172,6 +225,42 @@ export const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.text.secondary,
     lineHeight: 22,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm + 2,
+    gap: spacing.sm,
+  },
+  bulletDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 8,
+  },
+  bulletMarkerText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.bold,
+    marginRight: 2,
+    marginTop: 2,
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: typography.sizes.sm,
+    lineHeight: 22,
+    color: '#E5E7EB',
+  },
+  paragraphText: {
+    fontSize: typography.sizes.sm,
+    lineHeight: 22,
+    color: '#E5E7EB',
+    marginBottom: spacing.sm,
+  },
+  slideFallbackText: {
+    fontSize: typography.sizes.sm,
+    lineHeight: 22,
+    color: colors.text.muted,
+    fontStyle: 'italic',
   },
   thumbnailContainerCard: {
     marginBottom: spacing.sm,
