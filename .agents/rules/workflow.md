@@ -132,6 +132,7 @@ Before creating a feature branch, verify whether knowledge graph deliverables in
 - Standard branch prefixes:
   - `feat/`: New capabilities.
   - `fix/`: Bug fixes or regressions.
+  - `security/`: Security audits, hardening, and remediations.
   - `docs/`: Documentation and rule updates.
   - `chore/`: Tooling, CI, dependencies, or maintenance.
 - **Never commit directly to `main`.**

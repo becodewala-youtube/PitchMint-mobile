@@ -49,6 +49,7 @@ Native Google Sign-In uses Android Credential Manager and requires a custom deve
 | Script | Command | Purpose |
 | :--- | :--- | :--- |
 | `npm start` | `expo start` | Starts the Metro development server with QR code |
+| `npm run security:check` | `node scripts/security-check.mjs` | Verifies `.env` untracked, redacted secret scan, 500-line limit, EAS flags |
 | `npm run typecheck` | `tsc --noEmit` | Validates TypeScript strict mode compliance |
 | `npm test` | `jest` | Executes complete Jest unit and component test suite |
 | `npm run doctor` | `npx expo-doctor` | Evaluates dependencies and Expo SDK configuration |

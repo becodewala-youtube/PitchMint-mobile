@@ -14,6 +14,7 @@ import { RootStackParamList } from '../../../navigation/types';
 import { activityApi, ActivityHistoryItem } from '../../../services/api/activityApi';
 import { PAGE_LIMIT } from '../constants/activityConstants';
 import { groupActivitiesByDate } from '../utils/activityDateUtils';
+import { logDevWarning } from '../../../utils/logger';
 import { ActivityCard } from '../components/ActivityCard';
 import { ActivityFilterBar } from '../components/ActivityFilterBar';
 import { styles } from './ActivityScreen.styles';
@@ -100,7 +101,7 @@ export const ActivityScreen: React.FC<ActivityScreenProps> = ({
         if (!isMountedRef.current || currentReqId !== requestIdRef.current) {
           return;
         }
-        console.warn('[ActivityScreen] Error loading activity history:', err?.message || err);
+        logDevWarning('ActivityScreen', 'Error loading activity history', err);
         if (!options.isBackground || activitiesRef.current.length === 0) {
           setError(err?.message || 'Unable to load activity history. Please try again.');
         }
@@ -189,7 +190,7 @@ export const ActivityScreen: React.FC<ActivityScreenProps> = ({
       try {
         navigation.navigate('IdeaDetails', { ideaId });
       } catch (err) {
-        console.warn('[ActivityScreen] Navigation to IdeaDetails failed:', err);
+        logDevWarning('ActivityScreen', 'Navigation to IdeaDetails failed', err);
       }
     },
     [navigation]

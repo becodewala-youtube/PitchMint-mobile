@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system/legacy';
 import { CanvasContentData } from '../../../services/api';
+import { logDevWarning } from '../../../utils/logger';
 import {
   validatePdfFile,
   getOrRequestDownloadsDirectoryUri,
@@ -127,6 +128,17 @@ export async function exportCanvasPdf(
   }
   sourceFile.copy(targetFile);
 
+  // Clean up intermediate print output file once copied to deterministic cache target
+  if (printResult.uri !== targetFile.uri) {
+    try {
+      if (sourceFile.exists) {
+        sourceFile.delete();
+      }
+    } catch {
+      // Non-fatal temp cleanup failure
+    }
+  }
+
   // Validate PDF integrity with dynamically calculated actual page count
   const expectedPageCount = getCanvasPdfExpectedPageCount(canvasContent);
   const validation: PdfValidationResult = await validatePdfFile(targetFile, expectedPageCount);
@@ -146,7 +158,7 @@ export async function exportCanvasPdf(
         await options.onDownloadSuccess(downloadInfo);
       }
     } catch (saveError) {
-      console.warn('[canvasPdfExport] Android Downloads save failed:', saveError);
+      logDevWarning('canvasPdfExport', 'Android Downloads save failed', saveError);
       throw saveError;
     }
   }
@@ -162,7 +174,7 @@ export async function exportCanvasPdf(
         UTI: 'com.adobe.pdf',
       });
     } catch (errorObj: any) {
-      console.warn('[canvasPdfExport] Sharing dialogue dismissed or failed:', errorObj);
+      logDevWarning('canvasPdfExport', 'Sharing dialogue dismissed or failed', errorObj);
       if (!downloadInfo) {
         throw errorObj;
       }

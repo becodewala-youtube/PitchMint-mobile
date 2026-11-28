@@ -7,8 +7,6 @@ import {
   ActivityIndicator,
   ScrollView,
   RefreshControl,
-  Linking,
-  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -19,6 +17,7 @@ import {
 import { colors } from '../../../theme';
 import { toolkitApi } from '../../../services/api/toolkitApi';
 import { InvestorItem } from '../../../services/api/ideasApi.types';
+import { openSafeExternalUrl } from '../../../utils/safeLinking';
 import { styles } from './InvestorDirectoryScreen.styles';
 
 const INVESTOR_TYPES = ['All', 'VC', 'Angel', 'Accelerator', 'Incubator'];
@@ -63,17 +62,10 @@ export const InvestorDirectoryScreen: React.FC = () => {
 
   const handleOpenLink = async (url?: string) => {
     if (!url) return;
-    const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
-    try {
-      const supported = await Linking.canOpenURL(formattedUrl);
-      if (supported) {
-        await Linking.openURL(formattedUrl);
-      } else {
-        Alert.alert('Unable to open link', formattedUrl);
-      }
-    } catch {
-      Alert.alert('Error', 'Could not launch investor URL.');
-    }
+    await openSafeExternalUrl(url, 'investor website', {
+      allowHttp: true,
+      defaultHttps: true,
+    });
   };
 
   const filteredInvestors = investors.filter((inv) => {

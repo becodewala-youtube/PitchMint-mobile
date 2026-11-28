@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -38,8 +38,10 @@ export const SignUpScreen: React.FC = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const handleSubmit = async () => {
+    if (isSubmittingRef.current || loading) return;
     setSubmitError(null);
     clearError();
 
@@ -65,6 +67,7 @@ export const SignUpScreen: React.FC = () => {
     }
     setPasswordError(null);
 
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       await signUp({
@@ -85,6 +88,7 @@ export const SignUpScreen: React.FC = () => {
           : 'Registration failed. Please check your information and try again.'
       );
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };

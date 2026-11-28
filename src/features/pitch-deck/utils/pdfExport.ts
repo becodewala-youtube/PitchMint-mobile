@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system/legacy';
 import { PitchDeckSlideItem } from '../../../services/api/ideasApi';
+import { logDevWarning } from '../../../utils/logger';
 import {
   getStoredDownloadDirectoryUri,
   saveDownloadDirectoryUri,
@@ -124,7 +125,7 @@ export async function getOrRequestDownloadsDirectoryUri(): Promise<string> {
       await StorageAccessFramework.readDirectoryAsync(storedUri);
       return storedUri;
     } catch (err) {
-      console.warn('[pdfExport] Stored directory permission no longer active, re-requesting:', err);
+      logDevWarning('pdfExport', 'Stored directory permission no longer active, re-requesting', err);
       await clearStoredDownloadDirectoryUri();
     }
   }
@@ -332,6 +333,18 @@ export async function exportPitchDeckPdf(
     }
   }
 
+  // Clean up intermediate print output file when distinct from deterministic cache target
+  if (printResult.uri && printResult.uri !== targetFile.uri) {
+    try {
+      const rawTempFile = new File(printResult.uri);
+      if (rawTempFile.exists) {
+        rawTempFile.delete();
+      }
+    } catch {
+      // Non-fatal temp cleanup failure
+    }
+  }
+
   // 3. Validate generated file integrity
   const validation = await validatePdfFile(targetFile, 10);
   if (!validation.isValid) {
@@ -360,7 +373,7 @@ export async function exportPitchDeckPdf(
       });
     } catch (err: any) {
       const errorObj = err instanceof Error ? err : new Error(String(err));
-      console.warn('[pdfExport] Native sharing failed:', errorObj);
+      logDevWarning('pdfExport', 'Native sharing failed', errorObj);
       if (downloadInfo) {
         // If permanent download already succeeded, preserve download success and report shareError
         shareError = errorObj;

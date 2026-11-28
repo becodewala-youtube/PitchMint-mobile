@@ -21,6 +21,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { ideasApi, mapBackendIdeaToCard } from '../../../services/api/ideasApi';
 import { ParsedIdeaCard } from '../../../utils/ideaParser';
 import { formatRelativeTime } from '../../../utils/date';
+import { logDevWarning } from '../../../utils/logger';
 import { styles } from './HomeScreen.styles';
 import { HomeHeader } from '../components/HomeHeader';
 import { HomeQuickActions } from '../components/HomeQuickActions';
@@ -87,7 +88,7 @@ export const HomeScreen: React.FC = () => {
         if (!isMountedRef.current || currentReqId !== requestIdRef.current) {
           return;
         }
-        console.warn('[HomeScreen] Error loading dashboard data:', err?.message || err);
+        logDevWarning('HomeScreen', 'Error loading dashboard data', err);
         // Only surface full error card if not background refresh or if no data is available
         if (!options.isBackground || recentIdeasRef.current.length === 0) {
           setLoadError(

@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { logDevWarning } from '../../utils/logger';
 
 /**
   * Key used to store user onboarding completion status in device persistent storage.
@@ -45,7 +46,7 @@ export const onboardingStorage: OnboardingStorageService = {
       }
       return memoryStore[ONBOARDING_COMPLETED_KEY] === 'true';
     } catch (error) {
-      console.warn('[onboardingStorage] Error checking onboarding status:', error);
+      logDevWarning('onboardingStorage', 'Error checking onboarding status', error);
       // Malformed, locked, or unreadable storage fails safely to false
       return memoryStore[ONBOARDING_COMPLETED_KEY] === 'true';
     }
@@ -61,7 +62,7 @@ export const onboardingStorage: OnboardingStorageService = {
       }
       memoryStore[ONBOARDING_COMPLETED_KEY] = stringValue;
     } catch (error) {
-      console.warn('[onboardingStorage] Error saving onboarding status:', error);
+      logDevWarning('onboardingStorage', 'Error saving onboarding status', error);
       memoryStore[ONBOARDING_COMPLETED_KEY] = stringValue;
     }
   },
@@ -73,7 +74,7 @@ export const onboardingStorage: OnboardingStorageService = {
       }
       delete memoryStore[ONBOARDING_COMPLETED_KEY];
     } catch (error) {
-      console.warn('[onboardingStorage] Error removing onboarding status:', error);
+      logDevWarning('onboardingStorage', 'Error removing onboarding status', error);
       delete memoryStore[ONBOARDING_COMPLETED_KEY];
     }
   },

@@ -18,12 +18,12 @@ This guide details the procedure for building and installing a standalone Androi
 - Mobile endpoints append `/api/...` internally.
 - **Rule:** Never include a trailing `/api` suffix in `EXPO_PUBLIC_API_URL`.
   - Configured: `https://pitch-mint-backend.vercel.app`
-  - Internal Request: `https://pitch-mint-backend.vercel.app/api/auth/login`
+  - Internal Request: `https://pitch-mint-backend.vercel.app/api/auth/signin`
 - Automatic sanitization (`sanitizeApiUrl` in `src/config/env.ts`) safely strips any accidental trailing slashes or `/api` suffixes as a defense-in-depth measure.
 
 ### C. Network Cleartext Policy (Strict HTTPS)
 - Because the live backend is hosted on secure HTTPS (`https://pitch-mint-backend.vercel.app`), cleartext HTTP is **disabled** (`EXPO_PUBLIC_ALLOW_CLEARTEXT: "false"` in `eas.json`).
-- The config plugin (`plugins/withCleartextTraffic.js`) only permits cleartext HTTP if `EXPO_PUBLIC_ALLOW_CLEARTEXT === 'true'` is explicitly configured, ensuring that preview APK builds maintain strict HTTPS security by default.
+- `plugins/withCleartextTraffic.js` blocks cleartext HTTP in `preview` and `production` profiles (and `src/config/env.ts` refuses `http://` when `!__DEV__`), ensuring preview APK builds maintain strict HTTPS security. See [`docs/SECURITY.md`](SECURITY.md).
 
 ### D. Demo Credit Top-Up Gating
 - Gated to disabled (`EXPO_PUBLIC_ENABLE_DEMO_TOPUP: "false"` in `eas.json` for both `preview` and `production` profiles).

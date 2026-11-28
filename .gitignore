@@ -35,7 +35,12 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# environment files (never commit real .env files; .env.example stays tracked)
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
 .env*.local
 
 # typescript

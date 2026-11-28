@@ -21,6 +21,7 @@ import { toolkitApi } from '../../../services/api/toolkitApi';
 import { ideasApi } from '../../../services/api/ideasApi';
 import { MarketResearchResponse } from '../../../services/api/ideasApi.types';
 import { useAuth } from '../../../context/AuthContext';
+import { logDevWarning } from '../../../utils/logger';
 import { styles } from './MarketResearchScreen.styles';
 
 type MarketRouteProp = RouteProp<RootStackParamList, 'MarketResearch'>;
@@ -88,7 +89,7 @@ export const MarketResearchScreen: React.FC = () => {
       setResult(data);
       await refreshUser().catch(() => {});
     } catch (err: any) {
-      console.warn('[MarketResearchScreen] Error:', err);
+      logDevWarning('MarketResearchScreen', 'Market analysis error', err);
       setError(err?.message || 'Failed to analyze market.');
     } finally {
       setIsLoading(false);
@@ -131,6 +132,7 @@ export const MarketResearchScreen: React.FC = () => {
             style={styles.textArea}
             multiline
             numberOfLines={3}
+            maxLength={2000}
             placeholder="Describe your startup and product offering..."
             placeholderTextColor={colors.text.muted}
             value={ideaText}
@@ -141,6 +143,7 @@ export const MarketResearchScreen: React.FC = () => {
           <Text style={styles.label}>Industry Sector</Text>
           <TextInput
             style={styles.input}
+            maxLength={100}
             placeholder="e.g. HealthTech, B2B SaaS, CleanTech"
             placeholderTextColor={colors.text.muted}
             value={industry}
@@ -151,6 +154,7 @@ export const MarketResearchScreen: React.FC = () => {
           <Text style={styles.label}>Target Geographic Region</Text>
           <TextInput
             style={styles.input}
+            maxLength={100}
             placeholder="e.g. North America, Global, Europe"
             placeholderTextColor={colors.text.muted}
             value={targetRegion}

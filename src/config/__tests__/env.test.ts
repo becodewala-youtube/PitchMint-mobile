@@ -100,13 +100,54 @@ describe('Environment Configuration (env.ts)', () => {
         NativeModules.SourceCode = { scriptURL: originalScriptUrl };
       }
     });
+
+    it('rejects non-HTTP(S) schemes and embedded credentials by falling back to DEFAULT_API_URL', () => {
+      expect(getDefaultApiUrl('javascript:alert(1)')).toBe('https://pitch-mint-backend.vercel.app');
+      expect(getDefaultApiUrl('file:///etc/passwd')).toBe('https://pitch-mint-backend.vercel.app');
+      expect(getDefaultApiUrl('https://user:secret@pitch-mint-backend.vercel.app')).toBe(
+        'https://pitch-mint-backend.vercel.app'
+      );
+    });
+
+    it('refuses cleartext HTTP URLs in non-development (__DEV__ === false) runtime', () => {
+      const originalDev = (global as unknown as { __DEV__: boolean }).__DEV__;
+      (global as unknown as { __DEV__: boolean }).__DEV__ = false;
+
+      try {
+        expect(getDefaultApiUrl('http://localhost:4000')).toBe('https://pitch-mint-backend.vercel.app');
+        expect(getDefaultApiUrl('http://192.168.1.50:4000')).toBe('https://pitch-mint-backend.vercel.app');
+        expect(getDefaultApiUrl('https://pitch-mint-backend.vercel.app')).toBe(
+          'https://pitch-mint-backend.vercel.app'
+        );
+      } finally {
+        (global as unknown as { __DEV__: boolean }).__DEV__ = originalDev;
+      }
+    });
   });
 
-  describe('Tracked .env configuration safety', () => {
-    it('guards against committing a machine-specific LAN IP as the default backend URL in .env', () => {
+  describe('Environment file hygiene & .gitignore safety', () => {
+    it('ignores root .env and developer-local env files in .gitignore', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const gitignorePath = path.resolve(__dirname, '../../../.gitignore');
+      const gitignoreContent = fs.readFileSync(gitignorePath, 'utf-8');
+
+      expect(gitignoreContent).toMatch(/^\.env$/m);
+      expect(gitignoreContent).toMatch(/^\.env\.local$/m);
+      expect(gitignoreContent).toMatch(/^\.env\.development\.local$/m);
+      expect(gitignoreContent).toMatch(/^\.env\.production\.local$/m);
+      expect(gitignoreContent).toMatch(/^\.env\.test\.local$/m);
+      expect(gitignoreContent).toMatch(/^\.env\*\.local$/m);
+    });
+
+    it('guards local .env against machine-specific LAN IPs when present on disk', () => {
       const fs = require('fs');
       const path = require('path');
       const envPath = path.resolve(__dirname, '../../../.env');
+      if (!fs.existsSync(envPath)) {
+        // .env is untracked and intentionally absent in clean CI checkouts
+        return;
+      }
       const envContent = fs.readFileSync(envPath, 'utf-8');
 
       // 1. Must use the official deployed HTTPS Vercel backend
@@ -122,7 +163,7 @@ describe('Environment Configuration (env.ts)', () => {
       expect(envContent).not.toMatch(developerLanIpRegex);
     });
 
-    it('guards against machine-specific LAN IP in .env.example defaults', () => {
+    it('guards against machine-specific LAN IP and unsafe defaults in .env.example', () => {
       const fs = require('fs');
       const path = require('path');
       const envExamplePath = path.resolve(__dirname, '../../../.env.example');
@@ -133,6 +174,9 @@ describe('Environment Configuration (env.ts)', () => {
 
       const cleartextMatch = envExampleContent.match(/^EXPO_PUBLIC_ALLOW_CLEARTEXT=(.+)$/m);
       expect(cleartextMatch?.[1].trim()).toBe('false');
+
+      const demoTopUpMatch = envExampleContent.match(/^EXPO_PUBLIC_ENABLE_DEMO_TOPUP=(.+)$/m);
+      expect(demoTopUpMatch?.[1].trim()).toBe('false');
 
       // Must not contain any machine-specific LAN IP (emulator 10.0.2.2 comment is standard documentation)
       const developerLanIpRegex = /\b(10\.(?!0\.2\.2)\d{1,3}|192\.168\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3})\.\d{1,3}\b/;

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onboardingStorage } from '../services/storage/onboardingStorage';
+import { logDevWarning } from '../utils/logger';
 
 export interface OnboardingContextType {
   hasCompletedOnboarding: boolean;
@@ -26,7 +27,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           setHasCompletedOnboarding(completed);
         }
       } catch (err) {
-        console.warn('[OnboardingProvider] Error reading onboarding status:', err);
+        logDevWarning('OnboardingProvider', 'Error reading onboarding status', err);
         if (isMounted) {
           setHasCompletedOnboarding(false);
         }
@@ -48,7 +49,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       await onboardingStorage.setOnboardingCompleted(true);
     } catch (err) {
-      console.warn('[OnboardingProvider] Error saving onboarding completion:', err);
+      logDevWarning('OnboardingProvider', 'Error saving onboarding completion', err);
     }
     setInitialAuthScreen(target);
     setHasCompletedOnboarding(true);
@@ -58,7 +59,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       await onboardingStorage.resetOnboarding();
     } catch (err) {
-      console.warn('[OnboardingProvider] Error resetting onboarding:', err);
+      logDevWarning('OnboardingProvider', 'Error resetting onboarding', err);
     }
     setHasCompletedOnboarding(false);
     setInitialAuthScreen('SignIn');

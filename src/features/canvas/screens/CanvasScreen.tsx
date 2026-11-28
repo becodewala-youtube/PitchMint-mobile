@@ -34,6 +34,7 @@ import { CanvasBlockSelector } from '../components/CanvasBlockSelector';
 import { CanvasEmptyState } from '../components/CanvasEmptyState';
 import { CanvasGridOverview } from '../components/CanvasGridOverview';
 import { exportCanvasPdf } from '../utils/canvasPdfExport';
+import { logDevWarning } from '../../../utils/logger';
 
 export { CANVAS_BLOCK_DEFINITIONS, CanvasBlockDefinition, formatCanvasAsMarkdown };
 
@@ -104,7 +105,7 @@ export const CanvasScreen: React.FC = () => {
         );
       }
     } catch (err: any) {
-      console.warn('[CanvasScreen] PDF export error:', err);
+      logDevWarning('CanvasScreen', 'PDF export error', err);
       Alert.alert(
         'Export Failed',
         err?.message || 'Unable to generate or download Canvas PDF.'

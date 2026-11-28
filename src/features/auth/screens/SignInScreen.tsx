@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -48,6 +48,7 @@ export const SignInScreen: React.FC = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(
     route.params?.noticeMessage ?? null
   );
@@ -62,6 +63,7 @@ export const SignInScreen: React.FC = () => {
   }, [route.params]);
 
   const handleSubmit = async () => {
+    if (isSubmittingRef.current || loading) return;
     setSubmitError(null);
     setNoticeMessage(null);
     clearError();
@@ -80,6 +82,7 @@ export const SignInScreen: React.FC = () => {
     }
     setPasswordError(null);
 
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       await signIn({ email: email.trim(), password });
@@ -101,6 +104,7 @@ export const SignInScreen: React.FC = () => {
           : 'Unable to sign in. Please verify your credentials and try again.'
       );
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };

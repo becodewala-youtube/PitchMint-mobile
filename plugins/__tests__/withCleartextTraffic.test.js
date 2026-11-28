@@ -44,7 +44,29 @@ describe('withCleartextTraffic Config Plugin', () => {
     expect(result.mods).toBeUndefined();
   });
 
-  it('registers manifest modification when EXPO_PUBLIC_ALLOW_CLEARTEXT is explicitly true', async () => {
+  it('strictly blocks cleartext in preview and production even when EXPO_PUBLIC_ALLOW_CLEARTEXT is true', () => {
+    process.env.EXPO_PUBLIC_ALLOW_CLEARTEXT = 'true';
+
+    for (const profile of ['preview', 'production']) {
+      process.env.EAS_BUILD_PROFILE = profile;
+      const baseConfig = { name: 'PitchMint', slug: 'PitchMint-mobile' };
+      const result = withCleartextTraffic(baseConfig);
+
+      expect(result).toBe(baseConfig);
+      expect(result.mods).toBeUndefined();
+    }
+
+    delete process.env.EAS_BUILD_PROFILE;
+    process.env.NODE_ENV = 'production';
+    const baseConfig = { name: 'PitchMint', slug: 'PitchMint-mobile' };
+    const prodNodeResult = withCleartextTraffic(baseConfig);
+    expect(prodNodeResult).toBe(baseConfig);
+    expect(prodNodeResult.mods).toBeUndefined();
+  });
+
+  it('registers manifest modification in development when EXPO_PUBLIC_ALLOW_CLEARTEXT is explicitly true', async () => {
+    process.env.EAS_BUILD_PROFILE = 'development';
+    process.env.NODE_ENV = 'development';
     process.env.EXPO_PUBLIC_ALLOW_CLEARTEXT = 'true';
 
     const baseConfig = { name: 'PitchMint', slug: 'PitchMint-mobile' };

@@ -5,19 +5,22 @@ const { withAndroidManifest } = require('@expo/config-plugins');
  * ONLY for local development builds when explicitly requested via EXPO_PUBLIC_ALLOW_CLEARTEXT=true.
  *
  * Security Rationale:
- * - Production builds strictly enforce HTTPS to prevent plaintext data leakage and MITM risks.
+ * - Preview and production builds strictly enforce HTTPS to prevent plaintext data leakage and MITM risks.
  * - Local Wi-Fi / LAN testing against a local development backend requires cleartext HTTP.
  * - This plugin permits `android:usesCleartextTraffic="true"` ONLY when:
  *   1. EXPO_PUBLIC_ALLOW_CLEARTEXT === 'true' (explicit opt-in)
- *   2. AND EAS_BUILD_PROFILE !== 'production' (strictly blocked in production)
+ *   2. AND EAS_BUILD_PROFILE !== 'production' && EAS_BUILD_PROFILE !== 'preview'
  *   3. AND NODE_ENV !== 'production'
  */
 module.exports = function withCleartextTraffic(config) {
   const env = process.env;
-  const isProduction = env['EAS_BUILD_PROFILE'] === 'production' || env['NODE_ENV'] === 'production';
+  const isRestrictedProfile =
+    env['EAS_BUILD_PROFILE'] === 'production' ||
+    env['EAS_BUILD_PROFILE'] === 'preview' ||
+    env['NODE_ENV'] === 'production';
 
-  // Strict security mandate: cleartext HTTP is never permitted in production builds
-  if (isProduction) {
+  // Strict security mandate: cleartext HTTP is never permitted in preview or production builds
+  if (isRestrictedProfile) {
     return config;
   }
 

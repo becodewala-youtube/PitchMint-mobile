@@ -7,23 +7,15 @@ This document tracks verified limitations, technical debt, release prerequisites
 ## 1. Technical Debt & Codebase Findings
 
 ### ENV-01: Tracked `.env` in Version Control
-- **Category:** Repository Hygiene & Configuration
-- **Status:** Resolved / Verified Safe Public Default Convention
+- **Category:** Repository Hygiene & Secret Management
+- **Status:** Remediated (`.env` Untracked via `git rm --cached .env`; Full-History Scan Verified Clean of Private Secrets)
 - **Evidence:**
-  - `.env` is tracked in Git (`git ls-files .env` returns `.env`) to provide verified default endpoint configuration for local execution and preview builds.
-  - `.gitignore` ignores developer overrides via `.env*.local`.
-  - [`.env.example`](../.env.example) documents standard override options, local emulator endpoints, and feature flags.
-  - Historical Git audit (Stage 3.1) of all four historical revisions of `.env` (`2eb9387`, `fbe9bc7`, `21f4d18`, `a2b5b98`) confirmed that only `EXPO_PUBLIC_*` variables were ever committed.
-- **Inspected Content:**
-  - `EXPO_PUBLIC_API_URL=https://pitch-mint-backend.vercel.app`
-  - `EXPO_PUBLIC_ALLOW_CLEARTEXT=false`
-- **Assessment & Policy Correction:**
-  - **Public Configuration vs. Private Secrets:** Variables prefixed with `EXPO_PUBLIC_` are embedded directly into client application bundles (JavaScript and Hermes bytecode) by Expo/Metro. These public URLs and client flags are not private server secrets.
-  - **Local Overrides in `.env.local`:** Machine-specific development overrides (e.g., custom LAN IPs, emulator URLs, or local testing flags) belong in `.env.local` (or `.env.*.local`), which are explicitly ignored by `.gitignore`.
-  - **Strict Secret Prohibition:** Private credentials (such as `JWT_SECRET`, database connection strings, or payment provider secret keys) must never be placed in `.env` or committed to version control.
-  - **No Credential Rotation or History Rewrite Required:** Based on the completed Stage 3.1 security audit of all four historical `.env` versions, no private credentials or secrets were ever committed to Git history. Therefore, no credential rotation, history scrubbing, or BFG/filter-repo rewrite is required.
-  - **Deliberate Repository Convention:** The earlier recommendation to untrack `.env` solely because it is tracked in Git was outdated. Keeping `.env` tracked with safe public defaults is a deliberate repository convention that ensures seamless developer onboarding and predictable CI/preview builds. It is not an active credential incident or security vulnerability.
-- **Required Action:** None. Maintain `.env` tracked with safe public defaults, preserve `.env*.local` in `.gitignore` for machine-specific overrides, and ensure private secrets are never introduced.
+  - Root `.env` was previously tracked in Git. It has been removed from Git tracking (`git rm --cached .env`) while preserving the developer's local `.env` file on disk.
+  - [`.gitignore`](../.gitignore) now explicitly excludes `.env`, `.env.local`, `.env.development.local`, `.env.production.local`, `.env.test.local`, and `.env*.local`.
+  - [`.env.example`](../.env.example) remains tracked with safe public defaults (`EXPO_PUBLIC_API_URL=https://pitch-mint-backend.vercel.app`, `EXPO_PUBLIC_ALLOW_CLEARTEXT=false`, `EXPO_PUBLIC_ENABLE_DEMO_TOPUP=false`, empty `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=`).
+  - Full-history scan of all historical Git blobs confirmed zero private server secrets (`JWT_SECRET`, `GEMINI_API_KEY`, `RAZORPAY_KEY_SECRET`, database URIs, OAuth client secrets) were ever committed; only public `EXPO_PUBLIC_*` configuration and earlier local LAN dev URLs appeared in `.env` history.
+  - [`scripts/security-check.mjs`](../scripts/security-check.mjs) (`npm run security:check`) enforces in CI that `.env` and `.env*.local` remain untracked.
+- **Required Action:** None for credential rotation or history rewrite (no private secrets exposed). See [`docs/SECURITY.md`](SECURITY.md) for the authoritative `.env` and secret management policy.
 
 ### API-01: Missing Request Timeout & Cancellation Handling
 - **Category:** Network Resilience & UX
@@ -109,10 +101,11 @@ This document tracks verified limitations, technical debt, release prerequisites
 ## 4. Tooling & Build Dependencies
 
 ### Transitive Developer Tooling Advisories (`npm audit`)
-- `npm audit` reports moderate/high advisories on build-time developer packages (`node-forge`, `uuid`, `zod`) pulled in transitively by `@expo/cli` and build tools.
-- **Runtime Assessment:** These packages are build-time CLI utilities only. They are not bundled into the Android Hermes `.hbc` binary or distributed to mobile devices.
-- **Policy:** Do not run `npm audit fix --force` as it attempts to downgrade Expo to an incompatible historical release. Upstream updates will be incorporated through standard Expo SDK maintenance releases.
+- `npm audit --audit-level=high` reports **0 high or critical vulnerabilities**.
+- `npm audit` reports 22 moderate-severity dependency graph paths originating from two transitive developer/build-time packages: `glob` (`9.0.0 - 14.0.1`, GHSA-3g3m-2fjr-6pw4, under `jest@30` / `jest-expo`) and `minimatch` (`7.0.0 - 11.0.0`, GHSA-g3hv-75wg-m249, under `@expo/fingerprint` and `glob`).
+- **Runtime Assessment:** These packages are dev/test and build-time CLI utilities only. They are not bundled into the Android Hermes bytecode (`assets/index.android.bundle`) or executed on mobile devices.
+- **Policy:** Do not run `npm audit fix --force`, as it attempts to downgrade `jest@29.7.0` and `expo@52.0.49`. Upstream patches will be adopted through standard Expo SDK 58 maintenance releases.
 
 ### Expo SDK Version Alignment
-- **Current Version:** `expo@~58.0.25` (Expo SDK 58).
-- **Core Dependencies:** Clean alignment across `react@19.3.0`, `react-native@0.88.1`, `react-native-screens@~4.30.1`, and `react-native-safe-area-context@~5.11.1`.
+- **Current Version:** `expo@~58.1.0` (Expo SDK 58).
+- **Core Dependencies:** Clean alignment across `react@19.3.0`, `react-native@0.88.1`, `react-native-screens@~4.30.1`, `react-native-safe-area-context@~5.11.1`, and `expo-secure-store@~58.0.3` (`npx expo install --check` and `npx expo-doctor` pass 20/20).
