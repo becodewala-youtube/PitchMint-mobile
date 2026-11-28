@@ -16,19 +16,21 @@
 ```
 PitchMint-mobile/
 ├── .agents/                 # AI engineering rules and SDLC workflows
-│   └── rules/               # project.md, architecture.md, coding.md, workflow.md
+│   └── rules/               # project.md, architecture.md, coding.md, security.md, workflow.md
 ├── .github/                 # GitHub workflows and automation
 │   ├── workflows/ci.yml     # Automated PR & push CI pipeline (Node.js 22)
 │   ├── workflows/graphify-update.yml # Knowledge graph automation
 │   └── dependabot.yml       # Weekly dependency and security scanning
 ├── assets/                  # App launcher icons, splash screen, adaptive icons
-├── docs/                    # Architecture, workflow, and known-issues documentation
+├── docs/                    # Architecture, security, workflow, and known-issues documentation
 │   ├── ARCHITECTURE.md      # This document
+│   ├── SECURITY.md          # Authoritative security architecture & operational guide
 │   ├── SETUP.md             # Local environment and execution guide
 │   ├── development-workflow.md # SDLC, Graphify, and CI instructions
 │   ├── known-issues.md      # Tracked technical debt and release considerations
 │   └── personal-demo-apk-build.md # Standalone APK EAS build instructions
-├── plugins/                 # Custom Expo config plugins (withCleartextTraffic.js)
+├── plugins/                 # Custom Expo config plugins (withCleartextTraffic.js, withAndroidSecurityHardening.js)
+├── scripts/                 # Asset generation & CI security hygiene scripts (security-check.mjs)
 ├── src/
 │   ├── app/                 # Root application wrapper & runtime providers
 │   │   ├── App.tsx          # Root container: NavigationContainer & StatusBar
@@ -49,22 +51,26 @@ PitchMint-mobile/
 │   │   ├── competitors/     # CompetitorScreen, CompetitorCard, SwotMatrixView (Stage 5.4)
 │   │   ├── home/            # HomeScreen, HomeHeader, HomeQuickActions
 │   │   ├── ideas/           # IdeasScreen, IdeaDetailsScreen, useIdeaDetails, subcomponents
+│   │   ├── investors/       # InvestorDirectoryScreen, InvestorMatchScreen
+│   │   ├── market-research/ # MarketResearchScreen (TAM/SAM/SOM)
 │   │   ├── onboarding/      # WelcomeScreen, OnboardingScreen, StackVisual, DeckVisual
 │   │   ├── pitch-deck/      # PitchDeckScreen, usePitchDeck, PitchDeckSlideViewer, pdfExport (Stage 5.6)
 │   │   ├── pitch-simulator/ # PitchSimulatorScreen, SimulatorStages, Q&A, Scorecard (Stage 5.5)
 │   │   ├── profile/         # ProfileScreen, ProfileHeader, SettingRow, DemoCreditTopUp
+│   │   ├── toolkit/         # ToolkitScreen, PickIdeaModal, ToolStartingChoiceModal
 │   │   └── validate/        # ValidateModalScreen, useValidateIdea, stages, validateConstants
 │   ├── api/                 # Centralized API module re-exports (index.ts)
 │   ├── services/            # API client, auth API, and storage services
 │   │   ├── api/apiClient.ts # Native fetch wrapper with token injection and 401 handler
 │   │   ├── api/authApi.ts   # Authentication endpoints
 │   │   ├── api/ideasApi.ts  # Idea validation, deck, and canvas endpoints
+│   │   ├── api/toolkitApi.ts# Standalone toolkit, market research, investor endpoints
 │   │   ├── api/creditsApi.ts# Balance, plans, and demo top-up endpoints
 │   │   ├── api/activityApi.ts # Audit history endpoint
-│   │   ├── auth/googleAuthService.ts # Google OAuth stub
+│   │   ├── auth/googleAuthService.ts # Native Android Credential Manager Google Sign-In service
 │   │   └── storage/         # Hardware-backed SecureStore (tokenStorage, onboardingStorage)
 │   ├── config/              # Safe client runtime configuration (env.ts)
-│   └── utils/               # date.ts, ideaParser.ts, validation.ts
+│   └── utils/               # date.ts, ideaParser.ts, logger.ts, safeArea.ts, safeLinking.ts, validation.ts
 ├── app.json                 # Expo project manifest (Package: com.pitchmint.app)
 ├── index.ts                 # Expo entrypoint (registerRootComponent)
 ├── App.tsx                  # Root re-export pointing to src/app/App
@@ -140,9 +146,8 @@ Navigation is implemented using **React Navigation 7** (`@react-navigation/nativ
 - **Test / Dev Fallback:** In-memory dictionary fallback prevents crashes in test runners (Jest / Node.js) where native hardware modules are unavailable.
 
 ### API Client Architecture (`src/services/api/apiClient.ts`)
-- Native `fetch` wrapper with automatic JSON serialization, `X-Request-ID` UUID tracing, Bearer token injection, and structured `ApiError` exceptions.
+- Native `fetch` wrapper with automatic JSON serialization, `X-Request-ID` UUID tracing, `Idempotency-Key` support, Bearer token injection, configurable request timeouts (`DEFAULT_TIMEOUT_MS = 15000`, `AI_GENERATION_TIMEOUT_MS = 60000`), stream timeout protection, `AbortSignal` cancellation, and structured `ApiError` exceptions.
 - Global 401 Unauthorized handler to purge expired sessions without infinite redirects.
-- *Tracked Limitation (API-01):* Currently lacks timeout and cancellation signals.
 
 ### Mobile API Service Endpoints
 - **Authentication (`src/services/api/authApi.ts`):**
@@ -190,19 +195,12 @@ Navigation is implemented using **React Navigation 7** (`@react-navigation/nativ
 
 ## 7. Security & Mobile Architectural Controls
 
-### Zero-Secret Guarantee
-Mobile application binaries are publicly distributable packages and can be decompiled.
-- **Never embed server secrets** (`JWT_SECRET`, `GEMINI_API_KEY`, `RAZORPAY_KEY_SECRET`, MongoDB connection strings) in mobile configuration files or source code.
-- Only public `EXPO_PUBLIC_*` configuration values may be bundled into client binaries.
+For the complete security architecture, secret management policy, Android manifest hardening, and incident response guide, see [`docs/SECURITY.md`](SECURITY.md).
 
-### Secure Session Management
-- **Hardware-Backed Storage:** Authentication tokens are encrypted in device hardware via `expo-secure-store` (`pitchmint_auth_token` key). Plaintext storage is prohibited.
-- **Session Bootstrap:** On app launch, `AuthContext` retrieves the stored token and calls `GET /api/auth/user`. If invalid or expired, the session is purged cleanly.
-- **401 Interception:** A global unauthorized interceptor triggers automatic logout and purges token storage without recursive loops.
-- **Unverified Email Redirection:** When `POST /api/auth/signin` returns HTTP 401 with `emailNotVerified: true`, the app redirects to `EmailVerificationScreen` with the email pre-populated.
-
-### Network Cleartext Traffic Policy
-- `plugins/withCleartextTraffic.js` config plugin strictly disables cleartext HTTP (`android:usesCleartextTraffic="false"`) in production and preview builds. Cleartext HTTP is permitted only in local development when connecting to emulator loopbacks (`10.0.2.2`).
+Summary of key controls:
+- **Zero-Secret Client Policy:** No private server secrets in mobile code or tracked `.env` files; only public `EXPO_PUBLIC_*` configuration may be bundled.
+- **Fail-Closed Credential Storage:** JWTs stored in `expo-secure-store` (`tokenStorage.ts`) with no native plaintext fallback.
+- **Release HTTPS & Manifest Hardening:** `env.ts` rejects cleartext HTTP when `!__DEV__`; `plugins/withCleartextTraffic.js` blocks cleartext in `preview`/`production`; `plugins/withAndroidSecurityHardening.js` strips `SYSTEM_ALERT_WINDOW` in `preview`/`production`.
 
 ---
 
@@ -211,11 +209,5 @@ Mobile application binaries are publicly distributable packages and can be decom
 ### Android Package Identifier
 - Configured as **`com.pitchmint.app`** in `app.json` (`android.package`).
 
-### Google OAuth Architecture & Integration Strategy (Future Milestone)
-Native Google authentication is not currently implemented; the existing codebase provides an informational placeholder stub (`src/services/auth/googleAuthService.ts`) per the Stage 1 audit.
-
-Before implementing Google Sign-In:
-1. **Approach Investigation:** Evaluate supported authentication approaches for the current Expo SDK (SDK 58) and backend contract, comparing browser-based OAuth (e.g. `expo-auth-session`) and native SDK integration.
-2. **Native Build Modality:** A native SDK approach (such as `@react-native-google-signin/google-signin` or similar) may require a custom EAS development build (`expo-dev-client`).
-3. **Credentials & Artifacts:** Configuration requires a Google Cloud Console Web Client ID (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`) and Android Client ID matching package `com.pitchmint.app` with SHA-1 fingerprint (`google-services.json` is not required when supplying the explicit Web Client ID to `react-native-nitro-google-signin`).
-4. **Decision Criteria:** The authentication strategy must be selected based on a comprehensive evaluation of compatibility with Expo SDK 58, mobile security requirements, user experience, and backend session exchange.
+### Google OAuth Architecture (`react-native-nitro-google-signin`)
+Native Google Sign-In is implemented and unit-tested in `src/services/auth/googleAuthService.ts` using Android Credential Manager (`react-native-nitro-google-signin` and `react-native-nitro-modules`), exchanging Google ID tokens with `POST /api/auth/google`. Live device verification remains pending external Google Cloud Console OAuth setup (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` and Android SHA-1 fingerprint for `com.pitchmint.app`). See [`docs/google-sign-in-setup.md`](google-sign-in-setup.md).

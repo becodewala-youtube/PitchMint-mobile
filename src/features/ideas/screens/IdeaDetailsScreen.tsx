@@ -14,6 +14,7 @@ import {
 import { colors } from '../../../theme';
 import { RootStackParamList } from '../../../navigation/types';
 import { ideasApi } from '../../../services/api/ideasApi';
+import { logDevWarning } from '../../../utils/logger';
 import { useIdeaDetails } from '../hooks/useIdeaDetails';
 import { IdeaDetailsHero } from '../components/IdeaDetailsHero';
 import { IdeaBreakdownSection } from '../components/IdeaBreakdownSection';
@@ -83,7 +84,7 @@ export const IdeaDetailsScreen: React.FC = () => {
       setShowDeleteModal(false);
       navigation.navigate('MainTabs', { screen: 'Ideas' } as any);
     } catch (err: any) {
-      console.warn('[IdeaDetailsScreen] Delete failed:', err);
+      logDevWarning('IdeaDetailsScreen', 'Delete failed', err);
       Alert.alert('Delete Failed', err?.message || 'Unable to delete idea. Please try again.');
     } finally {
       setIsDeleting(false);

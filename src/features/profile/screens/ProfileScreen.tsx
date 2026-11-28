@@ -5,7 +5,6 @@ import {
   Switch,
   RefreshControl,
   Alert,
-  Linking,
   Pressable,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -24,6 +23,7 @@ import { creditsApi } from '../../../services/api/creditsApi';
 import { ApiError } from '../../../services/api/apiClient';
 import { TokenStorageError } from '../../../services/storage/tokenStorage';
 import { config } from '../../../config/env';
+import { openSafeExternalUrl } from '../../../utils/safeLinking';
 import { styles } from './ProfileScreen.styles';
 import { SettingRow } from '../components/SettingRow';
 import { ProfileHeader } from '../components/ProfileHeader';
@@ -68,16 +68,7 @@ export const ProfileScreen: React.FC = () => {
   );
 
   const handleOpenLegalUrl = async (url: string, title: string) => {
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert('Unable to Open Link', `Could not open ${title} in your browser.`);
-      }
-    } catch (err: unknown) {
-      Alert.alert('Unable to Open Link', `Could not open ${title}. Please try again later.`);
-    }
+    await openSafeExternalUrl(url, title, { allowHttp: false, defaultHttps: false });
   };
 
   const handleUpgradePress = () => {

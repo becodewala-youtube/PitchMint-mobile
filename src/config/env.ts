@@ -59,6 +59,18 @@ export const getDefaultApiUrl = (overrideUrl?: string): string => {
   if (envApiUrl) {
     const cleaned = sanitizeApiUrl(envApiUrl);
 
+    // Reject non-HTTP(S) schemes or URLs containing embedded authority credentials
+    const hasHttpScheme = /^https?:\/\/[^/\s?#]+/i.test(cleaned);
+    const hasEmbeddedCreds = /^https?:\/\/[^/\s?#]*@/i.test(cleaned);
+    if (!hasHttpScheme || hasEmbeddedCreds) {
+      return DEFAULT_API_URL;
+    }
+
+    // Refuse cleartext HTTP in non-development builds so dev configuration cannot leak into releases
+    if (!__DEV__ && cleaned.toLowerCase().startsWith('http://')) {
+      return DEFAULT_API_URL;
+    }
+
     // If an explicit local HTTP loopback address is deliberately configured (e.g. via .env.local),
     // adapt for native Android/iOS devices so requests reach the developer host machine.
     if (Platform.OS !== 'web' && (cleaned.startsWith('http://localhost') || cleaned.startsWith('http://127.0.0.1'))) {
@@ -105,13 +117,13 @@ export const isDemoTopUpEnabled = (overrideFlag?: string): boolean => {
 
 export const config: AppConfig = {
   appName: 'PitchMint',
-  appVersion: '1.0.0-phase2',
+  appVersion: '1.0.2',
   environment: __DEV__ ? 'development' : 'production',
   isDev: __DEV__,
   apiUrl: getDefaultApiUrl(),
   features: {
     enableMockData: false, // Live auth flow against backend
-    enableDevBanners: true,
+    enableDevBanners: __DEV__,
     enableDemoTopUp: isDemoTopUpEnabled(),
   },
 };

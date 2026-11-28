@@ -13,7 +13,7 @@
 - **Activity Feed (`ActivityScreen`):** Chronological audit log of idea evaluation runs and credit events.
 - **Profile & Settings (`ProfileScreen`):** User identity, tier badge, security toggles, and development-only demo credit top-up controls.
 - **Onboarding (`WelcomeScreen`, `OnboardingScreen`):** Value proposition walkthrough with completion flag persisted via `expo-secure-store`.
-- **Authentication:** Session management supporting email/password and Google OAuth stub, hardware-backed token storage, 401 automatic session invalidation, and unverified email redirection.
+- **Authentication:** Session management supporting email/password and native Android Credential Manager Google Sign-In (`react-native-nitro-google-signin`; live device verification pending external Google Cloud OAuth setup), hardware-backed token storage, 401 automatic session invalidation, and unverified email redirection.
 
 ---
 
@@ -33,13 +33,13 @@ PitchMint consists of three strictly decoupled repositories:
 ---
 
 ## 3. Verified Technology Stack
-- **Framework:** Expo SDK 58 (`~58.0.23`, Continuous Native Generation / CNG, EAS Build ready)
+- **Framework:** Expo SDK 58 (`~58.1.0`, Continuous Native Generation / CNG, EAS Build ready)
 - **Runtime:** React Native 0.88.1, React 19.3.0
 - **Language:** TypeScript `~6.0.3` (Strict mode, `noEmit: true`)
 - **Navigation:** React Navigation 7 (`@react-navigation/native`, `@react-navigation/native-stack`, `@react-navigation/bottom-tabs`). Do NOT use Expo Router.
-- **Persistence:** Hardware-backed `expo-secure-store` (iOS Keychain / Android Keystore EncryptedSharedPreferences) with in-memory fallback for test environments.
-- **Testing:** Jest 30.5.2, `jest-expo` 58.0.14, `@testing-library/react-native` 14.1.0, `react-test-renderer` 19.3.0.
-- **Quality & Diagnostics:** `tsc --noEmit`, `npx expo-doctor`, Android bundle export checks.
+- **Persistence:** Hardware-backed `expo-secure-store` (iOS Keychain / Android Keystore EncryptedSharedPreferences) with in-memory fallback for test/non-native environments.
+- **Testing:** Jest `~30.5.2`, `jest-expo` `~58.0.16`, `@testing-library/react-native` `^14.1.0`, `react-test-renderer` `^19.3.0`.
+- **Quality & Diagnostics:** `npm run security:check`, `tsc --noEmit`, `npx expo-doctor`, Android bundle export checks.
 
 ---
 

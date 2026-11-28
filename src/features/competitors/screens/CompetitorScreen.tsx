@@ -23,6 +23,7 @@ import { colors } from '../../../theme';
 import { ideasApi, BackendIdea, CompetitorItem, generateIdempotencyKey } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { parseIdeaTitleAndDesc } from '../../../utils/ideaParser';
+import { logDevWarning } from '../../../utils/logger';
 import { CompetitorCard } from '../components/CompetitorCard';
 import { SwotMatrixView } from '../components/SwotMatrixView';
 import { styles } from './CompetitorScreen.styles';
@@ -81,7 +82,7 @@ export const CompetitorScreen: React.FC = () => {
           await refreshUser().catch(() => {});
         }
       } catch (err: any) {
-        console.warn('[CompetitorScreen] Load failed:', err);
+        logDevWarning('CompetitorScreen', 'Load failed', err);
         setError(err?.message || 'Unable to load competitor analysis.');
       } finally {
         setIsLoading(false);
@@ -113,7 +114,7 @@ export const CompetitorScreen: React.FC = () => {
       });
       await refreshUser().catch(() => {});
     } catch (err: any) {
-      console.warn('[CompetitorScreen] Standalone analysis failed:', err);
+      logDevWarning('CompetitorScreen', 'Standalone analysis failed', err);
       setError(err?.message || 'Failed to analyze competitors.');
     } finally {
       setIsAnalyzing(false);
@@ -145,7 +146,7 @@ export const CompetitorScreen: React.FC = () => {
       }
       await refreshUser().catch(() => {});
     } catch (err: any) {
-      console.warn('[CompetitorScreen] Regeneration failed:', err);
+      logDevWarning('CompetitorScreen', 'Regeneration failed', err);
       setError(err?.message || 'Failed to regenerate competitor analysis.');
     } finally {
       setIsAnalyzing(false);
@@ -286,6 +287,7 @@ export const CompetitorScreen: React.FC = () => {
             style={styles.promptTextArea}
             multiline
             numberOfLines={4}
+            maxLength={2000}
             placeholder="Describe your startup concept to discover direct and indirect competitors..."
             placeholderTextColor={colors.text.muted}
             value={standaloneText}

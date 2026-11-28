@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -42,6 +42,7 @@ export const ResetPasswordScreen: React.FC = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (route.params?.email) {
@@ -50,6 +51,7 @@ export const ResetPasswordScreen: React.FC = () => {
   }, [route.params?.email]);
 
   const handleSubmit = async () => {
+    if (isSubmittingRef.current || loading) return;
     setSubmitError(null);
 
     const emailValidation = validateEmail(email);
@@ -73,6 +75,7 @@ export const ResetPasswordScreen: React.FC = () => {
     }
     setPasswordError(null);
 
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       await authApi.resetPassword({
@@ -92,6 +95,7 @@ export const ResetPasswordScreen: React.FC = () => {
           : 'Failed to reset password. Please verify your token and try again.'
       );
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };

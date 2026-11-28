@@ -27,6 +27,7 @@ import {
 } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { parseIdeaTitleAndDesc } from '../../../utils/ideaParser';
+import { logDevWarning } from '../../../utils/logger';
 import { SimulatorIntroStage } from '../components/SimulatorIntroStage';
 import { SimulatorQAStage } from '../components/SimulatorQAStage';
 import { SimulatorResultsStage } from '../components/SimulatorResultsStage';
@@ -92,7 +93,7 @@ export const PitchSimulatorScreen: React.FC = () => {
           setStage('intro');
         }
       } catch (err: any) {
-        console.warn('[PitchSimulatorScreen] Load error:', err);
+        logDevWarning('PitchSimulatorScreen', 'Load error', err);
         setError(err?.message || 'Unable to load pitch simulator.');
       } finally {
         setIsLoading(false);
@@ -139,7 +140,7 @@ export const PitchSimulatorScreen: React.FC = () => {
       setStage('qa');
       await refreshUser().catch(() => {});
     } catch (err: any) {
-      console.warn('[PitchSimulatorScreen] Start error:', err);
+      logDevWarning('PitchSimulatorScreen', 'Start error', err);
       setError(err?.message || 'Failed to start pitch simulation.');
     } finally {
       setIsStarting(false);
@@ -170,7 +171,7 @@ export const PitchSimulatorScreen: React.FC = () => {
       };
       setQuestions(updatedQuestions);
     } catch (err: any) {
-      console.warn('[PitchSimulatorScreen] Evaluate error:', err);
+      logDevWarning('PitchSimulatorScreen', 'Evaluate error', err);
       setError(err?.message || 'Failed to evaluate answer. Please try again.');
     } finally {
       setIsSubmittingAnswer(false);

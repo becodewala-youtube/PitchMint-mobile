@@ -8,7 +8,7 @@ This document captures the verified technical facts, architecture, dependencies,
 
 | Component | Specified Version | Lockfile Version | Notes |
 | :--- | :--- | :--- | :--- |
-| **Expo SDK** | `~58.0.25` | `58.0.25` | Continuous Native Generation (CNG), EAS ready |
+| **Expo SDK** | `~58.1.0` | `58.1.0` | Continuous Native Generation (CNG), EAS ready |
 | **React Native** | `0.88.1` | `0.88.1` | Native runtime |
 | **React** | `19.3.0` | `19.3.0` | Core UI library |
 | **TypeScript** | `~6.0.3` | `6.0.3` | Strict mode enabled (`noEmit: true`) |
@@ -16,7 +16,7 @@ This document captures the verified technical facts, architecture, dependencies,
 | **Hardware Storage** | `~58.0.3` | `58.0.3` | `expo-secure-store` (Keychain / Keystore) |
 | **Native Primitives** | `~4.30.1` / `~5.11.1` | `4.30.1` / `5.11.1` | `react-native-screens`, `react-native-safe-area-context` |
 | **System Integrations**| `~58.0.5` / `~58.0.4` | `58.0.5` / `58.0.4` | `expo-status-bar`, `expo-clipboard` |
-| **Testing** | `~30.5.2` / `~58.0.14` | `30.5.2` / `58.0.14` | `jest`, `jest-expo`, `@testing-library/react-native` (`^14.1.0`) |
+| **Testing** | `~30.5.2` / `~58.0.16` | `30.5.2` / `58.0.16` | `jest`, `jest-expo`, `@testing-library/react-native` (`^14.1.0`) |
 
 ---
 
@@ -29,7 +29,7 @@ This document captures the verified technical facts, architecture, dependencies,
 - **HTTP & Backend Contract:** Centralized `apiClient.ts` wrapper with Bearer token injection, `X-Request-ID` tracing, and global 401 interception. Communicates with external backend services across authentication (`authApi`), startup evaluation and generation (`ideasApi`), balance management (`creditsApi`), and audit logging (`activityApi`). Base URL resolved via `env.ts`. *(Details: [`docs/ARCHITECTURE.md#5-state-management--api-integration`](docs/ARCHITECTURE.md#5-state-management--api-integration))*.
 - **Credit Operations & Balance Authority:** Pre-flight credit confirmation modals are client UX safeguards to prevent accidental clicks. Displayed mobile balances may be cached or outdated and are **not guaranteed**. The backend server is strictly authoritative for balance verification, resource ownership, atomic deduction, and rollback/refund behavior upon processing failure. *(Details: [`docs/ARCHITECTURE.md#6-credit-operations--balance-authority`](docs/ARCHITECTURE.md#6-credit-operations--balance-authority))*.
 - **Design System:** Strict dark-only Arena design system (`#000000` canvas, `#0A0A0A` cards, `#7C3AED` brand violet, 48dp minimum touch targets, 54dp CTA). Powered by 13 reusable primitives in `src/components/` and design tokens in `src/theme/`. *(Details: [`docs/ARCHITECTURE.md#4-design-system-tokens-arena-design-fidelity`](docs/ARCHITECTURE.md#4-design-system-tokens-arena-design-fidelity))*.
-- **Security & Privacy Mandates:** Zero client-side private secrets; only public `EXPO_PUBLIC_*` values may be bundled. Cleartext HTTP is disabled in production builds via `plugins/withCleartextTraffic.js`. Sensitive auth data is never logged. *(Details: [`docs/ARCHITECTURE.md#7-security--mobile-architectural-controls`](docs/ARCHITECTURE.md#7-security--mobile-architectural-controls))*.
+- **Security & Privacy Mandates:** Zero client-side private secrets; `.env` is untracked in Git; only public `EXPO_PUBLIC_*` values may be bundled. Cleartext HTTP is blocked in preview and production builds via `plugins/withCleartextTraffic.js` and `src/config/env.ts`; `SYSTEM_ALERT_WINDOW` is blocked in preview/production via `plugins/withAndroidSecurityHardening.js`. Sensitive auth data is never logged. *(Details: [`docs/SECURITY.md`](docs/SECURITY.md))*.
 
 ---
 
@@ -81,13 +81,13 @@ This document captures the verified technical facts, architecture, dependencies,
 ## 5. Tracked Technical Debt & Open Findings Summary
 
 The following items are tracked in [`docs/known-issues.md`](docs/known-issues.md):
-1. **ENV-01:** Resolved as a verified safe public-default convention.
+1. **ENV-01:** Resolved. Root `.env` untracked via `git rm --cached .env`, `.gitignore` updated, and full-history secret scan verified zero private secrets committed.
 2. **API-01:** Resolved. Configurable request timeouts and stream protection implemented.
 3. **UX-01:** Resolved. Pre-flight credit confirmation modals implemented across validation, deck, canvas, competitors, and simulation.
 4. **API-02:** Resolved. Durable MongoDB idempotency system implemented on backend and client `Idempotency-Key` header propagated from mobile.
 5. **AUTH-01:** In-app account deletion (`DELETE /api/auth/account`) required for App Store and Google Play compliance.
 6. **AUTH-02:** JavaScript fail-closed hardening is implemented, but Android SecureStore native persistence limitation remains open pending upstream SDK release.
-7. **AUTH-03:** Google Sign-In is an informational placeholder stub.
+7. **AUTH-03:** Native Google Sign-In implemented and unit-tested via `react-native-nitro-google-signin`; live device verification pending external Google Cloud OAuth setup.
 8. **BILLING-01:** Production in-app billing (Google Play Billing / Apple StoreKit) required for public store release.
 
 ---
@@ -96,6 +96,7 @@ The following items are tracked in [`docs/known-issues.md`](docs/known-issues.md
 
 For deep architectural, operational, and SDLC specifications, consult:
 - **Comprehensive System Architecture:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- **Authoritative Security Guide:** [`docs/SECURITY.md`](docs/SECURITY.md)
 - **Technical Debt & Known Issues Register:** [`docs/known-issues.md`](docs/known-issues.md)
 - **Local Setup & Developer Guide:** [`docs/SETUP.md`](docs/SETUP.md)
 - **SDLC & CI/CD Tooling Guide:** [`docs/development-workflow.md`](docs/development-workflow.md)
@@ -103,4 +104,5 @@ For deep architectural, operational, and SDLC specifications, consult:
   - Project Scope & Boundaries: [`.agents/rules/project.md`](.agents/rules/project.md)
   - Codebase Architecture Guidelines: [`.agents/rules/architecture.md`](.agents/rules/architecture.md)
   - Coding Conventions: [`.agents/rules/coding.md`](.agents/rules/coding.md)
+  - Security & Governance Rules: [`.agents/rules/security.md`](.agents/rules/security.md)
   - Engineering Lifecycle & Review Model: [`.agents/rules/workflow.md`](.agents/rules/workflow.md)

@@ -43,7 +43,9 @@ class AppErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState>
         <View style={styles.errorContainer}>
           <Text style={styles.errorTitle}>Something went wrong</Text>
           <Text style={styles.errorMessage}>
-            {this.state.error?.message || 'An unexpected rendering error occurred.'}
+            {__DEV__
+              ? this.state.error?.message || 'An unexpected rendering error occurred.'
+              : 'An unexpected rendering error occurred. Please reload the application.'}
           </Text>
           <Button
             title="Reload Application"

@@ -18,6 +18,7 @@ import { usePitchDeck } from '../hooks/usePitchDeck';
 import { PitchDeckSlideViewer } from '../components/PitchDeckSlideViewer';
 import { PitchDeckSlideStrip } from '../components/PitchDeckSlideStrip';
 import { exportPitchDeckPdf, ExportPitchDeckDownloadInfo } from '../utils/pdfExport';
+import { logDevWarning } from '../../../utils/logger';
 
 export { SLIDE_DEFINITIONS, SlideDefinition };
 
@@ -86,7 +87,7 @@ export const PitchDeckScreen: React.FC = () => {
         );
       }
     } catch (err: any) {
-      console.warn('[PitchDeckScreen] PDF export failed:', err);
+      logDevWarning('PitchDeckScreen', 'PDF export failed', err);
       Alert.alert('Export Failed', err?.message || 'Unable to generate or download PDF pitch deck.');
     } finally {
       setIsExportingPdf(false);

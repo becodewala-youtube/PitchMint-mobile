@@ -83,6 +83,7 @@ export const SimulatorQAStage: React.FC<SimulatorQAStageProps> = ({
             testID="simulator-answer-input"
             value={answerText}
             onChangeText={setAnswerText}
+            maxLength={2000}
             placeholder="Type your response to the investor here. Quantify your traction, numbers, and market insight…"
             placeholderTextColor={colors.text.muted}
             multiline

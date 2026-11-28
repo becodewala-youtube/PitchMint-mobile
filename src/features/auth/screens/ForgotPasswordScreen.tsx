@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -33,8 +33,10 @@ export const ForgotPasswordScreen: React.FC = () => {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const handleSubmit = async () => {
+    if (isSubmittingRef.current || loading) return;
     setSubmitError(null);
 
     const emailValidation = validateEmail(email);
@@ -44,6 +46,7 @@ export const ForgotPasswordScreen: React.FC = () => {
     }
     setEmailError(null);
 
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       await authApi.forgotPassword({ email: email.trim() });
@@ -57,6 +60,7 @@ export const ForgotPasswordScreen: React.FC = () => {
           : 'Unable to process reset request. Please check your email and try again.'
       );
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };

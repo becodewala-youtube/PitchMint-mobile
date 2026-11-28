@@ -21,6 +21,7 @@ import { toolkitApi } from '../../../services/api/toolkitApi';
 import { ideasApi } from '../../../services/api/ideasApi';
 import { MatchedInvestor } from '../../../services/api/ideasApi.types';
 import { useAuth } from '../../../context/AuthContext';
+import { logDevWarning } from '../../../utils/logger';
 import { styles } from './InvestorMatchScreen.styles';
 
 type MatchRouteProp = RouteProp<RootStackParamList, 'InvestorMatchmaking'>;
@@ -81,7 +82,7 @@ export const InvestorMatchScreen: React.FC = () => {
       setMatches(response.matches || []);
       await refreshUser().catch(() => {});
     } catch (err: any) {
-      console.warn('[InvestorMatchScreen] Error:', err);
+      logDevWarning('InvestorMatchScreen', 'Investor match error', err);
       setError(err?.message || 'Failed to match investors.');
     } finally {
       setIsLoading(false);
@@ -124,6 +125,7 @@ export const InvestorMatchScreen: React.FC = () => {
             style={styles.textArea}
             multiline
             numberOfLines={3}
+            maxLength={2000}
             placeholder="Describe what your startup does and your unfair advantage..."
             placeholderTextColor={colors.text.muted}
             value={description}
@@ -134,6 +136,7 @@ export const InvestorMatchScreen: React.FC = () => {
           <Text style={styles.label}>Target Industry / Sector</Text>
           <TextInput
             style={styles.input}
+            maxLength={100}
             placeholder="e.g. AI, B2B SaaS, FinTech, BioTech"
             placeholderTextColor={colors.text.muted}
             value={industry}
@@ -144,6 +147,7 @@ export const InvestorMatchScreen: React.FC = () => {
           <Text style={styles.label}>Funding Stage</Text>
           <TextInput
             style={styles.input}
+            maxLength={100}
             placeholder="e.g. Pre-Seed, Seed, Series A"
             placeholderTextColor={colors.text.muted}
             value={stage}
@@ -154,6 +158,7 @@ export const InvestorMatchScreen: React.FC = () => {
           <Text style={styles.label}>Target Check / Raise Amount</Text>
           <TextInput
             style={styles.input}
+            maxLength={50}
             placeholder="e.g. $500K - $1.5M"
             placeholderTextColor={colors.text.muted}
             value={fundingAmount}

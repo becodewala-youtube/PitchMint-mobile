@@ -28,6 +28,7 @@
     "plugins": [
       "expo-secure-store",
       "./plugins/withCleartextTraffic",
+      "./plugins/withAndroidSecurityHardening",
       "expo-status-bar",
       [
         "expo-splash-screen",
@@ -36,7 +37,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#07090E"
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "extra": {
       "eas": {

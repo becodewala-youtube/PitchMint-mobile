@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -40,6 +40,7 @@ export const EmailVerificationScreen: React.FC = () => {
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [resendCooldown, setResendCooldown] = useState(60);
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export const EmailVerificationScreen: React.FC = () => {
   }, [resendCooldown]);
 
   const handleVerify = async () => {
+    if (isSubmittingRef.current || loading) return;
     setSubmitError(null);
     setSuccessNotice(null);
     clearError();
@@ -62,6 +64,7 @@ export const EmailVerificationScreen: React.FC = () => {
     }
     setCodeError(null);
 
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       await verifyEmail({
@@ -76,6 +79,7 @@ export const EmailVerificationScreen: React.FC = () => {
           : 'Invalid or expired verification code. Please request a new code.'
       );
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };

@@ -5,7 +5,7 @@ This document governs architectural boundaries, component reuse, and implementat
 ---
 
 ## 1. Feature-First Architecture & Code Organization
-- **Feature-First Layout:** All application features reside under `src/features/<feature-name>/` (e.g. `auth`, `home`, `ideas`, `pitch-deck`, `canvas`, `validate`, `activity`, `profile`, `onboarding`).
+- **Feature-First Layout:** All application features reside under `src/features/<feature-name>/` (e.g. `auth`, `home`, `ideas`, `pitch-deck`, `canvas`, `competitors`, `pitch-simulator`, `market-research`, `investors`, `toolkit`, `validate`, `activity`, `profile`, `onboarding`).
 - **Standardized Feature Substructure:** Features with non-trivial presentation, business logic, or static data must follow the standardized nested directory structure:
   - `components/` — localized subcomponents used by the feature.
   - `constants/` — authoritative domain definitions, option lists, and static data.
@@ -48,7 +48,7 @@ This document governs architectural boundaries, component reuse, and implementat
 ## 4. State Management & Persistent Storage
 - **Context-Driven State:** Pure React Context (`AuthContext`, `OnboardingContext`) manages session lifecycle without external stores.
 - **Hardware-Backed Credential Storage:** Store session JWTs exclusively in `expo-secure-store` via `src/services/storage/tokenStorage.ts` under key `pitchmint_auth_token`. Maintain the in-memory fallback for test runners. Plaintext token storage is strictly forbidden.
-- **Google Authentication Architecture:** Native Google authentication is not currently implemented; `src/services/auth/googleAuthService.ts` is an informational placeholder stub per the Stage 1 audit. Before implementing Google Sign-In, engineering must investigate supported authentication approaches for Expo SDK 58 (browser-based OAuth vs. native SDK) and the backend contract before selecting a library or build modality.
+- **Google Authentication Architecture:** Native Android Credential Manager Google Sign-In is implemented and unit-tested in `src/services/auth/googleAuthService.ts` via `react-native-nitro-google-signin` and `react-native-nitro-modules`. Live device authentication remains pending external Google Cloud Console OAuth setup (see [`docs/google-sign-in-setup.md`](../../docs/google-sign-in-setup.md)).
 
 ---
 
@@ -63,6 +63,5 @@ This document governs architectural boundaries, component reuse, and implementat
 ---
 
 ## 6. Runtime Configuration & Security Mandates
-- **Sanitized Environment Variables:** Read environment values exclusively via `src/config/env.ts`, which enforces trailing slash removal and Android emulator loopback routing (`10.0.2.2`).
-- **Zero Private Secrets:** Client binaries are publicly distributed. Server secrets (`JWT_SECRET`, `GEMINI_API_KEY`, `RAZORPAY_KEY_SECRET`, database URIs) are strictly forbidden in client code. Only `EXPO_PUBLIC_*` variables may be bundled.
-- **Privacy & Logging:** Never log passwords, tokens, verification codes, or sensitive payloads. Sanitize error objects prior to logging.
+- **Sanitized Environment Variables:** Read environment values exclusively via `src/config/env.ts`, which enforces trailing slash removal, scheme/credential rejection, `!__DEV__` HTTPS enforcement, and Android emulator loopback routing (`10.0.2.2`).
+- **Authoritative Security Policy:** Follow [`.agents/rules/security.md`](security.md) and [`docs/SECURITY.md`](../../docs/SECURITY.md) for secret management, `.env` untracking, cleartext blocking, Android permissions, safe external URL handling (`src/utils/safeLinking.ts`), and sanitized `__DEV__`-only logging (`src/utils/logger.ts`).

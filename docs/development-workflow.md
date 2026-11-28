@@ -14,10 +14,12 @@ All commands must be executed from the root of `PitchMint-mobile`:
 | `npm run android` | `expo start --android` | Boots directly to connected Android device/emulator | Native UI testing |
 | `npm run ios` | `expo start --ios` | Boots to iOS simulator (macOS required) | iOS validation |
 | `npm run web` | `expo start --web` | Starts web preview | Browser sanity check |
+| `npm run security:check` | `node scripts/security-check.mjs` | Verifies `.env` untracked, redacted secret scan, 500-line limit, EAS flags | Pre-commit, every PR, CI |
 | `npm run typecheck` | `tsc --noEmit` | Strict TypeScript compiler validation | Pre-commit, every code change |
 | `npm test` | `jest` | Runs complete Jest unit and component test suite | Pre-commit, every code change |
 | `npm run doctor` | `npx expo-doctor` | Evaluates dependencies and Expo SDK configuration | Dependency bumps & pre-PR |
 | `npm run export:android` | `expo export --platform android` | Bundles Metro JS into Android Hermes bytecode (`dist/`) | Pre-PR and release verification |
+| `npm audit --audit-level=high` | `npm audit --audit-level=high` | Audits lockfile dependencies for high/critical advisories | Dependency bumps & CI |
 
 ---
 
@@ -63,16 +65,16 @@ The CI pipeline is defined in `.github/workflows/ci.yml` and triggers automatica
 - Direct pushes to `main`.
 
 ### Pipeline Stages
-1. **Checkout Repository:** Checks out code using `actions/checkout@v4`.
-2. **Environment Setup:** Configures Node.js runtime `22` with cached `npm` dependencies (`actions/setup-node@v4`).
+1. **Checkout Repository:** Checks out code using pinned `actions/checkout` with `persist-credentials: false`.
+2. **Environment Setup:** Configures Node.js runtime `22` with cached `npm` dependencies (`actions/setup-node`).
 3. **Deterministic Dependency Installation:** Runs `npm ci` honoring `package-lock.json`.
-4. **Static Typecheck:** Runs `npm run typecheck` (`tsc --noEmit`) to enforce strict TypeScript compliance.
-5. **Automated Test Suite:** Runs `npm test -- --ci --maxWorkers=2` to execute all Jest test suites.
-   *(Test Suite Snapshot as of November 2026: 25 test suites, 232 tests passing cleanly).*
-6. **Expo Dependency Compatibility:** Runs `npx expo install --check` to verify core packages match Expo SDK 58 recommendations.
-7. **Expo Doctor Diagnostics:** Runs `npx expo-doctor` to ensure native manifest and plugin configuration health.
-8. **Android Bundle Export:** Runs `npx expo export --platform android` with `EXPO_PUBLIC_API_URL: http://localhost:4000` to validate Hermes bundle compilation.
-9. **Dependency Security Advisory Audit:** Runs `npm audit --audit-level=high` (marked `continue-on-error: true` for build-time developer dependencies).
+4. **Security & Secret Hygiene Check:** Runs `npm run security:check` (ensures `.env` is untracked, scans tracked files with redacted output, checks 500-line limits, and validates `eas.json` release flags).
+5. **Static Typecheck:** Runs `npm run typecheck` (`tsc --noEmit`) to enforce strict TypeScript compliance.
+6. **Automated Test Suite:** Runs `npm test -- --ci --maxWorkers=2` to execute all Jest test suites.
+7. **Expo Dependency Compatibility:** Runs `npx expo install --check` to verify core packages match Expo SDK 58 recommendations.
+8. **Expo Doctor Diagnostics:** Runs `npx expo-doctor` to ensure native manifest and plugin configuration health.
+9. **Android Bundle Export:** Runs `npx expo export --platform android` with `EXPO_PUBLIC_API_URL: https://pitch-mint-backend.vercel.app` to validate Hermes bundle compilation.
+10. **Dependency Security Advisory Audit:** Runs `npm audit --audit-level=high` (fails on high or critical vulnerabilities).
 
 ---
 

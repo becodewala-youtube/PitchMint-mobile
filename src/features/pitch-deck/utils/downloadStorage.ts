@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { logDevWarning } from '../../../utils/logger';
 
 export const DOWNLOAD_DIRECTORY_URI_KEY = 'pitchmint_pdf_download_dir_uri';
 
@@ -24,7 +25,7 @@ export async function getStoredDownloadDirectoryUri(): Promise<string | null> {
     const val = await SecureStore.getItemAsync(DOWNLOAD_DIRECTORY_URI_KEY);
     return val ?? memoryStore[DOWNLOAD_DIRECTORY_URI_KEY] ?? null;
   } catch (err) {
-    console.warn('[downloadStorage] Failed to read stored download directory URI:', err);
+    logDevWarning('downloadStorage', 'Failed to read stored download directory URI', err);
     return memoryStore[DOWNLOAD_DIRECTORY_URI_KEY] ?? null;
   }
 }
@@ -42,7 +43,7 @@ export async function saveDownloadDirectoryUri(uri: string): Promise<void> {
       keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
     });
   } catch (err) {
-    console.warn('[downloadStorage] Failed to save download directory URI:', err);
+    logDevWarning('downloadStorage', 'Failed to save download directory URI', err);
   }
 }
 
@@ -57,6 +58,6 @@ export async function clearStoredDownloadDirectoryUri(): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(DOWNLOAD_DIRECTORY_URI_KEY);
   } catch (err) {
-    console.warn('[downloadStorage] Failed to clear download directory URI:', err);
+    logDevWarning('downloadStorage', 'Failed to clear download directory URI', err);
   }
 }

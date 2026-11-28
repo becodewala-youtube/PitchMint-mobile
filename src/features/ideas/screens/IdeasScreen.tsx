@@ -21,6 +21,7 @@ import { RootStackParamList } from '../../../navigation/types';
 import { ideasApi, mapBackendIdeaToCard } from '../../../services/api/ideasApi';
 import { ParsedIdeaCard } from '../../../utils/ideaParser';
 import { formatRelativeTime } from '../../../utils/date';
+import { logDevWarning } from '../../../utils/logger';
 import { styles } from './IdeasScreen.styles';
 import { IdeasSearchBar, FilterType } from '../components/IdeasSearchBar';
 import { IdeasPagination } from '../components/IdeasPagination';
@@ -118,7 +119,7 @@ export const IdeasScreen: React.FC = () => {
         if (!isMountedRef.current || currentReqId !== requestIdRef.current) {
           return;
         }
-        console.warn('[IdeasScreen] Failed to load saved ideas:', err?.message || err);
+        logDevWarning('IdeasScreen', 'Failed to load saved ideas', err);
         if (!options.isBackground || ideasRef.current.length === 0) {
           setError(err?.message || 'Unable to retrieve saved ideas. Please try again.');
         }
@@ -207,7 +208,7 @@ export const IdeasScreen: React.FC = () => {
       }
       setIdeaToDelete(null);
     } catch (delErr: any) {
-      console.warn('[IdeasScreen] Failed to delete idea:', delErr?.message || delErr);
+      logDevWarning('IdeasScreen', 'Failed to delete idea', delErr);
       setError(delErr?.message || 'Failed to delete idea. Please try again.');
     } finally {
       setIsDeleting(false);
